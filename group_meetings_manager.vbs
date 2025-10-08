@@ -6,11 +6,41 @@ Set objShell = CreateObject("WScript.Shell")
 Dim fso
 Set fso = CreateObject("Scripting.FileSystemObject")
 
+Dim SCRIPT_FOLDER, LOG_FILE_PATH
+SCRIPT_FOLDER = fso.GetParentFolderName(WScript.ScriptFullName)
+LOG_FILE_PATH = fso.BuildPath(SCRIPT_FOLDER, "group_meetings_manager.log")
+
+Sub LogEvent(message)
+    On Error Resume Next
+    Dim ts
+    Set ts = fso.OpenTextFile(LOG_FILE_PATH, 8, True)
+    ts.WriteLine Now & " - " & message
+    ts.Close
+    Set ts = Nothing
+    On Error GoTo 0
+End Sub
+
+Sub LogError(context)
+    Dim errMsg
+    errMsg = context & " | Err: " & Err.Number & " - " & Err.Description
+    LogEvent errMsg
+    Err.Clear
+End Sub
+
+Call LogEvent("=== Script execution started ===")
+Call LogEvent("Logging to file: " & LOG_FILE_PATH)
+
 ' Build the command
 strCmd = "C:\rclone\rclone.exe copy ""ABTsharepoint:/Group Meetings/meeting_rota.xlsx"" ""C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"""
+Call LogEvent("Executing rclone command: " & strCmd)
 
 ' Run the command, show window (1) and wait until it finishes (True)
-objShell.Run strCmd, 0, True
+Dim rcloneExitCode
+rcloneExitCode = objShell.Run(strCmd, 0, True)
+Call LogEvent("rclone command completed with exit code: " & rcloneExitCode)
+If rcloneExitCode <> 0 Then
+    Call LogEvent("WARNING: rclone returned non-zero exit code: " & rcloneExitCode)
+End If
 
 '==============================================================
 ' Group Meeting Email Automation (Integrated & Optimized)
@@ -30,8 +60,25 @@ Const SHEET_ROTA = "Rota"
 Const SHEET_EMAILS = "Emails"
 
 Dim OL, olNS
+
+On Error Resume Next
 Set OL = CreateObject("Outlook.Application")
+If Err.Number <> 0 Then
+    LogError "Failed to create Outlook.Application"
+    WScript.Quit Err.Number
+Else
+    Call LogEvent("Outlook application created successfully.")
+End If
+On Error GoTo 0
+
+On Error Resume Next
 Set olNS = OL.GetNamespace("MAPI")
+If Err.Number <> 0 Then
+    LogError "Failed to obtain Outlook namespace"
+    WScript.Quit Err.Number
+End If
+On Error GoTo 0
+Call LogEvent("Obtained Outlook namespace for MAPI.")
 
 '==============================================================
 ' Module 1: Email Verification
@@ -39,15 +86,18 @@ Set olNS = OL.GetNamespace("MAPI")
 Function EmailExists(header)
     Dim inbox, items, mail, found
     found = False
+    Call LogEvent("Checking Outlook inbox for email with subject: " & header)
     Set inbox = olNS.GetDefaultFolder(6) ' Inbox
     Set items = inbox.Items
     items.Sort "ReceivedTime", True
     For Each mail In items
         If mail.Subject = header Then
             found = True
+            Call LogEvent("Email with subject '" & header & "' already exists. Skipping related actions.")
             Exit For
         End If
     Next
+    Call LogEvent("EmailExists('" & header & "') result: " & found)
     EmailExists = found
 End Function
 
@@ -60,16 +110,24 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     results    = objSheetRota.Cells(row, 3).Value
     alternate  = objSheetRota.Cells(row, 4).Value
     room       = objSheetRota.Cells(row, 5).Value
+    Call LogEvent("Generating main email content for date " & meetingDate & _
+                  " | Row: " & row & " | Lit: " & literature & _
+                  " | Res: " & results & " | Alt: " & alternate & _
+                  " | Room: " & room)
     
     ' Next Friday content
     If nextFridayRow <> -1 Then
         next_lit = objSheetRota.Cells(nextFridayRow, 2).Value
         next_res = objSheetRota.Cells(nextFridayRow, 3).Value
         next_alt = objSheetRota.Cells(nextFridayRow, 4).Value
+        Call LogEvent("Next Friday presenters found | Row: " & nextFridayRow & _
+                      " | Lit: " & next_lit & " | Res: " & next_res & _
+                      " | Alt: " & next_alt)
     Else
         next_lit = ""
         next_res = ""
         next_alt = ""
+        Call LogEvent("No next Friday data found. Using empty placeholders.")
     End If
     
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
@@ -107,6 +165,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
 
     content = content & vbCrLf & "Best," & vbCrLf & Trim(nameParts(1))
     GenerateEmailContent = content
+    Call LogEvent("Generated email body length: " & Len(content))
 End Function
 
 '==============================================================
@@ -115,13 +174,16 @@ End Function
 Sub DistributeEmail(header, body)
     Dim mail
     Set mail = OL.CreateItem(0)
+    Call LogEvent("Preparing regular meeting email with subject: " & header)
     With mail
         .To = EMAIL_TO
         .Subject = header
         .Body = body
         If DEBUG_MODE Then
+            Call LogEvent("DEBUG_MODE enabled - email not sent. Subject: " & header)
             MsgBox "[DEBUG] Would send email:" & vbCrLf & vbCrLf & header & vbCrLf & body
         Else
+            Call LogEvent("Sending email to " & EMAIL_TO & " with subject: " & header)
             .Send
         End If
     End With
@@ -157,14 +219,17 @@ End Function
 Sub AlertEmail(toAddress, messageBody, subjectText)
     Dim mail
     Set mail = OL.CreateItem(0)
+    Call LogEvent("Preparing alert email with subject: " & subjectText & " to " & toAddress)
     With mail
         .To = toAddress
         .Subject = subjectText
         .Body = messageBody
         If DEBUG_MODE Then
+            Call LogEvent("DEBUG_MODE enabled - alert email not sent. Subject: " & subjectText)
             MsgBox "[DEBUG] Would send ALERT email to " & toAddress & ":" & vbCrLf & _
                 "Subject: " & subjectText & vbCrLf & vbCrLf & messageBody
         Else
+            Call LogEvent("Sending alert email to " & toAddress & " with subject: " & subjectText)
             .Send
         End If
     End With
@@ -176,18 +241,23 @@ End Sub
 Sub AlertEmailWithAttachment(toAddress, messageBody, subjectText, attachmentPath)
     Dim mail
     Set mail = OL.CreateItem(0)
+    Call LogEvent("Preparing alert email with attachment. Subject: " & subjectText & _
+                  " | Recipient: " & toAddress & " | Attachment: " & attachmentPath)
     With mail
         .To = toAddress
         .Subject = subjectText
         .Body = messageBody
         If attachmentPath <> "" Then
             .Attachments.Add attachmentPath
+            Call LogEvent("Attached file to email: " & attachmentPath)
         End If
         If DEBUG_MODE Then
+            Call LogEvent("DEBUG_MODE enabled - alert email with attachment not sent. Subject: " & subjectText)
             MsgBox "[DEBUG] Would send ALERT email with attachment to " & toAddress & ":" & vbCrLf & _
                    "Subject: " & subjectText & vbCrLf & vbCrLf & messageBody & vbCrLf & _
                    "Attachment: " & attachmentPath
         Else
+            Call LogEvent("Sending alert email with attachment to " & toAddress & " with subject: " & subjectText)
             .Send
         End If
     End With
@@ -200,6 +270,7 @@ Function GenerateTentativeRota(objSheetEmails)
     Dim lastRow, i, numNames, names(), rndIndex, tmp
     Dim rotaDates(), rotaAssignments(), rotaBody, dt, totalWeeks
     Dim csvFile, fso, txtStream
+    Call LogEvent("Starting tentative rota generation")
 
     '--- Collect names with column D = 1 ---
     lastRow = objSheetEmails.Cells(objSheetEmails.Rows.Count, "A").End(-4162).Row
@@ -207,7 +278,9 @@ Function GenerateTentativeRota(objSheetEmails)
     For i = 2 To lastRow
         If objSheetEmails.Cells(i, 4).Value = 1 Then numNames = numNames + 1
     Next
+    Call LogEvent("Eligible names counted: " & numNames)
     If numNames = 0 Then
+        Call LogEvent("No eligible names found for tentative rota.")
         GenerateTentativeRota = "No eligible names for rota."
         Exit Function
     End If
@@ -220,6 +293,7 @@ Function GenerateTentativeRota(objSheetEmails)
             numNames = numNames + 1
         End If
     Next
+    Call LogEvent("Names loaded for rota: " & Join(names, ", "))
 
     '--- Shuffle names ---
     Randomize
@@ -229,9 +303,11 @@ Function GenerateTentativeRota(objSheetEmails)
         names(i) = names(rndIndex)
         names(rndIndex) = tmp
     Next
+    Call LogEvent("Names shuffled for tentative rota.")
 
     '--- Generate tentative dates and assignments ---
     totalWeeks = 26
+    Call LogEvent("Generating tentative rota for weeks: " & totalWeeks)
     ReDim rotaDates(totalWeeks - 1)
     ReDim rotaAssignments(totalWeeks - 1, 1)
     dt = Date + ((5 - Weekday(Date, vbMonday) + 7) Mod 7)
@@ -255,6 +331,7 @@ Function GenerateTentativeRota(objSheetEmails)
     '--- Create CSV ---
     Set fso = CreateObject("Scripting.FileSystemObject")
     csvFile = fso.GetSpecialFolder(2) & "\TentativeRota.csv"
+    Call LogEvent("Writing tentative rota CSV to: " & csvFile)
     Set txtStream = fso.CreateTextFile(csvFile, True)
     txtStream.WriteLine "Date,Presenter1,Presenter2"
     For i = 0 To totalWeeks - 1
@@ -264,6 +341,7 @@ Function GenerateTentativeRota(objSheetEmails)
     txtStream.Close
 
     GenerateTentativeRota = rotaBody & vbCrLf & "[CSV: " & csvFile & "]"
+    Call LogEvent("Tentative rota generation completed.")
 End Function
 
 Function PadRight(str, totalLength)
@@ -282,6 +360,7 @@ End Function
 Sub WriteRotaCSV(rotaText, filePath)
     Dim fso, ts, lines, line, i
     Set fso = CreateObject("Scripting.FileSystemObject")
+    Call LogEvent("Writing provided rota text to CSV at: " & filePath)
 
     ' Split rota text by lines
     lines = Split(rotaText, vbCrLf)
@@ -302,6 +381,7 @@ Sub WriteRotaCSV(rotaText, filePath)
     ts.Close
     Set ts = Nothing
     Set fso = Nothing
+    Call LogEvent("CSV writing completed for: " & filePath)
 End Sub
 
 '==============================================================
@@ -309,28 +389,56 @@ End Sub
 '==============================================================
 Sub Coordinator()
     Dim thisFriday, nextFriday, nextNextFriday
-    Dim header, objExcel, objWorkbook, objSheetRota, objSheetEmails 
+    Dim header, objExcel, objWorkbook, objSheetRota, objSheetEmails
     Dim lastRow, i, meetingDate
     Dim foundRow, nextFridayRow, nextNextFridayRow
     Dim body, literature, results, alternate, room
+    Call LogEvent("Coordinator routine started")
 
     '--- Define Fridays ---
     thisFriday = Date + ((5 - Weekday(Date, vbMonday) + 7) Mod 7)
     nextFriday = thisFriday + 7
     nextNextFriday = thisFriday + 14
     header = "ABT group meeting @ 11am (" & FormatDateTime(thisFriday, 2) & ")"
+    Call LogEvent("Computed Fridays | This: " & FormatDateTime(thisFriday, 2) & _
+                  " | Next: " & FormatDateTime(nextFriday, 2) & _
+                  " | Next+1: " & FormatDateTime(nextNextFriday, 2))
 
     '--- Exit if regular meeting email already exists ---
-    If EmailExists(header) Then Exit Sub
+    If EmailExists(header) Then
+        Call LogEvent("Existing meeting email detected. Coordinator will exit early.")
+        Exit Sub
+    End If
 
     '--- Open Excel ---
+    On Error Resume Next
     Set objExcel = CreateObject("Excel.Application")
+    If Err.Number <> 0 Then
+        LogError "Failed to create Excel.Application"
+        On Error GoTo 0
+        Exit Sub
+    End If
+    On Error GoTo 0
+    Call LogEvent("Excel application created successfully.")
+
+    On Error Resume Next
     Set objWorkbook = objExcel.Workbooks.Open(EXCEL_PATH)
+    If Err.Number <> 0 Then
+        LogError "Failed to open workbook: " & EXCEL_PATH
+        objExcel.Quit
+        Set objExcel = Nothing
+        On Error GoTo 0
+        Exit Sub
+    End If
+    On Error GoTo 0
+    Call LogEvent("Workbook opened: " & EXCEL_PATH)
     Set objSheetRota = objWorkbook.Sheets(SHEET_ROTA)
     Set objSheetEmails = objWorkbook.Sheets(SHEET_EMAILS)
+    Call LogEvent("Sheets obtained: Rota and Emails")
 
     lastRow = objSheetRota.Cells(objSheetRota.Rows.Count, "A").End(-4162).Row
     foundRow = -1: nextFridayRow = -1: nextNextFridayRow = -1
+    Call LogEvent("Scanning rota sheet up to row: " & lastRow)
 
     '--- Locate rows for Fridays ---
     For i = 2 To lastRow
@@ -339,6 +447,9 @@ Sub Coordinator()
         If meetingDate = nextFriday Then nextFridayRow = i
         If meetingDate = nextNextFriday Then nextNextFridayRow = i
     Next
+    Call LogEvent("Rota rows located | This: " & foundRow & _
+                  " | Next: " & nextFridayRow & _
+                  " | Next+1: " & nextNextFridayRow)
 
     '--- Prepare critical issues arrays ---
     Dim criticalDates(2), criticalTypes(2), recipientEmails(2)
@@ -361,15 +472,22 @@ Sub Coordinator()
         If rowNum = -1 Then
             criticalTypes(idx) = "MissingDate"
             recipientEmails(idx) = MANAGER
+            Call LogEvent("MissingDate detected for " & FormatDateTime(criticalDates(idx), 2) & _
+                          ". Alert will be sent to " & MANAGER)
         Else
             tmpLiterature = objSheetRota.Cells(rowNum, 2).Value
             tmpResults    = objSheetRota.Cells(rowNum, 3).Value
             tmpAlternate  = objSheetRota.Cells(rowNum, 4).Value
             tmpRoom       = objSheetRota.Cells(rowNum, 5).Value
+            Call LogEvent("Row " & rowNum & " data | Lit: " & tmpLiterature & _
+                          " | Res: " & tmpResults & " | Alt: " & tmpAlternate & _
+                          " | Room: " & tmpRoom)
 
             If Trim(tmpLiterature) = "" And Trim(tmpResults) = "" And Trim(tmpAlternate) = "" Then
                 criticalTypes(idx) = "Unassigned"
                 recipientEmails(idx) = SUPERVISOR_EMAIL
+                Call LogEvent("Unassigned presenters detected for " & FormatDateTime(criticalDates(idx), 2) & _
+                              ". Alert will be sent to supervisor.")
             End If
 
             If Trim(tmpRoom) = "" Then
@@ -377,6 +495,8 @@ Sub Coordinator()
                 Dim missingRoomSubject
                 missingRoomSubject = "ALERT: MissingRoom for " & FormatDateTime(criticalDates(idx), 2)
                 If Not EmailExists(missingRoomSubject) Then
+                    Call LogEvent("Missing room detected for " & FormatDateTime(criticalDates(idx), 2) & _
+                                  ". Alert will be sent to building admin.")
                     Call AlertEmail(BUILDING_ADMIN_EMAIL, _
                         GenerateEmailAlert("MissingRoom", FormatDateTime(criticalDates(idx), 2), BUILDING_ADMIN_EMAIL, ""), _
                         missingRoomSubject)
@@ -398,10 +518,14 @@ Sub Coordinator()
                     Set fso = CreateObject("Scripting.FileSystemObject")
                     csvPath = fso.GetSpecialFolder(2) & "\TentativeRota.csv"
                     WriteRotaCSV tentativeRota, csvPath
+                    Call LogEvent("Prepared tentative rota attachment for alert: " & csvPath)
                 Else
                     tentativeRota = ""
                     csvPath = ""
                 End If
+                Call LogEvent("Dispatching alert email | Type: " & criticalTypes(idx) & _
+                              " | Date: " & FormatDateTime(criticalDates(idx), 2) & _
+                              " | Recipient: " & recipientEmails(idx))
                 Call AlertEmailWithAttachment(recipientEmails(idx), _
                     GenerateEmailAlert(criticalTypes(idx), FormatDateTime(criticalDates(idx), 2), recipientEmails(idx), tentativeRota), _
                     alertSubject, csvPath)
@@ -412,7 +536,10 @@ Sub Coordinator()
     '--- Send regular meeting email for this Friday ---
     If foundRow <> -1 Then
         body = GenerateEmailContent(thisFriday, foundRow, objSheetRota, nextFridayRow)
+        Call LogEvent("Dispatching regular meeting email for " & FormatDateTime(thisFriday, 2))
         Call DistributeEmail(header, body)
+    Else
+        Call LogEvent("No rota entry found for this Friday. Regular email will not be sent.")
     End If
 
     '--- Clean up ---
@@ -422,16 +549,23 @@ Sub Coordinator()
     Set objWorkbook = Nothing
     Set objSheetRota = Nothing
     Set objSheetEmails = Nothing
+    Call LogEvent("Coordinator routine completed and Excel resources released.")
 End Sub
 
 
 '==============================================================
 ' Module 8: Scheduler (Entrypoint)
 '==============================================================
+Call LogEvent("Invoking Coordinator routine")
 Coordinator
 
 
 ' Check if the file exists before deleting
 If fso.FileExists(EXCEL_PATH) Then
+    Call LogEvent("Deleting local Excel file after sync: " & EXCEL_PATH)
     fso.DeleteFile EXCEL_PATH, True  ' True = force deletion (even if read-only)
+Else
+    Call LogEvent("Local Excel file not found during cleanup: " & EXCEL_PATH)
 End If
+
+Call LogEvent("=== Script execution completed ===")
