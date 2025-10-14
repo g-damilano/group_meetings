@@ -105,11 +105,12 @@ End Function
 ' Module 2: Email Generation (Meeting)
 '==============================================================
 Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
-    Dim literature, results, alternate, room, next_lit, next_res, next_alt, content, nameParts
+    Dim literature, results, alternate, room, labManager, next_lit, next_res, next_alt, content, nameParts
     literature = objSheetRota.Cells(row, 2).Value
     results    = objSheetRota.Cells(row, 3).Value
     alternate  = objSheetRota.Cells(row, 4).Value
     room       = objSheetRota.Cells(row, 5).Value
+    labManager = Trim(objSheetRota.Cells(row, 6).Value)
     Call LogEvent("Generating main email content for date " & meetingDate & _
                   " | Row: " & row & " | Lit: " & literature & _
                   " | Res: " & results & " | Alt: " & alternate & _
@@ -132,38 +133,47 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
     
-    content = "Hi all," & vbCrLf & vbCrLf
+    content = "Hi all," & vbCrLf
     If Trim(room) <> "" Then
         content = content & "We will have our group meeting on " & meetingDate & _
-                  " at 11:00 am in " & room & " in person or via MS Teams." & vbCrLf & vbCrLf
+                  " at 11:00 am in " & room & " in person or via MS Teams." & vbCrLf
     Else
         content = content & "We will have our group meeting on " & meetingDate & _
-                  " at 11:00 am in person or via MS Teams." & vbCrLf & vbCrLf
+                  " at 11:00 am in person or via MS Teams." & vbCrLf
     End If
-    
+
     content = content & "Meeting agenda:" & vbCrLf
     If alternate <> "" Then
-        content = content & "     " & alternate & vbCrLf
+        content = content & "    " & alternate & vbCrLf
     Else
-        content = content & "     " & results & " will present results." & vbCrLf
-        content = content & "     " & literature & " will present literature." & vbCrLf & vbCrLf
+        content = content & "    " & results & " will present results." & vbCrLf
+        content = content & "    " & literature & " will present literature." & vbCrLf
     End If
-    
+
     If next_lit <> "" And next_res <> "" Then
         content = content & "The week after:" & vbCrLf
         If next_alt <> "" Then
-            content = content & "     " & next_alt & vbCrLf
+            content = content & "    " & next_alt & vbCrLf
         Else
-            content = content & "     " & next_res & " will present results." & vbCrLf
-            content = content & "     " & next_lit & " will present literature." & vbCrLf & vbCrLf
+            content = content & "    " & next_res & " will present results." & vbCrLf
+            content = content & "    " & next_lit & " will present literature." & vbCrLf
         End If
     End If
 
+    If labManager = "" Then
+        labManager = "TBD"
+    End If
+
+    content = content & vbCrLf
+    content = content & "The lab manager for this week is " & labManager & _
+              ". Lab cleaning starts on Friday and must be completed by next Friday — please try to finish it by Friday EOD " & _
+              "so the lab is ready for Monday." & vbCrLf & vbCrLf
+
     ' Add link to rota
-    content = content & vbCrLf & "Upcoming weeks schedule: " & _
+    content = content & "Upcoming weeks schedule: " & _
               "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx?web=1" & vbCrLf & vbCrLf
 
-    content = content & vbCrLf & "Best," & vbCrLf & Trim(nameParts(1))
+    content = content & "Best," & vbCrLf & Trim(nameParts(1))
     GenerateEmailContent = content
     Call LogEvent("Generated email body length: " & Len(content))
 End Function
