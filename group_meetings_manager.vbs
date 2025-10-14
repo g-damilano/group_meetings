@@ -105,11 +105,12 @@ End Function
 ' Module 2: Email Generation (Meeting)
 '==============================================================
 Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
-    Dim literature, results, alternate, room, next_lit, next_res, next_alt, content, nameParts
-    literature = objSheetRota.Cells(row, 2).Value
-    results    = objSheetRota.Cells(row, 3).Value
-    alternate  = objSheetRota.Cells(row, 4).Value
-    room       = objSheetRota.Cells(row, 5).Value
+    Dim literature, results, alternate, room, labManager, next_lit, next_res, next_alt, content, nameParts
+    literature = Trim(objSheetRota.Cells(row, 2).Value)
+    results    = Trim(objSheetRota.Cells(row, 3).Value)
+    alternate  = Trim(objSheetRota.Cells(row, 4).Value)
+    room       = Trim(objSheetRota.Cells(row, 5).Value)
+    labManager = Trim(objSheetRota.Cells(row, 6).Value)
     Call LogEvent("Generating main email content for date " & meetingDate & _
                   " | Row: " & row & " | Lit: " & literature & _
                   " | Res: " & results & " | Alt: " & alternate & _
@@ -132,40 +133,114 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
     
-    content = "Hi all," & vbCrLf & vbCrLf
+    content = "Hi all," & vbCrLf
     If Trim(room) <> "" Then
         content = content & "We will have our group meeting on " & meetingDate & _
-                  " at 11:00 am in " & room & " in person or via MS Teams." & vbCrLf & vbCrLf
+                  " at 11:00 am in " & room & " in person or via MS Teams." & vbCrLf
     Else
         content = content & "We will have our group meeting on " & meetingDate & _
-                  " at 11:00 am in person or via MS Teams." & vbCrLf & vbCrLf
+                  " at 11:00 am in person or via MS Teams." & vbCrLf
     End If
-    
+
     content = content & "Meeting agenda:" & vbCrLf
     If alternate <> "" Then
-        content = content & "     " & alternate & vbCrLf
+        content = content & "    " & alternate & vbCrLf
     Else
-        content = content & "     " & results & " will present results." & vbCrLf
-        content = content & "     " & literature & " will present literature." & vbCrLf & vbCrLf
+        content = content & "    " & results & " will present results." & vbCrLf
+        content = content & "    " & literature & " will present literature." & vbCrLf
     End If
-    
+
     If next_lit <> "" And next_res <> "" Then
         content = content & "The week after:" & vbCrLf
         If next_alt <> "" Then
-            content = content & "     " & next_alt & vbCrLf
+            content = content & "    " & next_alt & vbCrLf
         Else
-            content = content & "     " & next_res & " will present results." & vbCrLf
-            content = content & "     " & next_lit & " will present literature." & vbCrLf & vbCrLf
+            content = content & "    " & next_res & " will present results." & vbCrLf
+            content = content & "    " & next_lit & " will present literature." & vbCrLf
         End If
     End If
 
-    ' Add link to rota
-    content = content & vbCrLf & "Upcoming weeks schedule: " & _
-              "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx?web=1" & vbCrLf & vbCrLf
+    If labManager = "" Then
+        labManager = "TBD"
+    End If
 
-    content = content & vbCrLf & "Best," & vbCrLf & Trim(nameParts(1))
+    content = content & vbCrLf
+    content = content & "The lab manager for this week is " & labManager & _
+              ". Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
+              " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
+
+    ' Add link to rota
+    content = content & "Upcoming weeks schedule: " & _
+              "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx?web=1" & vbCrLf
+
+    content = content & "Best," & vbCrLf & Trim(nameParts(1))
     GenerateEmailContent = content
     Call LogEvent("Generated email body length: " & Len(content))
+End Function
+
+'==============================================================
+' Module 2b: Presenter Reminder Generation
+'==============================================================
+Function GeneratePresenterReminderEmail(presenterName, presentationType)
+    Dim content, nameParts, normalizedType, description
+    presenterName = Trim(presenterName)
+    presentationType = Trim(presentationType)
+    Call LogEvent("Generating presenter reminder email | Presenter: " & presenterName & _
+                  " | Type: " & presentationType)
+
+    normalizedType = LCase(presentationType)
+    Select Case normalizedType
+        Case "literature"
+            description = "the literature session"
+        Case "results"
+            description = "the results update"
+        Case Else
+            If presentationType <> "" Then
+                description = "the " & presentationType & " presentation"
+            Else
+                description = "your presentation"
+            End If
+    End Select
+
+    If presenterName = "" Then
+        presenterName = "there"
+    End If
+
+    nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+
+    content = "Hi " & presenterName & "," & vbCrLf
+    content = content & "Just a reminder that you are scheduled to present " & description & _
+              " at this week's group meeting." & vbCrLf
+    content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf
+    content = content & vbCrLf
+    content = content & "Best," & vbCrLf & Trim(nameParts(1))
+    GeneratePresenterReminderEmail = content
+    Call LogEvent("Generated presenter reminder length: " & Len(content))
+End Function
+
+'==============================================================
+' Module 2c: Lab Manager Reminder Generation
+'==============================================================
+Function GenerateLabManagerReminderEmail(labManagerName)
+    Dim content, nameParts, manager
+    manager = Trim(labManagerName)
+    Call LogEvent("Generating lab manager reminder email | Manager: " & manager)
+
+    If manager = "" Then
+        manager = "there"
+    End If
+
+    nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+
+    content = "Hi " & manager & "," & vbCrLf
+    content = content & "This is a reminder that you are the lab manager for this week." & vbCrLf
+    content = content & "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
+              " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
+    content = content & "Thank you for keeping the lab organized." & vbCrLf
+    content = content & vbCrLf
+    content = content & "Best," & vbCrLf & Trim(nameParts(1))
+    GenerateLabManagerReminderEmail = content
+    Call LogEvent("Generated lab manager reminder length: " & Len(content))
 End Function
 
 '==============================================================
