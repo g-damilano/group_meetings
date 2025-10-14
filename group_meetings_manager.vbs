@@ -166,8 +166,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
 
     content = content & vbCrLf
     content = content & "The lab manager for this week is " & labManager & _
-              ". Lab cleaning starts on Friday and must be completed by next Friday — please try to finish it by Friday EOD " & _
-              "so the lab is ready for Monday." & vbCrLf
+              ". Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
+              " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
 
     ' Add link to rota
     content = content & "Upcoming weeks schedule: " & _
