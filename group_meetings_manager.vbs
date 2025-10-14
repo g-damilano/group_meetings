@@ -106,10 +106,10 @@ End Function
 '==============================================================
 Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     Dim literature, results, alternate, room, labManager, next_lit, next_res, next_alt, content, nameParts
-    literature = objSheetRota.Cells(row, 2).Value
-    results    = objSheetRota.Cells(row, 3).Value
-    alternate  = objSheetRota.Cells(row, 4).Value
-    room       = objSheetRota.Cells(row, 5).Value
+    literature = Trim(objSheetRota.Cells(row, 2).Value)
+    results    = Trim(objSheetRota.Cells(row, 3).Value)
+    alternate  = Trim(objSheetRota.Cells(row, 4).Value)
+    room       = Trim(objSheetRota.Cells(row, 5).Value)
     labManager = Trim(objSheetRota.Cells(row, 6).Value)
     Call LogEvent("Generating main email content for date " & meetingDate & _
                   " | Row: " & row & " | Lit: " & literature & _
