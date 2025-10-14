@@ -179,6 +179,71 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
 End Function
 
 '==============================================================
+' Module 2b: Presenter Reminder Generation
+'==============================================================
+Function GeneratePresenterReminderEmail(presenterName, presentationType)
+    Dim content, nameParts, normalizedType, description
+    presenterName = Trim(presenterName)
+    presentationType = Trim(presentationType)
+    Call LogEvent("Generating presenter reminder email | Presenter: " & presenterName & _
+                  " | Type: " & presentationType)
+
+    normalizedType = LCase(presentationType)
+    Select Case normalizedType
+        Case "literature"
+            description = "the literature session"
+        Case "results"
+            description = "the results update"
+        Case Else
+            If presentationType <> "" Then
+                description = "the " & presentationType & " presentation"
+            Else
+                description = "your presentation"
+            End If
+    End Select
+
+    If presenterName = "" Then
+        presenterName = "there"
+    End If
+
+    nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+
+    content = "Hi " & presenterName & "," & vbCrLf
+    content = content & "Just a reminder that you are scheduled to present " & description & _
+              " at this week's group meeting." & vbCrLf
+    content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf
+    content = content & vbCrLf
+    content = content & "Best," & vbCrLf & Trim(nameParts(1))
+    GeneratePresenterReminderEmail = content
+    Call LogEvent("Generated presenter reminder length: " & Len(content))
+End Function
+
+'==============================================================
+' Module 2c: Lab Manager Reminder Generation
+'==============================================================
+Function GenerateLabManagerReminderEmail(labManagerName)
+    Dim content, nameParts, manager
+    manager = Trim(labManagerName)
+    Call LogEvent("Generating lab manager reminder email | Manager: " & manager)
+
+    If manager = "" Then
+        manager = "there"
+    End If
+
+    nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+
+    content = "Hi " & manager & "," & vbCrLf
+    content = content & "This is a reminder that you are the lab manager for this week." & vbCrLf
+    content = content & "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
+              " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
+    content = content & "Thank you for keeping the lab organized." & vbCrLf
+    content = content & vbCrLf
+    content = content & "Best," & vbCrLf & Trim(nameParts(1))
+    GenerateLabManagerReminderEmail = content
+    Call LogEvent("Generated lab manager reminder length: " & Len(content))
+End Function
+
+'==============================================================
 ' Module 3: Email Distribution
 '==============================================================
 Sub DistributeEmail(header, body)
