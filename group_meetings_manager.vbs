@@ -81,6 +81,39 @@ On Error GoTo 0
 Call LogEvent("Obtained Outlook namespace for MAPI.")
 
 '==============================================================
+' Module 0: Utils
+'==============================================================
+
+Function GetExactEmail(searchName)
+    If Trim(searchName) = "" Then
+        GetExactEmail = Nothing
+        Exit Function
+    End If
+
+    Dim olApp, ns, recip, exchUser
+    Set olApp = CreateObject("Outlook.Application")
+    Set ns = olApp.GetNamespace("MAPI")
+
+    ' Try Outlook’s built-in resolver for an exact match
+    Set recip = ns.CreateRecipient(searchName)
+    recip.Resolve
+
+    If recip.Resolved Then
+        On Error Resume Next
+        Set exchUser = recip.AddressEntry.GetExchangeUser()
+        On Error GoTo 0
+
+        If Not exchUser Is Nothing Then
+            GetExactEmail = exchUser.PrimarySmtpAddress
+        Else
+            GetExactEmail = recip.AddressEntry.Address
+        End If
+    Else
+        GetExactEmail = Nothing
+    End If
+End Function
+
+'==============================================================
 ' Module 1: Email Verification
 '==============================================================
 Function EmailExists(header)
