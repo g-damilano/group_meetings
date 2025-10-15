@@ -36,6 +36,59 @@ Sub LogEvent(message)
     On Error GoTo 0
 End Sub
 
+Function ShouldResetLogForNewWeek(filePath)
+    On Error Resume Next
+    Dim fileObj, weekDelta
+
+    If Not fso.FileExists(filePath) Then
+        ShouldResetLogForNewWeek = False
+        Exit Function
+    End If
+
+    Set fileObj = fso.GetFile(filePath)
+    If Err.Number <> 0 Then
+        Err.Clear
+        ShouldResetLogForNewWeek = False
+        Exit Function
+    End If
+
+    weekDelta = DateDiff("ww", fileObj.DateLastModified, Now, vbMonday, vbFirstFourDays)
+    If Err.Number <> 0 Then
+        Err.Clear
+        ShouldResetLogForNewWeek = False
+        Exit Function
+    End If
+
+    ShouldResetLogForNewWeek = (weekDelta > 0)
+End Function
+
+Function ResetLogIfNewWeek(filePath)
+    On Error Resume Next
+    Dim ts
+
+    ResetLogIfNewWeek = False
+
+    If Not fso.FileExists(filePath) Then
+        Exit Function
+    End If
+
+    If Not ShouldResetLogForNewWeek(filePath) Then
+        Exit Function
+    End If
+
+    Set ts = fso.OpenTextFile(filePath, 2, True)
+    If Err.Number <> 0 Then
+        Err.Clear
+        Exit Function
+    End If
+
+    ts.Write ""
+    ts.Close
+    Set ts = Nothing
+
+    ResetLogIfNewWeek = True
+End Function
+
 Sub LogError(context)
     Dim errMsg
     errMsg = context & " | Err: " & Err.Number & " - " & Err.Description
@@ -61,6 +114,19 @@ Sub InitializeFileSystem()
 End Sub
 
 Sub InitializeLogging()
+    Dim logExisted, resetPerformed
+
+    logExisted = fso.FileExists(LOG_FILE_PATH)
+    resetPerformed = ResetLogIfNewWeek(LOG_FILE_PATH)
+
+    If resetPerformed Then
+        LogEvent "Weekly log reset detected. Starting new log file: " & LOG_FILE_PATH
+    ElseIf logExisted Then
+        LogEvent "Continuing existing weekly log: " & LOG_FILE_PATH
+    Else
+        LogEvent "Creating new weekly log file: " & LOG_FILE_PATH
+    End If
+
     Call LogVerbose("InitializeLogging invoked")
     LogEvent "=== Script execution started ==="
     LogEvent "Logging to file: " & LOG_FILE_PATH
@@ -148,60 +214,75 @@ Function GetExactEmail(searchName)
     End If
 End Function
 
-Function EmailSentExists(header, Optional checkOnly)
-    Call LogVerbose("EmailSentExists invoked for subject='" & header & "'")
-    Dim sentFolder, items, mail, found, checkMode
-    found = False
-    checkMode = False
+Function EmailExists(header, Optional folderConstant, Optional checkOnly)
+    Call LogVerbose("EmailExists invoked for subject='" & header & "'")
+    Dim targetFolderId, folderLabel, sortField
+    Dim targetFolder, items, mail
+    Dim found, checkMode
 
+    targetFolderId = 6 ' Inbox by default
+    If Not IsMissing(folderConstant) Then
+        targetFolderId = CLng(folderConstant)
+    End If
+
+    checkMode = False
     If Not IsMissing(checkOnly) Then
         checkMode = CBool(checkOnly)
     End If
 
-    LogEvent "Checking Outlook sent items for email with subject: " & header
-    Set sentFolder = olNS.GetDefaultFolder(5) ' Sent Items
-    Set items = sentFolder.Items
-    items.Sort "SentOn", True
+    Select Case targetFolderId
+        Case 5
+            folderLabel = "Sent Items"
+            sortField = "SentOn"
+        Case 6
+            folderLabel = "Inbox"
+            sortField = "ReceivedTime"
+        Case Else
+            folderLabel = "folder id " & targetFolderId
+            sortField = "ReceivedTime"
+    End Select
+
+    LogEvent "Checking Outlook " & folderLabel & " for email with subject: " & header
+
+    On Error Resume Next
+    Set targetFolder = olNS.GetDefaultFolder(targetFolderId)
+    If Err.Number <> 0 Then
+        LogError "Unable to access Outlook folder id " & targetFolderId & " for subject '" & header & "'"
+        On Error GoTo 0
+        EmailExists = False
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    Set items = targetFolder.Items
+    On Error Resume Next
+    items.Sort sortField, True
+    On Error GoTo 0
+
+    found = False
     For Each mail In items
-        If mail.Subject = header Then
-            found = True
-            If checkMode Then
-                LogEvent "Confirmed email with subject '" & header & "' in Sent Items."
-            Else
-                LogEvent "Email with subject '" & header & "' already exists in Sent Items. Skipping send."
+        If TypeName(mail) = "MailItem" Then
+            If mail.Subject = header Then
+                found = True
+                If checkMode Then
+                    LogEvent "Confirmed email with subject '" & header & "' in " & folderLabel & "."
+                Else
+                    LogEvent "Email with subject '" & header & "' already exists in " & folderLabel & ". Skipping related actions."
+                End If
+                Exit For
             End If
-            Exit For
         End If
     Next
 
     If Not found Then
         If checkMode Then
-            LogEvent "Email with subject '" & header & "' not yet located in Sent Items during verification."
+            LogEvent "Email with subject '" & header & "' not yet located in " & folderLabel & " during verification."
         Else
-            LogEvent "Email with subject '" & header & "' not found in Sent Items prior to send."
+            LogEvent "Email with subject '" & header & "' not found in " & folderLabel & " prior to action."
         End If
     End If
 
-    LogEvent "EmailSentExists('" & header & "', checkOnly=" & checkMode & ") result: " & found
-    EmailSentExists = found
-End Function
-
-Function EmailExists(header)
-    Call LogVerbose("EmailExists invoked for subject='" & header & "'")
-    Dim inbox, items, mail, found
-    found = False
-    LogEvent "Checking Outlook inbox for email with subject: " & header
-    Set inbox = olNS.GetDefaultFolder(6) ' Inbox
-    Set items = inbox.Items
-    items.Sort "ReceivedTime", True
-    For Each mail In items
-        If mail.Subject = header Then
-            found = True
-            LogEvent "Email with subject '" & header & "' already exists. Skipping related actions."
-            Exit For
-        End If
-    Next
-    LogEvent "EmailExists('" & header & "') result: " & found
+    LogEvent "EmailExists('" & header & "', folder=" & folderLabel & ", checkOnly=" & checkMode & ") result: " & found
     EmailExists = found
 End Function
 
@@ -369,7 +450,7 @@ Sub DispatchReminderEmail(toAddress, subjectText, bodyText)
     Dim mail
     LogEvent "Preparing reminder email with subject: " & subjectText & " to " & toAddress
 
-    If EmailSentExists(subjectText) Then
+    If EmailExists(subjectText, 5) Then
         LogEvent "Negative feedback loop prevented duplicate reminder for subject: " & subjectText
         Exit Sub
     End If
@@ -390,7 +471,7 @@ Sub DispatchReminderEmail(toAddress, subjectText, bodyText)
         Else
             LogEvent "Sending reminder email to " & toAddress & " with subject: " & subjectText
             .Send
-            If EmailSentExists(subjectText, True) Then
+            If EmailExists(subjectText, 5, True) Then
                 LogEvent "Negative feedback loop confirmed for reminder subject: " & subjectText
             Else
                 LogEvent "WARNING: Reminder subject not observed in Sent Items after sending: " & subjectText
@@ -398,6 +479,28 @@ Sub DispatchReminderEmail(toAddress, subjectText, bodyText)
         End If
     End With
 End Sub
+
+Function BuildPresenterReminderSubject(presenterName, presentationType, meetingDate)
+    Call LogVerbose("BuildPresenterReminderSubject invoked")
+    Dim displayName
+    If Trim(presenterName) = "" Then
+        displayName = "Unassigned Presenter"
+    Else
+        displayName = Trim(presenterName)
+    End If
+    BuildPresenterReminderSubject = "Reminder Sent (" & Trim(presentationType) & "): " & displayName & " - " & FormatDateTime(meetingDate, 2)
+End Function
+
+Function BuildLabManagerReminderSubject(labManagerName, meetingDate)
+    Call LogVerbose("BuildLabManagerReminderSubject invoked")
+    Dim displayName
+    If Trim(labManagerName) = "" Then
+        displayName = "Unassigned"
+    Else
+        displayName = Trim(labManagerName)
+    End If
+    BuildLabManagerReminderSubject = "Reminder Sent (Lab Manager): " & displayName & " - " & FormatDateTime(meetingDate, 2)
+End Function
 
 Sub TriggerReminderEmails(literaturePresenter, resultsPresenter, labManagerName, meetingDate)
     Call LogVerbose("TriggerReminderEmails invoked")
@@ -412,10 +515,11 @@ Sub MaybeSendPresenterReminder(presenterName, presentationType, meetingDate)
     Dim trimmedName, subjectLine, targetEmail, body
     trimmedName = Trim(presenterName)
 
-    If trimmedName = "" Then
-        subjectLine = "Reminder Sent (" & presentationType & "): Unassigned Presenter - " & FormatDateTime(meetingDate, 2)
-    Else
-        subjectLine = "Reminder Sent (" & presentationType & "): " & trimmedName & " - " & FormatDateTime(meetingDate, 2)
+    subjectLine = BuildPresenterReminderSubject(trimmedName, presentationType, meetingDate)
+
+    If EmailExists(subjectLine, 5) Then
+        LogEvent "Skipping presenter reminder because Sent Items already contains subject: " & subjectLine
+        Exit Sub
     End If
 
     targetEmail = ResolveEmailOrManager(trimmedName)
@@ -428,10 +532,11 @@ Sub MaybeSendLabManagerReminder(labManagerName, meetingDate)
     Dim trimmedName, subjectLine, targetEmail, body
     trimmedName = Trim(labManagerName)
 
-    If trimmedName = "" Then
-        subjectLine = "Reminder Sent (Lab Manager): Unassigned - " & FormatDateTime(meetingDate, 2)
-    Else
-        subjectLine = "Reminder Sent (Lab Manager): " & trimmedName & " - " & FormatDateTime(meetingDate, 2)
+    subjectLine = BuildLabManagerReminderSubject(trimmedName, meetingDate)
+
+    If EmailExists(subjectLine, 5) Then
+        LogEvent "Skipping lab manager reminder because Sent Items already contains subject: " & subjectLine
+        Exit Sub
     End If
 
     targetEmail = ResolveEmailOrManager(trimmedName)
@@ -446,6 +551,12 @@ Sub DistributeEmail(header, body)
     Call LogVerbose("DistributeEmail invoked with subject='" & header & "'")
     Dim mail
     LogEvent "Preparing regular meeting email with subject: " & header
+
+    If EmailExists(header, 5, True) Then
+        LogEvent "Sent Items already contains the regular meeting email. Skipping send for subject: " & header
+        Exit Sub
+    End If
+
     Set mail = OL.CreateItem(0)
     With mail
         .To = EMAIL_TO
@@ -461,6 +572,11 @@ Sub DistributeEmail(header, body)
         Else
             LogEvent "Sending email to " & EMAIL_TO & " with subject: " & header
             .Send
+            If EmailExists(header, 5, True) Then
+                LogEvent "Negative feedback loop confirmed for regular meeting subject: " & header
+            Else
+                LogEvent "WARNING: Regular meeting subject not observed in Sent Items after sending: " & header
+            End If
         End If
     End With
 End Sub
@@ -828,9 +944,9 @@ Sub Coordinator()
     PopulateFridayDates fridayDates
     meetingSubject = BuildMeetingSubject(fridayDates(0))
 
-    shouldSendRegularEmail = Not EmailExists(meetingSubject)
+    shouldSendRegularEmail = Not EmailExists(meetingSubject, 5, True)
     If Not shouldSendRegularEmail Then
-        LogEvent "Existing meeting email detected. Regular message will be skipped, reminders will still be evaluated."
+        LogEvent "Existing meeting email detected in Sent Items. Regular message will be skipped, reminders will still be evaluated."
     End If
 
     If Not LoadMeetingWorkbook(objExcel, objWorkbook, objSheetRota, objSheetEmails) Then
