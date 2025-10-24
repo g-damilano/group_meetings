@@ -340,6 +340,12 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         content = content & "    " & literature & " will present literature." & vbCrLf
     End If
 
+    Dim trimmedNextRes
+    trimmedNextRes = Trim(next_res)
+    If trimmedNextRes <> "" Then
+        content = content & trimmedNextRes & " will lead the meeting and do the inclusion activity." & vbCrLf
+    End If
+
     If next_lit <> "" And next_res <> "" Then
         content = content & "The week after:" & vbCrLf
         If next_alt <> "" Then
