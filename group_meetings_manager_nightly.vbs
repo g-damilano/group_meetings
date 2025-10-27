@@ -366,6 +366,29 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
 
     meetingLeadName = previousLabManager
 
+    previousFriday = DateAdd("d", -7, meetingDate)
+    previousFridayRow = -1
+    lastRow = objSheetRota.Cells(objSheetRota.Rows.Count, "A").End(-4162).Row
+    For searchRow = 2 To lastRow
+        candidateDate = objSheetRota.Cells(searchRow, 1).Value
+        If candidateDate = previousFriday Then
+            previousFridayRow = searchRow
+            Exit For
+        End If
+    Next
+
+    If previousFridayRow <> -1 Then
+        previousLabManager = Trim(objSheetRota.Cells(previousFridayRow, 6).Value)
+    Else
+        previousLabManager = ""
+    End If
+
+    If previousLabManager = "" Then
+        previousLabManager = DEFAULT_PREVIOUS_LAB_MANAGER
+    End If
+
+    meetingLeadName = previousLabManager
+
     content = "Hi all," & vbCrLf
     If Trim(room) <> "" Then
         content = content & "We will have our group meeting on " & meetingDate & _
@@ -385,6 +408,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         If Trim(literature) <> "" Then
             content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
         End If
+    Else
+        content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
     End If
 
     content = content & vbCrLf & Trim(meetingLeadName) & " will lead the meeting and do the inclusion activity." & vbCrLf
