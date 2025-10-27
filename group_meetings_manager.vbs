@@ -315,6 +315,11 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         If Trim(literature) <> "" Then
             content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
         End If
+        If Trim(literature) <> "" Then
+            content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
+        End If
+    Else
+        content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
     End If
 
     content = content & vbCrLf & Trim(meetingLeadName) & " will lead the meeting and do the inclusion activity." & vbCrLf
