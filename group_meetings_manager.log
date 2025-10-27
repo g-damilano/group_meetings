@@ -1,0 +1,583 @@
+15/10/2025 10:51:26 - === Script execution started ===
+15/10/2025 10:51:26 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+15/10/2025 10:51:26 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+15/10/2025 10:51:31 - rclone command completed with exit code: 0
+15/10/2025 10:51:31 - Outlook application created successfully.
+15/10/2025 10:51:31 - Obtained Outlook namespace for MAPI.
+15/10/2025 10:51:31 - Invoking Coordinator routine
+15/10/2025 10:51:31 - Coordinator routine started
+15/10/2025 10:51:32 - Computed Fridays | This: 17/10/2025 | Next: 24/10/2025 | Next+1: 31/10/2025
+15/10/2025 10:51:32 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (17/10/2025)
+15/10/2025 10:51:32 - Email with subject 'ABT group meeting @ 11am (17/10/2025)' already exists. Skipping related actions.
+15/10/2025 10:51:32 - EmailExists('ABT group meeting @ 11am (17/10/2025)') result: True
+15/10/2025 10:51:32 - Existing meeting email detected. Coordinator will exit early.
+15/10/2025 10:51:32 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+15/10/2025 10:51:32 - === Script execution completed ===
+15/10/2025 12:41:29 - === Script execution started ===
+15/10/2025 12:41:29 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+15/10/2025 12:41:29 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+15/10/2025 12:41:34 - rclone command completed with exit code: 0
+15/10/2025 12:41:37 - Outlook application created successfully.
+15/10/2025 12:41:37 - Obtained Outlook namespace for MAPI.
+15/10/2025 12:41:38 - Invoking Coordinator routine
+15/10/2025 12:41:38 - Coordinator routine started
+15/10/2025 12:41:38 - Computed Fridays | This: 17/10/2025 | Next: 24/10/2025 | Next+1: 31/10/2025
+15/10/2025 12:41:38 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (17/10/2025)
+15/10/2025 12:41:39 - Email with subject 'ABT group meeting @ 11am (17/10/2025)' already exists. Skipping related actions.
+15/10/2025 12:41:39 - EmailExists('ABT group meeting @ 11am (17/10/2025)') result: True
+15/10/2025 12:41:39 - Existing meeting email detected. Coordinator will exit early.
+15/10/2025 12:41:39 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+15/10/2025 12:41:39 - === Script execution completed ===
+15/10/2025 15:23:34 - === Script execution started ===
+15/10/2025 15:23:34 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+15/10/2025 15:23:34 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+15/10/2025 15:23:39 - rclone command completed with exit code: 0
+15/10/2025 15:23:39 - Outlook application created successfully.
+15/10/2025 15:23:39 - Obtained Outlook namespace for MAPI.
+15/10/2025 15:23:39 - Invoking Coordinator routine
+15/10/2025 15:23:39 - Coordinator routine started
+15/10/2025 15:23:39 - Computed Fridays | This: 17/10/2025 | Next: 24/10/2025 | Next+1: 31/10/2025
+15/10/2025 15:23:40 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (17/10/2025)
+15/10/2025 15:23:40 - Email with subject 'ABT group meeting @ 11am (17/10/2025)' already exists. Skipping related actions.
+15/10/2025 15:23:40 - EmailExists('ABT group meeting @ 11am (17/10/2025)') result: True
+15/10/2025 15:23:40 - Existing meeting email detected. Coordinator will exit early.
+15/10/2025 15:23:40 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+15/10/2025 15:23:40 - === Script execution completed ===
+16/10/2025 10:15:20 - === Script execution started ===
+16/10/2025 10:15:20 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+16/10/2025 10:15:20 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+16/10/2025 10:15:25 - rclone command completed with exit code: 0
+16/10/2025 10:15:26 - Outlook application created successfully.
+16/10/2025 10:15:26 - Obtained Outlook namespace for MAPI.
+16/10/2025 10:15:26 - Invoking Coordinator routine
+16/10/2025 10:15:26 - Coordinator routine started
+16/10/2025 10:15:26 - Computed Fridays | This: 17/10/2025 | Next: 24/10/2025 | Next+1: 31/10/2025
+16/10/2025 10:15:26 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (17/10/2025)
+16/10/2025 10:15:27 - Email with subject 'ABT group meeting @ 11am (17/10/2025)' already exists. Skipping related actions.
+16/10/2025 10:15:27 - EmailExists('ABT group meeting @ 11am (17/10/2025)') result: True
+16/10/2025 10:15:27 - Existing meeting email detected. Coordinator will exit early.
+16/10/2025 10:15:27 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+16/10/2025 10:15:27 - === Script execution completed ===
+16/10/2025 13:26:29 - === Script execution started ===
+16/10/2025 13:26:30 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+16/10/2025 13:26:30 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+16/10/2025 13:26:35 - rclone command completed with exit code: 0
+16/10/2025 13:26:35 - Outlook application created successfully.
+16/10/2025 13:26:35 - Obtained Outlook namespace for MAPI.
+16/10/2025 13:26:35 - Invoking Coordinator routine
+16/10/2025 13:26:35 - Coordinator routine started
+16/10/2025 13:26:35 - Computed Fridays | This: 17/10/2025 | Next: 24/10/2025 | Next+1: 31/10/2025
+16/10/2025 13:26:35 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (17/10/2025)
+16/10/2025 13:26:36 - Email with subject 'ABT group meeting @ 11am (17/10/2025)' already exists. Skipping related actions.
+16/10/2025 13:26:36 - EmailExists('ABT group meeting @ 11am (17/10/2025)') result: True
+16/10/2025 13:26:36 - Existing meeting email detected. Coordinator will exit early.
+16/10/2025 13:26:36 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+16/10/2025 13:26:36 - === Script execution completed ===
+16/10/2025 15:32:45 - === Script execution started ===
+16/10/2025 15:32:45 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+16/10/2025 15:32:45 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+16/10/2025 15:32:50 - rclone command completed with exit code: 0
+16/10/2025 15:32:50 - Outlook application created successfully.
+16/10/2025 15:32:51 - Obtained Outlook namespace for MAPI.
+16/10/2025 15:32:51 - Invoking Coordinator routine
+16/10/2025 15:32:51 - Coordinator routine started
+16/10/2025 15:32:51 - Computed Fridays | This: 17/10/2025 | Next: 24/10/2025 | Next+1: 31/10/2025
+16/10/2025 15:32:51 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (17/10/2025)
+16/10/2025 15:32:52 - Email with subject 'ABT group meeting @ 11am (17/10/2025)' already exists. Skipping related actions.
+16/10/2025 15:32:52 - EmailExists('ABT group meeting @ 11am (17/10/2025)') result: True
+16/10/2025 15:32:52 - Existing meeting email detected. Coordinator will exit early.
+16/10/2025 15:32:52 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+16/10/2025 15:32:52 - === Script execution completed ===
+17/10/2025 14:17:42 - === Script execution started ===
+17/10/2025 14:17:42 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+17/10/2025 14:17:42 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+17/10/2025 14:17:50 - rclone command completed with exit code: 0
+17/10/2025 14:18:06 - Outlook application created successfully.
+17/10/2025 14:18:06 - Obtained Outlook namespace for MAPI.
+17/10/2025 14:18:06 - Invoking Coordinator routine
+17/10/2025 14:18:06 - Coordinator routine started
+17/10/2025 14:18:06 - Computed Fridays | This: 17/10/2025 | Next: 24/10/2025 | Next+1: 31/10/2025
+17/10/2025 14:18:06 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (17/10/2025)
+17/10/2025 14:18:07 - Email with subject 'ABT group meeting @ 11am (17/10/2025)' already exists. Skipping related actions.
+17/10/2025 14:18:07 - EmailExists('ABT group meeting @ 11am (17/10/2025)') result: True
+17/10/2025 14:18:07 - Existing meeting email detected. Coordinator will exit early.
+17/10/2025 14:18:07 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+17/10/2025 14:18:07 - === Script execution completed ===
+17/10/2025 15:00:11 - === Script execution started ===
+17/10/2025 15:00:12 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+17/10/2025 15:00:12 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+17/10/2025 15:00:15 - rclone command completed with exit code: 0
+17/10/2025 15:00:15 - Outlook application created successfully.
+17/10/2025 15:00:15 - Obtained Outlook namespace for MAPI.
+17/10/2025 15:00:15 - Invoking Coordinator routine
+17/10/2025 15:00:16 - Coordinator routine started
+17/10/2025 15:00:16 - Computed Fridays | This: 17/10/2025 | Next: 24/10/2025 | Next+1: 31/10/2025
+17/10/2025 15:00:16 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (17/10/2025)
+17/10/2025 15:00:16 - Email with subject 'ABT group meeting @ 11am (17/10/2025)' already exists. Skipping related actions.
+17/10/2025 15:00:16 - EmailExists('ABT group meeting @ 11am (17/10/2025)') result: True
+17/10/2025 15:00:16 - Existing meeting email detected. Coordinator will exit early.
+17/10/2025 15:00:16 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+17/10/2025 15:00:16 - === Script execution completed ===
+20/10/2025 11:05:18 - === Script execution started ===
+20/10/2025 11:05:19 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+20/10/2025 11:05:19 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+20/10/2025 11:05:23 - rclone command completed with exit code: 0
+20/10/2025 11:05:25 - Outlook application created successfully.
+20/10/2025 11:05:25 - Obtained Outlook namespace for MAPI.
+20/10/2025 11:05:26 - Invoking Coordinator routine
+20/10/2025 11:05:26 - Coordinator routine started
+20/10/2025 11:05:26 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+20/10/2025 11:05:26 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+20/10/2025 11:05:42 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: False
+20/10/2025 11:05:48 - Excel application created successfully.
+20/10/2025 11:05:49 - Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+20/10/2025 11:05:49 - Sheets obtained: Rota and Emails
+20/10/2025 11:05:49 - Scanning rota sheet up to row: 721
+20/10/2025 11:05:52 - Rota rows located | This: 6 | Next: 7 | Next+1: 8
+20/10/2025 11:05:52 - Row 6 data | Lit: Phuthiphong Ouitrakoon | Res: Giacomo Damilano | Alt:  | Room: G25 (MSRH)
+20/10/2025 11:05:52 - Row 7 data | Lit: Zoyia Kamora | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+20/10/2025 11:05:52 - Row 8 data | Lit: Enny Tran | Res: Yilyu Qi | Alt:  | Room: G25 (MSRH)
+20/10/2025 11:05:52 - Generating main email content for date 24/10/2025 | Row: 6 | Lit: Phuthiphong Ouitrakoon | Res: Giacomo Damilano | Alt:  | Room: G25 (MSRH)
+20/10/2025 11:05:52 - Next Friday presenters found | Row: 7 | Lit: Zoyia Kamora | Res: Joanne Ng | Alt: 
+20/10/2025 11:05:52 - Generated email body length: 681
+20/10/2025 11:05:52 - Dispatching regular meeting email for 24/10/2025
+20/10/2025 11:05:52 - Preparing regular meeting email with subject: ABT group meeting @ 11am (24/10/2025)
+20/10/2025 11:05:53 - Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (24/10/2025)
+20/10/2025 11:05:53 - Coordinator routine completed and Excel resources released.
+20/10/2025 11:05:53 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+20/10/2025 11:05:53 - === Script execution completed ===
+20/10/2025 13:07:27 - === Script execution started ===
+20/10/2025 13:07:27 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+20/10/2025 13:07:27 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+20/10/2025 13:07:32 - rclone command completed with exit code: 0
+20/10/2025 13:07:32 - Outlook application created successfully.
+20/10/2025 13:07:32 - Obtained Outlook namespace for MAPI.
+20/10/2025 13:07:32 - Invoking Coordinator routine
+20/10/2025 13:07:32 - Coordinator routine started
+20/10/2025 13:07:32 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+20/10/2025 13:07:33 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+20/10/2025 13:07:33 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+20/10/2025 13:07:33 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+20/10/2025 13:07:33 - Existing meeting email detected. Coordinator will exit early.
+20/10/2025 13:07:33 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+20/10/2025 13:07:33 - === Script execution completed ===
+20/10/2025 15:25:38 - === Script execution started ===
+20/10/2025 15:25:39 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+20/10/2025 15:25:39 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+20/10/2025 15:25:44 - rclone command completed with exit code: 0
+20/10/2025 15:25:44 - Outlook application created successfully.
+20/10/2025 15:25:45 - Obtained Outlook namespace for MAPI.
+20/10/2025 15:25:45 - Invoking Coordinator routine
+20/10/2025 15:25:45 - Coordinator routine started
+20/10/2025 15:25:45 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+20/10/2025 15:25:45 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+20/10/2025 15:25:45 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+20/10/2025 15:25:46 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+20/10/2025 15:25:46 - Existing meeting email detected. Coordinator will exit early.
+20/10/2025 15:25:46 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+20/10/2025 15:25:46 - === Script execution completed ===
+21/10/2025 10:40:36 - === Script execution started ===
+21/10/2025 10:40:36 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+21/10/2025 10:40:36 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+21/10/2025 10:40:40 - rclone command completed with exit code: 0
+21/10/2025 10:40:42 - Outlook application created successfully.
+21/10/2025 10:40:42 - Obtained Outlook namespace for MAPI.
+21/10/2025 10:40:42 - Invoking Coordinator routine
+21/10/2025 10:40:42 - Coordinator routine started
+21/10/2025 10:40:42 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+21/10/2025 10:40:42 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+21/10/2025 10:40:43 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+21/10/2025 10:40:43 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+21/10/2025 10:40:43 - Existing meeting email detected. Coordinator will exit early.
+21/10/2025 10:40:43 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+21/10/2025 10:40:43 - === Script execution completed ===
+21/10/2025 12:38:34 - === Script execution started ===
+21/10/2025 12:38:34 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+21/10/2025 12:38:34 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+21/10/2025 12:38:43 - rclone command completed with exit code: 0
+21/10/2025 12:38:44 - Outlook application created successfully.
+21/10/2025 12:38:44 - Obtained Outlook namespace for MAPI.
+21/10/2025 12:38:44 - Invoking Coordinator routine
+21/10/2025 12:38:44 - Coordinator routine started
+21/10/2025 12:38:44 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+21/10/2025 12:38:44 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+21/10/2025 12:38:45 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+21/10/2025 12:38:45 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+21/10/2025 12:38:45 - Existing meeting email detected. Coordinator will exit early.
+21/10/2025 12:38:45 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+21/10/2025 12:38:45 - === Script execution completed ===
+21/10/2025 15:19:12 - === Script execution started ===
+21/10/2025 15:19:12 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+21/10/2025 15:19:12 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+21/10/2025 15:22:46 - rclone command completed with exit code: 1
+21/10/2025 15:22:47 - WARNING: rclone returned non-zero exit code: 1
+21/10/2025 15:22:50 - Outlook application created successfully.
+21/10/2025 15:22:50 - Obtained Outlook namespace for MAPI.
+21/10/2025 15:22:50 - Invoking Coordinator routine
+21/10/2025 15:22:50 - Coordinator routine started
+21/10/2025 15:22:50 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+21/10/2025 15:22:50 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+21/10/2025 15:22:51 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+21/10/2025 15:22:51 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+21/10/2025 15:22:51 - Existing meeting email detected. Coordinator will exit early.
+21/10/2025 15:22:51 - Local Excel file not found during cleanup: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+21/10/2025 15:22:51 - === Script execution completed ===
+22/10/2025 11:06:08 - === Script execution started ===
+22/10/2025 11:06:08 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+22/10/2025 11:06:08 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+22/10/2025 11:06:13 - rclone command completed with exit code: 0
+22/10/2025 11:06:13 - Outlook application created successfully.
+22/10/2025 11:06:14 - Obtained Outlook namespace for MAPI.
+22/10/2025 11:06:14 - Invoking Coordinator routine
+22/10/2025 11:06:14 - Coordinator routine started
+22/10/2025 11:06:14 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+22/10/2025 11:06:14 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+22/10/2025 11:06:14 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+22/10/2025 11:06:14 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+22/10/2025 11:06:14 - Existing meeting email detected. Coordinator will exit early.
+22/10/2025 11:06:14 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+22/10/2025 11:06:14 - === Script execution completed ===
+22/10/2025 13:04:22 - === Script execution started ===
+22/10/2025 13:04:22 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+22/10/2025 13:04:22 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+22/10/2025 13:06:02 - rclone command completed with exit code: 0
+22/10/2025 13:06:02 - Outlook application created successfully.
+22/10/2025 13:06:02 - Obtained Outlook namespace for MAPI.
+22/10/2025 13:06:02 - Invoking Coordinator routine
+22/10/2025 13:06:02 - Coordinator routine started
+22/10/2025 13:06:02 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+22/10/2025 13:06:03 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+22/10/2025 13:06:03 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+22/10/2025 13:06:03 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+22/10/2025 13:06:03 - Existing meeting email detected. Coordinator will exit early.
+22/10/2025 13:06:03 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+22/10/2025 13:06:03 - === Script execution completed ===
+22/10/2025 15:18:58 - === Script execution started ===
+22/10/2025 15:19:03 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+22/10/2025 15:19:03 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+22/10/2025 15:19:14 - rclone command completed with exit code: 0
+22/10/2025 15:19:14 - Outlook application created successfully.
+22/10/2025 15:19:15 - Obtained Outlook namespace for MAPI.
+22/10/2025 15:19:15 - Invoking Coordinator routine
+22/10/2025 15:19:15 - Coordinator routine started
+22/10/2025 15:19:15 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+22/10/2025 15:19:15 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+22/10/2025 15:19:15 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+22/10/2025 15:19:15 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+22/10/2025 15:19:16 - Existing meeting email detected. Coordinator will exit early.
+22/10/2025 15:19:16 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+22/10/2025 15:19:16 - === Script execution completed ===
+23/10/2025 10:19:15 - === Script execution started ===
+23/10/2025 10:19:15 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+23/10/2025 10:19:15 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+23/10/2025 10:19:19 - rclone command completed with exit code: 0
+23/10/2025 10:19:25 - Outlook application created successfully.
+23/10/2025 10:19:25 - Obtained Outlook namespace for MAPI.
+23/10/2025 10:19:25 - Invoking Coordinator routine
+23/10/2025 10:19:25 - Coordinator routine started
+23/10/2025 10:19:25 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+23/10/2025 10:19:25 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+23/10/2025 10:19:26 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+23/10/2025 10:19:26 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+23/10/2025 10:19:26 - Existing meeting email detected. Coordinator will exit early.
+23/10/2025 10:19:26 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+23/10/2025 10:19:26 - === Script execution completed ===
+23/10/2025 11:01:39 - === Script execution started ===
+23/10/2025 11:01:39 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+23/10/2025 11:01:40 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+23/10/2025 11:01:43 - rclone command completed with exit code: 0
+23/10/2025 11:01:44 - Outlook application created successfully.
+23/10/2025 11:01:44 - Obtained Outlook namespace for MAPI.
+23/10/2025 11:01:44 - Invoking Coordinator routine
+23/10/2025 11:01:44 - Coordinator routine started
+23/10/2025 11:01:44 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+23/10/2025 11:01:44 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+23/10/2025 11:01:44 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+23/10/2025 11:01:45 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+23/10/2025 11:01:45 - Existing meeting email detected. Coordinator will exit early.
+23/10/2025 11:01:45 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+23/10/2025 11:01:45 - === Script execution completed ===
+23/10/2025 12:54:26 - === Script execution started ===
+23/10/2025 12:54:27 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+23/10/2025 12:54:27 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+23/10/2025 12:54:31 - rclone command completed with exit code: 0
+23/10/2025 12:54:31 - Outlook application created successfully.
+23/10/2025 12:54:31 - Obtained Outlook namespace for MAPI.
+23/10/2025 12:54:31 - Invoking Coordinator routine
+23/10/2025 12:54:31 - Coordinator routine started
+23/10/2025 12:54:31 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+23/10/2025 12:54:31 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+23/10/2025 12:54:32 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+23/10/2025 12:54:32 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+23/10/2025 12:54:32 - Existing meeting email detected. Coordinator will exit early.
+23/10/2025 12:54:32 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+23/10/2025 12:54:32 - === Script execution completed ===
+23/10/2025 18:30:45 - === Script execution started ===
+23/10/2025 18:30:45 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+23/10/2025 18:30:45 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+23/10/2025 18:30:49 - rclone command completed with exit code: 0
+23/10/2025 18:30:54 - Outlook application created successfully.
+23/10/2025 18:30:55 - Obtained Outlook namespace for MAPI.
+23/10/2025 18:30:55 - Invoking Coordinator routine
+23/10/2025 18:30:55 - Coordinator routine started
+23/10/2025 18:30:55 - Computed Fridays | This: 24/10/2025 | Next: 31/10/2025 | Next+1: 07/11/2025
+23/10/2025 18:30:55 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (24/10/2025)
+23/10/2025 18:30:56 - Email with subject 'ABT group meeting @ 11am (24/10/2025)' already exists. Skipping related actions.
+23/10/2025 18:30:56 - EmailExists('ABT group meeting @ 11am (24/10/2025)') result: True
+23/10/2025 18:30:56 - Existing meeting email detected. Coordinator will exit early.
+23/10/2025 18:30:56 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+23/10/2025 18:30:56 - === Script execution completed ===
+25/10/2025 10:22:51 - === Script execution started ===
+25/10/2025 10:22:52 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+25/10/2025 10:22:52 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+25/10/2025 10:23:18 - rclone command completed with exit code: 0
+25/10/2025 10:23:19 - Outlook application created successfully.
+25/10/2025 10:23:20 - Obtained Outlook namespace for MAPI.
+25/10/2025 10:23:20 - Invoking Coordinator routine
+25/10/2025 10:23:20 - Coordinator routine started
+25/10/2025 10:23:20 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+25/10/2025 10:23:20 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+25/10/2025 10:23:36 - EmailExists('ABT group meeting @ 11am (31/10/2025)') result: False
+25/10/2025 10:23:44 - Excel application created successfully.
+25/10/2025 10:23:48 - Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+25/10/2025 10:23:48 - Sheets obtained: Rota and Emails
+25/10/2025 10:23:48 - Scanning rota sheet up to row: 721
+25/10/2025 10:23:53 - Rota rows located | This: 7 | Next: 8 | Next+1: 9
+25/10/2025 10:23:53 - Row 7 data | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+25/10/2025 10:23:53 - Row 8 data | Lit: Enny Tran | Res: Yilyu Qi | Alt:  | Room: G25 (MSRH)
+25/10/2025 10:23:53 - Row 9 data | Lit: Cici M. Chu | Res: Haoran Qin | Alt:  | Room: G25 (MSRH)
+25/10/2025 10:23:53 - Generating main email content for date 31/10/2025 | Row: 7 | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+25/10/2025 10:23:53 - Next Friday presenters found | Row: 8 | Lit: Enny Tran | Res: Yilyu Qi | Alt: 
+25/10/2025 10:23:53 - Generated email body length: 700
+25/10/2025 10:23:53 - Dispatching regular meeting email for 31/10/2025
+25/10/2025 10:23:53 - Preparing regular meeting email with subject: ABT group meeting @ 11am (31/10/2025)
+25/10/2025 10:23:53 - Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (31/10/2025)
+25/10/2025 10:23:54 - Coordinator routine completed and Excel resources released.
+25/10/2025 10:23:54 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+25/10/2025 10:23:54 - === Script execution completed ===
+27/10/2025 10:18:14 - === Script execution started ===
+27/10/2025 10:18:14 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 10:18:14 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 10:18:18 - rclone command completed with exit code: 0
+27/10/2025 10:18:18 - Outlook application created successfully.
+27/10/2025 10:18:19 - Obtained Outlook namespace for MAPI.
+27/10/2025 10:18:19 - Invoking Coordinator routine
+27/10/2025 10:18:19 - Coordinator routine started
+27/10/2025 10:18:19 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 10:18:19 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 10:18:19 - Email with subject 'ABT group meeting @ 11am (31/10/2025)' already exists. Skipping related actions.
+27/10/2025 10:18:19 - EmailExists('ABT group meeting @ 11am (31/10/2025)') result: True
+27/10/2025 10:18:19 - Existing meeting email detected. Coordinator will exit early.
+27/10/2025 10:18:19 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 10:18:19 - === Script execution completed ===
+27/10/2025 11:01:35 - === Script execution started ===
+27/10/2025 11:01:35 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 11:01:35 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 11:01:38 - rclone command completed with exit code: 0
+27/10/2025 11:01:38 - Email dispatch permitted for today: 27/10/2025
+27/10/2025 11:01:38 - Outlook application created successfully.
+27/10/2025 11:01:38 - Obtained Outlook namespace for MAPI.
+27/10/2025 11:01:38 - Invoking Coordinator routine
+27/10/2025 11:01:38 - Coordinator routine started
+27/10/2025 11:01:38 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 11:01:38 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 11:01:38 - Email with subject 'ABT group meeting @ 11am (31/10/2025)' already exists. Skipping related actions.
+27/10/2025 11:01:38 - EmailExists('ABT group meeting @ 11am (31/10/2025)') result: True
+27/10/2025 11:01:38 - Existing meeting email detected. Coordinator will exit early.
+27/10/2025 11:01:38 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 11:01:38 - === Script execution completed ===
+27/10/2025 11:01:53 - === Script execution started ===
+27/10/2025 11:01:53 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 11:01:53 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 11:01:55 - rclone command completed with exit code: 0
+27/10/2025 11:01:55 - Email dispatch permitted for today: 27/10/2025
+27/10/2025 11:01:55 - Outlook application created successfully.
+27/10/2025 11:01:55 - Obtained Outlook namespace for MAPI.
+27/10/2025 11:01:55 - Invoking Coordinator routine
+27/10/2025 11:01:55 - Coordinator routine started
+27/10/2025 11:01:55 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 11:01:55 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 11:02:17 - EmailExists('ABT group meeting @ 11am (31/10/2025)') result: False
+27/10/2025 11:02:23 - Excel application created successfully.
+27/10/2025 11:02:24 - Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 11:02:24 - Sheets obtained: Rota and Emails
+27/10/2025 11:02:24 - Scanning rota sheet up to row: 721
+27/10/2025 11:02:27 - Rota rows located | This: 7 | Next: 8 | Next+1: 9
+27/10/2025 11:02:27 - Row 7 data | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 11:02:27 - Row 8 data | Lit: Enny Tran | Res:  | Alt:  | Room: G25 (MSRH)
+27/10/2025 11:02:27 - Row 9 data | Lit: Cici M. Chu | Res: Haoran Qin | Alt:  | Room: G25 (MSRH)
+27/10/2025 11:02:27 - Generating main email content for date 31/10/2025 | Row: 7 | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 11:02:28 - Next Friday presenters found | Row: 8 | Lit: Enny Tran | Res:  | Alt: 
+27/10/2025 11:02:28 - Generated email body length: 517
+27/10/2025 11:02:28 - Dispatching regular meeting email for 31/10/2025
+27/10/2025 11:02:28 - Preparing regular meeting email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 11:02:28 - Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 11:02:28 - Coordinator routine completed and Excel resources released.
+27/10/2025 11:02:28 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 11:02:28 - === Script execution completed ===
+27/10/2025 11:44:43 - === Script execution started ===
+27/10/2025 11:44:43 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 11:44:43 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 11:44:46 - rclone command completed with exit code: 0
+27/10/2025 11:44:46 - Email dispatch permitted for today: 27/10/2025
+27/10/2025 11:44:46 - Outlook application created successfully.
+27/10/2025 11:44:46 - Obtained Outlook namespace for MAPI.
+27/10/2025 11:44:46 - Invoking Coordinator routine
+27/10/2025 11:44:46 - Coordinator routine started
+27/10/2025 11:44:46 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 11:44:46 - Checking Outlook inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 11:45:22 - EmailExists('ABT group meeting @ 11am (31/10/2025)') result: False
+27/10/2025 11:45:35 - Excel application created successfully.
+27/10/2025 11:45:39 - Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 11:45:39 - Sheets obtained: Rota and Emails
+27/10/2025 11:45:39 - Scanning rota sheet up to row: 721
+27/10/2025 11:45:43 - Rota rows located | This: 7 | Next: 8 | Next+1: 9
+27/10/2025 11:45:43 - Row 7 data | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 11:45:43 - Row 8 data | Lit: Enny Tran | Res:  | Alt:  | Room: G25 (MSRH)
+27/10/2025 11:45:43 - Row 9 data | Lit: Cici M. Chu | Res: Haoran Qin | Alt:  | Room: G25 (MSRH)
+27/10/2025 11:45:43 - Generating main email content for date 31/10/2025 | Row: 7 | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 11:45:43 - Next Friday presenters found | Row: 8 | Lit: Enny Tran | Res:  | Alt: 
+27/10/2025 11:45:43 - Generated email body length: 517
+27/10/2025 11:45:43 - Dispatching regular meeting email for 31/10/2025
+27/10/2025 11:45:44 - Preparing regular meeting email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 11:45:44 - Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 11:45:45 - Coordinator routine completed and Excel resources released.
+27/10/2025 11:45:45 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 11:45:45 - === Script execution completed ===
+27/10/2025 12:05:21 - === Script execution started ===
+27/10/2025 12:05:21 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 12:05:21 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 12:05:23 - rclone command completed with exit code: 0
+27/10/2025 12:05:23 - Email dispatch permitted for today: 27/10/2025
+27/10/2025 12:05:24 - Outlook application created successfully.
+27/10/2025 12:05:24 - Obtained Outlook namespace for MAPI.
+27/10/2025 12:05:24 - Invoking Coordinator routine
+27/10/2025 12:05:24 - Coordinator routine started
+27/10/2025 12:05:24 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 12:05:24 - Checking Outlook Inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 12:05:51 - === Script execution started ===
+27/10/2025 12:05:51 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 12:05:51 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 12:05:53 - rclone command completed with exit code: 0
+27/10/2025 12:05:53 - Email dispatch permitted for today: 27/10/2025
+27/10/2025 12:05:53 - Outlook application created successfully.
+27/10/2025 12:05:53 - Obtained Outlook namespace for MAPI.
+27/10/2025 12:05:53 - Invoking Coordinator routine
+27/10/2025 12:05:53 - Coordinator routine started
+27/10/2025 12:05:53 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 12:05:53 - Checking Outlook Inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 12:06:10 - Email with subject 'ABT group meeting @ 11am (31/10/2025)' not found in Inbox prior to action.
+27/10/2025 12:06:10 - EmailExists('ABT group meeting @ 11am (31/10/2025)', folder=Inbox, checkOnly=False) result: False
+27/10/2025 12:06:17 - Excel application created successfully.
+27/10/2025 12:06:19 - Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 12:06:19 - Sheets obtained: Rota and Emails
+27/10/2025 12:06:19 - Scanning rota sheet up to row: 721
+27/10/2025 12:06:26 - Rota rows located | This: 7 | Next: 8 | Next+1: 9
+27/10/2025 12:06:26 - Row 7 data | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 12:06:26 - Row 8 data | Lit: Enny Tran | Res:  | Alt:  | Room: G25 (MSRH)
+27/10/2025 12:06:26 - Row 9 data | Lit: Cici M. Chu | Res: Haoran Qin | Alt:  | Room: G25 (MSRH)
+27/10/2025 12:06:26 - Generating main email content for date 31/10/2025 | Row: 7 | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 12:06:26 - Next Friday presenters found | Row: 8 | Lit: Enny Tran | Res:  | Alt: 
+27/10/2025 12:06:26 - Generated email body length: 577
+27/10/2025 12:06:26 - Dispatching regular meeting email for 31/10/2025
+27/10/2025 12:06:26 - Preparing regular meeting email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 12:06:26 - Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 12:06:28 - Coordinator routine completed and Excel resources released.
+27/10/2025 12:06:29 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 12:06:29 - === Script execution completed ===
+27/10/2025 12:06:40 - Email with subject 'ABT group meeting @ 11am (31/10/2025)' not found in Inbox prior to action.
+27/10/2025 12:06:40 - EmailExists('ABT group meeting @ 11am (31/10/2025)', folder=Inbox, checkOnly=False) result: False
+27/10/2025 12:06:45 - Excel application created successfully.
+27/10/2025 12:06:45 - Failed to open workbook: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx | Err: 1004 - Sorry, we couldn’t find C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx. Is it possible that it was moved, renamed or deleted?
+27/10/2025 12:06:45 - Local Excel file not found during cleanup: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 12:06:45 - === Script execution completed ===
+27/10/2025 12:52:44 - === Script execution started ===
+27/10/2025 12:52:44 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 12:52:44 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 12:52:48 - rclone command completed with exit code: 0
+27/10/2025 12:52:48 - Email dispatch permitted for today: 27/10/2025
+27/10/2025 12:52:48 - Outlook application created successfully.
+27/10/2025 12:52:48 - Obtained Outlook namespace for MAPI.
+27/10/2025 12:52:48 - Invoking Coordinator routine
+27/10/2025 12:52:48 - Coordinator routine started
+27/10/2025 12:52:48 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 12:52:48 - Checking Outlook Inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 12:53:08 - Email with subject 'ABT group meeting @ 11am (31/10/2025)' not found in Inbox prior to action.
+27/10/2025 12:53:08 - EmailExists('ABT group meeting @ 11am (31/10/2025)', folder=Inbox, checkOnly=False) result: False
+27/10/2025 12:53:13 - Excel application created successfully.
+27/10/2025 12:53:14 - Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 12:53:14 - Sheets obtained: Rota and Emails
+27/10/2025 12:53:14 - Scanning rota sheet up to row: 721
+27/10/2025 12:53:16 - Rota rows located | This: 7 | Next: 8 | Next+1: 9
+27/10/2025 12:53:16 - Row 7 data | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 12:53:16 - Row 8 data | Lit: Enny Tran | Res:  | Alt:  | Room: G25 (MSRH)
+27/10/2025 12:53:17 - Row 9 data | Lit: Cici M. Chu | Res: Haoran Qin | Alt:  | Room: G25 (MSRH)
+27/10/2025 12:53:17 - Generating main email content for date 31/10/2025 | Row: 7 | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 12:53:17 - Next Friday presenters found | Row: 8 | Lit: Enny Tran | Res:  | Alt: 
+27/10/2025 12:53:17 - Generated email body length: 577
+27/10/2025 12:53:17 - Dispatching regular meeting email for 31/10/2025
+27/10/2025 12:53:17 - Preparing regular meeting email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 12:53:17 - Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 12:53:18 - Coordinator routine completed and Excel resources released.
+27/10/2025 12:53:18 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 12:53:18 - === Script execution completed ===
+27/10/2025 13:32:23 - === Script execution started ===
+27/10/2025 13:32:23 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 13:32:23 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 13:32:25 - rclone command completed with exit code: 0
+27/10/2025 13:32:25 - Email dispatch permitted for today: 27/10/2025
+27/10/2025 13:32:25 - Outlook application created successfully.
+27/10/2025 13:32:26 - Obtained Outlook namespace for MAPI.
+27/10/2025 13:32:26 - Invoking Coordinator routine
+27/10/2025 13:32:26 - Coordinator routine started
+27/10/2025 13:32:26 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 13:32:26 - Checking Outlook Inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 13:32:42 - Email with subject 'ABT group meeting @ 11am (31/10/2025)' not found in Inbox prior to action.
+27/10/2025 13:32:42 - EmailExists('ABT group meeting @ 11am (31/10/2025)', folder=Inbox, checkOnly=False) result: False
+27/10/2025 13:32:48 - Excel application created successfully.
+27/10/2025 13:32:50 - Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 13:32:50 - Sheets obtained: Rota and Emails
+27/10/2025 13:32:51 - Scanning rota sheet up to row: 721
+27/10/2025 13:32:52 - Rota rows located | This: 7 | Next: 8 | Next+1: 9
+27/10/2025 13:32:52 - Row 7 data | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 13:32:53 - Row 8 data | Lit: Enny Tran | Res:  | Alt:  | Room: G25 (MSRH)
+27/10/2025 13:32:53 - Row 9 data | Lit: Cici M. Chu | Res: Haoran Qin | Alt:  | Room: G25 (MSRH)
+27/10/2025 13:32:53 - Generating main email content for date 31/10/2025 | Row: 7 | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 13:32:53 - Next Friday presenters found | Row: 8 | Lit: Enny Tran | Res:  | Alt: 
+27/10/2025 13:32:53 - Generated email body length: 577
+27/10/2025 13:32:53 - Dispatching regular meeting email for 31/10/2025
+27/10/2025 13:32:53 - Preparing regular meeting email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 13:32:53 - Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 13:32:53 - Coordinator routine completed and Excel resources released.
+27/10/2025 13:32:54 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 13:32:54 - === Script execution completed ===
+27/10/2025 15:25:36 - === Script execution started ===
+27/10/2025 15:25:36 - Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+27/10/2025 15:25:36 - Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+27/10/2025 15:25:39 - rclone command completed with exit code: 0
+27/10/2025 15:25:39 - Email dispatch permitted for today: 27/10/2025
+27/10/2025 15:25:40 - Outlook application created successfully.
+27/10/2025 15:25:40 - Obtained Outlook namespace for MAPI.
+27/10/2025 15:25:40 - Invoking Coordinator routine
+27/10/2025 15:25:40 - Coordinator routine started
+27/10/2025 15:25:40 - Computed Fridays | This: 31/10/2025 | Next: 07/11/2025 | Next+1: 14/11/2025
+27/10/2025 15:25:40 - Checking Outlook Inbox for email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 15:25:58 - Email with subject 'ABT group meeting @ 11am (31/10/2025)' not found in Inbox prior to action.
+27/10/2025 15:25:58 - EmailExists('ABT group meeting @ 11am (31/10/2025)', folder=Inbox, checkOnly=False) result: False
+27/10/2025 15:26:04 - Excel application created successfully.
+27/10/2025 15:26:04 - Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 15:26:04 - Sheets obtained: Rota and Emails
+27/10/2025 15:26:04 - Scanning rota sheet up to row: 721
+27/10/2025 15:26:07 - Rota rows located | This: 7 | Next: 8 | Next+1: 9
+27/10/2025 15:26:07 - Row 7 data | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 15:26:07 - Row 8 data | Lit: Enny Tran | Res:  | Alt:  | Room: G25 (MSRH)
+27/10/2025 15:26:07 - Row 9 data | Lit: Cici M. Chu | Res: Haoran Qin | Alt:  | Room: G25 (MSRH)
+27/10/2025 15:26:07 - Generating main email content for date 31/10/2025 | Row: 7 | Lit:  | Res: Joanne Ng | Alt:  | Room: G25 (MSRH)
+27/10/2025 15:26:07 - Next Friday presenters found | Row: 8 | Lit: Enny Tran | Res:  | Alt: 
+27/10/2025 15:26:07 - Generated email body length: 656
+27/10/2025 15:26:07 - Dispatching regular meeting email for 31/10/2025
+27/10/2025 15:26:07 - Preparing regular meeting email with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 15:26:07 - Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (31/10/2025)
+27/10/2025 15:26:08 - Coordinator routine completed and Excel resources released.
+27/10/2025 15:26:08 - Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+27/10/2025 15:26:08 - === Script execution completed ===

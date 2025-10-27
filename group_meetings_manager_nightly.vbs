@@ -375,15 +375,17 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
                   " at 11:00 am in person or via MS Teams." & vbCrLf
     End If
 
-    content = content & vbCrLf & "Meeting agenda:" & vbCrLf
-    If Trim(alternate) <> "" Then
-        content = content & "    " & Trim(alternate) & vbCrLf
-    Else
-        If Trim(results) <> "" Then
-            content = content & "    " & Trim(results) & " will present results." & vbCrLf
-        End If
-        If Trim(literature) <> "" Then
-            content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
+    If Trim(alternate) <> "" Or Trim(results) <> "" Or Trim(literature) <> "" Then
+        content = content & vbCrLf & "Meeting agenda:" & vbCrLf
+        If Trim(alternate) <> "" Then
+            content = content & "    " & Trim(alternate) & vbCrLf
+        Else
+            If Trim(results) <> "" Then
+                content = content & "    " & Trim(results) & " will present results." & vbCrLf
+            End If
+            If Trim(literature) <> "" Then
+                content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
+            End If
         End If
     Else
         content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
