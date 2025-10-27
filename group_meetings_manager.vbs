@@ -414,11 +414,33 @@ End Function
 Function GenerateLabManagerReminderEmail(labManagerName)
     Dim content, nameParts, manager
     Dim firstName, lastName, senderDisplayName, parcelAddressee
+    Dim greetingName, tokens
     manager = Trim(labManagerName)
     Call LogEvent("Generating lab manager reminder email | Manager: " & manager)
 
     If manager = "" Then
         manager = "there"
+    End If
+
+    greetingName = manager
+    If LCase(greetingName) <> "there" Then
+        If InStr(greetingName, ",") > 0 Then
+            tokens = Split(greetingName, ",")
+            If UBound(tokens) >= 1 Then
+                greetingName = Trim(tokens(1))
+            ElseIf UBound(tokens) = 0 Then
+                greetingName = Trim(tokens(0))
+            End If
+        Else
+            tokens = Split(greetingName, " ")
+            If UBound(tokens) >= 0 Then
+                greetingName = Trim(tokens(0))
+            End If
+        End If
+
+        If Trim(greetingName) = "" Then
+            greetingName = manager
+        End If
     End If
 
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
@@ -454,7 +476,7 @@ Function GenerateLabManagerReminderEmail(labManagerName)
         senderDisplayName = parcelAddressee
     End If
 
-    content = "Hi " & manager & "," & vbCrLf & vbCrLf
+    content = "Hi " & greetingName & "," & vbCrLf & vbCrLf
     content = content & "This is a reminder that you are the lab manager for this week." & vbCrLf & vbCrLf
     content = content & "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
               " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf & vbCrLf
