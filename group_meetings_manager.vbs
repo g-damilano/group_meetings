@@ -50,6 +50,7 @@ End If
 ' Global Configuration
 '-----------------------------
 Const DEBUG_MODE = False   ' <<< set False to actually send emails
+Const WEEKDAY_EMAIL_ONLY = True  ' <<< set False to allow weekend email sending
 Const MANAGER   = "gd2613@ic.ac.uk"
 Const BUILDING_ADMIN_EMAIL   = "i.gomezvilchis@imperial.ac.uk"
 Const SUPERVISOR_EMAIL   = "agi@imperial.ac.uk"
@@ -58,6 +59,39 @@ Const EMAIL_TO = "brandt-talbot-group@imperial.ac.uk"
 Const EXCEL_PATH = "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx"
 Const SHEET_ROTA = "Rota"
 Const SHEET_EMAILS = "Emails"
+
+Dim gEmailDispatchAllowed
+Dim gWeekendNoticeLogged
+gWeekendNoticeLogged = False
+
+Function InitializeEmailDispatchSetting()
+    If Not WEEKDAY_EMAIL_ONLY Then
+        InitializeEmailDispatchSetting = True
+    Else
+        Dim dayOfWeek
+        dayOfWeek = Weekday(Date, vbMonday)
+        InitializeEmailDispatchSetting = (dayOfWeek <= 5)
+    End If
+End Function
+
+Function ShouldSendEmail()
+    If gEmailDispatchAllowed Then
+        ShouldSendEmail = True
+    Else
+        If Not gWeekendNoticeLogged Then
+            Call LogEvent("Weekend detected (" & FormatDateTime(Date, 2) & "). Email dispatch suppressed.")
+            gWeekendNoticeLogged = True
+        End If
+        ShouldSendEmail = False
+    End If
+End Function
+
+gEmailDispatchAllowed = InitializeEmailDispatchSetting()
+If gEmailDispatchAllowed Then
+    Call LogEvent("Email dispatch permitted for today: " & FormatDateTime(Date, 2))
+Else
+    Call LogEvent("Email dispatch restricted to weekdays. Today is: " & FormatDateTime(Date, 2))
+End If
 
 Dim OL, olNS
 
@@ -175,7 +209,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
                   " at 11:00 am in person or via MS Teams." & vbCrLf
     End If
 
-    content = content & "Meeting agenda:" & vbCrLf
+    content = content & vbCrLf & "Meeting agenda:" & vbCrLf
     If alternate <> "" Then
         content = content & "    " & alternate & vbCrLf
     Else
@@ -186,11 +220,11 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     Dim trimmedNextRes
     trimmedNextRes = Trim(next_res)
     If trimmedNextRes <> "" Then
-        content = content & trimmedNextRes & " will lead the meeting and do the inclusion activity." & vbCrLf
+        content = content & vbCrLf & trimmedNextRes & " will lead the meeting and do the inclusion activity." & vbCrLf
     End If
 
     If next_lit <> "" And next_res <> "" Then
-        content = content & "The week after:" & vbCrLf
+        content = content & vbCrLf & "The week after:" & vbCrLf
         If next_alt <> "" Then
             content = content & "    " & next_alt & vbCrLf
         Else
@@ -203,7 +237,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         labManager = "TBD"
     End If
 
-    content = content & vbCrLf
+    content = content & vbCrLf & vbCrLf
     content = content & "The lab manager for this week is " & labManager & _
               ". Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
               " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
@@ -289,6 +323,10 @@ Sub DistributeEmail(header, body)
     Dim mail
     Set mail = OL.CreateItem(0)
     Call LogEvent("Preparing regular meeting email with subject: " & header)
+    If Not ShouldSendEmail() Then
+        Call LogEvent("Skipping regular meeting email due to weekday restriction. Subject: " & header)
+        Exit Sub
+    End If
     With mail
         .To = EMAIL_TO
         .Subject = header
@@ -334,6 +372,10 @@ Sub AlertEmail(toAddress, messageBody, subjectText)
     Dim mail
     Set mail = OL.CreateItem(0)
     Call LogEvent("Preparing alert email with subject: " & subjectText & " to " & toAddress)
+    If Not ShouldSendEmail() Then
+        Call LogEvent("Skipping alert email due to weekday restriction. Subject: " & subjectText)
+        Exit Sub
+    End If
     With mail
         .To = toAddress
         .Subject = subjectText
@@ -357,6 +399,10 @@ Sub AlertEmailWithAttachment(toAddress, messageBody, subjectText, attachmentPath
     Set mail = OL.CreateItem(0)
     Call LogEvent("Preparing alert email with attachment. Subject: " & subjectText & _
                   " | Recipient: " & toAddress & " | Attachment: " & attachmentPath)
+    If Not ShouldSendEmail() Then
+        Call LogEvent("Skipping alert email with attachment due to weekday restriction. Subject: " & subjectText)
+        Exit Sub
+    End If
     With mail
         .To = toAddress
         .Subject = subjectText
