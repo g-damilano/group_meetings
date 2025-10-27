@@ -210,11 +210,15 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     End If
 
     content = content & vbCrLf & "Meeting agenda:" & vbCrLf
-    If alternate <> "" Then
+    If Trim(alternate) <> "" Then
         content = content & "    " & alternate & vbCrLf
     Else
-        content = content & "    " & results & " will present results." & vbCrLf
-        content = content & "    " & literature & " will present literature." & vbCrLf
+        If Trim(results) <> "" Then
+            content = content & "    " & results & " will present results." & vbCrLf
+        End If
+        If Trim(literature) <> "" Then
+            content = content & "    " & literature & " will present literature." & vbCrLf
+        End If
     End If
 
     Dim trimmedNextRes
@@ -225,11 +229,15 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
 
     If next_lit <> "" And next_res <> "" Then
         content = content & vbCrLf & "The week after:" & vbCrLf
-        If next_alt <> "" Then
+        If Trim(next_alt) <> "" Then
             content = content & "    " & next_alt & vbCrLf
         Else
-            content = content & "    " & next_res & " will present results." & vbCrLf
-            content = content & "    " & next_lit & " will present literature." & vbCrLf
+            If Trim(next_res) <> "" Then
+                content = content & "    " & next_res & " will present results." & vbCrLf
+            End If
+            If Trim(next_lit) <> "" Then
+                content = content & "    " & next_lit & " will present literature." & vbCrLf
+            End If
         End If
     End If
 
@@ -357,8 +365,11 @@ Function GenerateEmailAlert(alertType, missingDate, recipientEmail, tentativeRot
         Case "MissingRoom"
             content = content & "The rota entry for " & missingDate & " has no room reservation." & vbCrLf & _
                       "Please reserve a room for the meeting." & vbCrLf
-	    content = content & vbCrLf & "Send Email to Iliane to request room for the upcoming term: " & _
+            content = content & vbCrLf & "Send Email to Iliane to request room for the upcoming term: " & _
               "mailto:i.gomezvilchis@imperial.ac.uk?subject=Room%20Reservation%20Request%20for%20ABT%20Group%20Meetings%20%E2%80%93%20Upcoming%20Term&body=Hi%20Iliane,%0D%0A%0D%0AI%20hope%20you%20are%20well.%0D%0A%0D%0AI%20would%20like%20to%20request%20a%20recurring%20booking%20for%20our%20ABT%20group%20meetings%20for%20the%20upcoming%20academic%20term.%20Could%20you%20please%20reserve%20G25%20(MSRH)%20for%20Fridays%20from%2011:00%20to%2012:00,%20starting%20from%20the%20next%20available%20week?%0D%0A%0D%0ACould%20you%20also%20let%20me%20know%20the%20exact%20date%20the%20reservation%20ends?%0D%0A%0D%0AThank%20you%20very%20much%20for%20your%20help.%0D%0A%0D%0ABest%20regards,%0D%0AGiacomo" & vbCrLf & vbCrLf
+        Case "MeetingNotSet"
+            content = content & "The rota entry for " & missingDate & " has no presenters or alternate assigned, so the regular meeting email was not sent to the distribution list." & vbCrLf & _
+                      "Please update the rota with presenters so the meeting can be scheduled." & vbCrLf
     End Select
     content = content & vbCrLf & "Contact directly via email: " & recipientEmail & vbCrLf & vbCrLf
     content = content & "Best," & vbCrLf & "Automated Meeting Scheduler"
@@ -552,7 +563,7 @@ Sub Coordinator()
     Dim header, objExcel, objWorkbook, objSheetRota, objSheetEmails
     Dim lastRow, i, meetingDate
     Dim foundRow, nextFridayRow, nextNextFridayRow
-    Dim body, literature, results, alternate, room
+    Dim body, literature, results, alternate, room, managerAlertSubject
     Call LogEvent("Coordinator routine started")
 
     '--- Define Fridays ---
@@ -695,9 +706,26 @@ Sub Coordinator()
 
     '--- Send regular meeting email for this Friday ---
     If foundRow <> -1 Then
-        body = GenerateEmailContent(thisFriday, foundRow, objSheetRota, nextFridayRow)
-        Call LogEvent("Dispatching regular meeting email for " & FormatDateTime(thisFriday, 2))
-        Call DistributeEmail(header, body)
+        literature = Trim(objSheetRota.Cells(foundRow, 2).Value)
+        results = Trim(objSheetRota.Cells(foundRow, 3).Value)
+        alternate = Trim(objSheetRota.Cells(foundRow, 4).Value)
+
+        If literature = "" And results = "" And alternate = "" Then
+            Call LogEvent("No presenters or alternate assigned for " & FormatDateTime(thisFriday, 2) & ". Regular meeting email suppressed.")
+            managerAlertSubject = "ALERT: MeetingNotSet for " & FormatDateTime(thisFriday, 2)
+            If Not EmailExists(managerAlertSubject) Then
+                Call LogEvent("Sending manager alert that the meeting is not set for " & FormatDateTime(thisFriday, 2))
+                Call AlertEmail(MANAGER, _
+                    GenerateEmailAlert("MeetingNotSet", FormatDateTime(thisFriday, 2), MANAGER, ""), _
+                    managerAlertSubject)
+            Else
+                Call LogEvent("Manager alert already exists for " & FormatDateTime(thisFriday, 2) & ". Skipping duplicate notification.")
+            End If
+        Else
+            body = GenerateEmailContent(thisFriday, foundRow, objSheetRota, nextFridayRow)
+            Call LogEvent("Dispatching regular meeting email for " & FormatDateTime(thisFriday, 2))
+            Call DistributeEmail(header, body)
+        End If
     Else
         Call LogEvent("No rota entry found for this Friday. Regular email will not be sent.")
     End If
