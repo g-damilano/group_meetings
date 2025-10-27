@@ -385,9 +385,6 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         If Trim(literature) <> "" Then
             content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
         End If
-        If Trim(literature) <> "" Then
-            content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
-        End If
     Else
         content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
     End If
@@ -405,13 +402,12 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         content = content & vbCrLf & "Next week:" & vbCrLf
         If Trim(next_alt) <> "" Then
             content = content & "    " & Trim(next_alt) & vbCrLf
-        Else
-            If Trim(next_res) <> "" Then
-                content = content & "    " & Trim(next_res) & " will present results." & vbCrLf
-            End If
-            If Trim(next_lit) <> "" Then
-                content = content & "    " & Trim(next_lit) & " will present literature." & vbCrLf
-            End If
+        End If
+        If Trim(next_res) <> "" Then
+            content = content & "    " & Trim(next_res) & " will present results." & vbCrLf
+        End If
+        If Trim(next_lit) <> "" Then
+            content = content & "    " & Trim(next_lit) & " will present literature." & vbCrLf
         End If
     Else
         content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
@@ -753,39 +749,6 @@ Function RecipientMatchesTarget(mailItem, targetValue)
         If candidate <> "" Then
             If candidate = lowerTarget Or InStr(candidate, lowerTarget) > 0 Or InStr(lowerTarget, candidate) > 0 Then
                 RecipientMatchesTarget = True
-                Exit Function
-            End If
-        End If
-    Next
-End Function
-
-Function TokensAppearInString(tokenDict, haystack)
-    Dim key
-    TokensAppearInString = False
-    If tokenDict Is Nothing Then Exit Function
-    If haystack = "" Then Exit Function
-
-    For Each key In tokenDict.Keys
-        If key <> "" Then
-            If InStr(haystack, key) > 0 Then
-                TokensAppearInString = True
-                Exit Function
-            End If
-        End If
-    Next
-End Function
-
-Function TokensMatchValue(tokenDict, candidateValue)
-    Dim key, normalized
-    TokensMatchValue = False
-    If tokenDict Is Nothing Then Exit Function
-    normalized = LCase(candidateValue & "")
-    If normalized = "" Then Exit Function
-
-    For Each key In tokenDict.Keys
-        If key <> "" Then
-            If normalized = key Or InStr(normalized, key) > 0 Or InStr(key, normalized) > 0 Then
-                TokensMatchValue = True
                 Exit Function
             End If
         End If

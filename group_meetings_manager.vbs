@@ -335,13 +335,12 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         content = content & vbCrLf & "Next week:" & vbCrLf
         If Trim(next_alt) <> "" Then
             content = content & "    " & Trim(next_alt) & vbCrLf
-        Else
-            If Trim(next_res) <> "" Then
-                content = content & "    " & Trim(next_res) & " will present results." & vbCrLf
-            End If
-            If Trim(next_lit) <> "" Then
-                content = content & "    " & Trim(next_lit) & " will present literature." & vbCrLf
-            End If
+        End If
+        If Trim(next_res) <> "" Then
+            content = content & "    " & Trim(next_res) & " will present results." & vbCrLf
+        End If
+        If Trim(next_lit) <> "" Then
+            content = content & "    " & Trim(next_lit) & " will present literature." & vbCrLf
         End If
     Else
         content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
