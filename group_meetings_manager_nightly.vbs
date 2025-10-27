@@ -350,7 +350,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         content = content & trimmedNextRes & " will lead the meeting and do the inclusion activity." & vbCrLf
     End If
 
-    If next_lit <> "" And next_res <> "" Then
+    If next_lit <> "" Or next_res <> "" Or next_alt <> "" Then
         content = content & "The week after:" & vbCrLf
         If Trim(next_alt) <> "" Then
             content = content & "    " & next_alt & vbCrLf
@@ -362,6 +362,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
                 content = content & "    " & next_lit & " will present literature." & vbCrLf
             End If
         End If
+    Else
+        content = content & "No meeting has been set for the following week." & vbCrLf
     End If
 
     If labManager = "" Then
@@ -369,8 +371,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     End If
 
     content = content & vbCrLf
-    content = content & "The lab manager for this week is " & labManager & _
-              ". Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
+    content = content & "The lab manager for this week is " & labManager & "." & vbCrLf & _
+              "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
               " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
 
     content = content & "Upcoming weeks schedule: " & _
@@ -937,7 +939,7 @@ Sub HandleCommunications(ByRef fridayDates, ByRef rowIndexes, ByRef objSheetRota
     If literature = "" And results = "" And alternate = "" Then
         LogEvent "No presenters or alternate assigned for " & FormatDateTime(fridayDates(0), 2) & ". Regular meeting email suppressed."
         managerAlertSubject = "ALERT: MeetingNotSet for " & FormatDateTime(fridayDates(0), 2)
-        If Not EmailExists(managerAlertSubject) Then
+        If Not EmailExists(managerAlertSubject, 5) Then
             LogEvent "Sending manager alert that the meeting is not set for " & FormatDateTime(fridayDates(0), 2)
             Call AlertEmail(MANAGER, _
                 GenerateEmailAlert("MeetingNotSet", FormatDateTime(fridayDates(0), 2), MANAGER, ""), _

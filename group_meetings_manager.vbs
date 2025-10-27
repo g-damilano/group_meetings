@@ -150,21 +150,74 @@ End Function
 '==============================================================
 ' Module 1: Email Verification
 '==============================================================
-Function EmailExists(header)
-    Dim inbox, items, mail, found
+Function EmailExists(header, Optional folderConstant, Optional checkOnly)
+    Dim targetFolderId, folderLabel, sortField
+    Dim targetFolder, items, mail
+    Dim found, checkMode
+
+    targetFolderId = 6 ' Inbox by default
+    If Not IsMissing(folderConstant) Then
+        targetFolderId = CLng(folderConstant)
+    End If
+
+    checkMode = False
+    If Not IsMissing(checkOnly) Then
+        checkMode = CBool(checkOnly)
+    End If
+
+    Select Case targetFolderId
+        Case 5
+            folderLabel = "Sent Items"
+            sortField = "SentOn"
+        Case 6
+            folderLabel = "Inbox"
+            sortField = "ReceivedTime"
+        Case Else
+            folderLabel = "folder id " & targetFolderId
+            sortField = "ReceivedTime"
+    End Select
+
+    Call LogEvent("Checking Outlook " & folderLabel & " for email with subject: " & header)
+
+    On Error Resume Next
+    Set targetFolder = olNS.GetDefaultFolder(targetFolderId)
+    If Err.Number <> 0 Then
+        LogError "Unable to access Outlook folder id " & targetFolderId & " for subject '" & header & "'"
+        On Error GoTo 0
+        EmailExists = False
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    Set items = targetFolder.Items
+    On Error Resume Next
+    items.Sort sortField, True
+    On Error GoTo 0
+
     found = False
-    Call LogEvent("Checking Outlook inbox for email with subject: " & header)
-    Set inbox = olNS.GetDefaultFolder(6) ' Inbox
-    Set items = inbox.Items
-    items.Sort "ReceivedTime", True
     For Each mail In items
-        If mail.Subject = header Then
-            found = True
-            Call LogEvent("Email with subject '" & header & "' already exists. Skipping related actions.")
-            Exit For
+        If TypeName(mail) = "MailItem" Then
+            If mail.Subject = header Then
+                found = True
+                If checkMode Then
+                    Call LogEvent("Confirmed email with subject '" & header & "' in " & folderLabel & ".")
+                Else
+                    Call LogEvent("Email with subject '" & header & "' already exists in " & folderLabel & ". Skipping related actions.")
+                End If
+                Exit For
+            End If
         End If
     Next
-    Call LogEvent("EmailExists('" & header & "') result: " & found)
+
+    If Not found Then
+        If checkMode Then
+            Call LogEvent("Email with subject '" & header & "' not yet located in " & folderLabel & " during verification.")
+        Else
+            Call LogEvent("Email with subject '" & header & "' not found in " & folderLabel & " prior to action.")
+        End If
+    End If
+
+    Call LogEvent("EmailExists('" & header & "', folder=" & folderLabel & ", checkOnly=" & checkMode & ") result: " & found)
     EmailExists = found
 End Function
 
@@ -227,7 +280,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         content = content & vbCrLf & trimmedNextRes & " will lead the meeting and do the inclusion activity." & vbCrLf
     End If
 
-    If next_lit <> "" And next_res <> "" Then
+    If next_lit <> "" Or next_res <> "" Or next_alt <> "" Then
         content = content & vbCrLf & "The week after:" & vbCrLf
         If Trim(next_alt) <> "" Then
             content = content & "    " & next_alt & vbCrLf
@@ -239,6 +292,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
                 content = content & "    " & next_lit & " will present literature." & vbCrLf
             End If
         End If
+    Else
+        content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
     End If
 
     If labManager = "" Then
@@ -246,8 +301,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     End If
 
     content = content & vbCrLf & vbCrLf
-    content = content & "The lab manager for this week is " & labManager & _
-              ". Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
+    content = content & "The lab manager for this week is " & labManager & "." & vbCrLf & _
+              "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
               " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
 
     ' Add link to rota
@@ -713,7 +768,7 @@ Sub Coordinator()
         If literature = "" And results = "" And alternate = "" Then
             Call LogEvent("No presenters or alternate assigned for " & FormatDateTime(thisFriday, 2) & ". Regular meeting email suppressed.")
             managerAlertSubject = "ALERT: MeetingNotSet for " & FormatDateTime(thisFriday, 2)
-            If Not EmailExists(managerAlertSubject) Then
+            If Not EmailExists(managerAlertSubject, 5) Then
                 Call LogEvent("Sending manager alert that the meeting is not set for " & FormatDateTime(thisFriday, 2))
                 Call AlertEmail(MANAGER, _
                     GenerateEmailAlert("MeetingNotSet", FormatDateTime(thisFriday, 2), MANAGER, ""), _
