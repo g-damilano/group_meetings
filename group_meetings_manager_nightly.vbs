@@ -385,6 +385,11 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         If Trim(literature) <> "" Then
             content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
         End If
+        If Trim(literature) <> "" Then
+            content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
+        End If
+    Else
+        content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
     End If
 
     content = content & vbCrLf & Trim(meetingLeadName) & " will lead the meeting and do the inclusion activity." & vbCrLf
@@ -611,7 +616,7 @@ Function ResolveEmailOrManager(personName)
     End If
 End Function
 
-Sub DispatchReminderEmail(toAddress, subjectText, bodyText)
+Sub DispatchReminderEmail(toAddress, subjectText, bodyText, recipientHint, allowSubjectFallback)
     Call LogVerbose("DispatchReminderEmail invoked for subject='" & subjectText & "'")
     Dim mail
     LogEvent "Preparing reminder email with subject: " & subjectText & " to " & toAddress
@@ -754,6 +759,61 @@ Function RecipientMatchesTarget(mailItem, targetValue)
     Next
 End Function
 
+Function TokensAppearInString(tokenDict, haystack)
+    Dim key
+    TokensAppearInString = False
+    If tokenDict Is Nothing Then Exit Function
+    If haystack = "" Then Exit Function
+
+    For Each key In tokenDict.Keys
+        If key <> "" Then
+            If InStr(haystack, key) > 0 Then
+                TokensAppearInString = True
+                Exit Function
+            End If
+        End If
+    Next
+End Function
+
+Function TokensMatchValue(tokenDict, candidateValue)
+    Dim key, normalized
+    TokensMatchValue = False
+    If tokenDict Is Nothing Then Exit Function
+    normalized = LCase(candidateValue & "")
+    If normalized = "" Then Exit Function
+
+    For Each key In tokenDict.Keys
+        If key <> "" Then
+            If normalized = key Or InStr(normalized, key) > 0 Or InStr(key, normalized) > 0 Then
+                TokensMatchValue = True
+                Exit Function
+            End If
+        End If
+    Next
+End Function
+
+Sub AddTokenIfNew(tokenDict, tokenValue)
+    Dim normalized
+    If tokenDict Is Nothing Then Exit Sub
+    normalized = LCase(Trim(tokenValue & ""))
+    If normalized = "" Then Exit Sub
+    If Len(normalized) < 3 And InStr(normalized, "@") = 0 Then Exit Sub
+    If Not tokenDict.Exists(normalized) Then
+        tokenDict.Add normalized, True
+    End If
+End Sub
+
+Sub AddDelimitedFragments(tokenDict, sourceValue, delimiter)
+    Dim parts, part
+    If tokenDict Is Nothing Then Exit Sub
+    If delimiter = "" Then Exit Sub
+    If sourceValue = "" Then Exit Sub
+    parts = Split(sourceValue, delimiter)
+    For Each part In parts
+        Call AddTokenIfNew(tokenDict, part)
+    Next
+End Sub
+
 Sub TriggerReminderEmails(literaturePresenter, resultsPresenter, labManagerName, meetingDate)
     Call LogVerbose("TriggerReminderEmails invoked")
     LogEvent "Triggering reminder workflow for meeting date " & FormatDateTime(meetingDate, 2)
@@ -764,7 +824,7 @@ End Sub
 
 Sub MaybeSendPresenterReminder(presenterName, presentationType, meetingDate)
     Call LogVerbose("MaybeSendPresenterReminder invoked for presenter='" & presenterName & "'")
-    Dim trimmedName, subjectLine, targetEmail, body
+    Dim trimmedName, subjectLine, targetEmail, body, dedupeHint, allowSubjectFallback
     trimmedName = Trim(presenterName)
 
     targetEmail = ResolveEmailOrManager(trimmedName)
@@ -782,7 +842,7 @@ End Sub
 
 Sub MaybeSendLabManagerReminder(labManagerName, meetingDate)
     Call LogVerbose("MaybeSendLabManagerReminder invoked for manager='" & labManagerName & "'")
-    Dim trimmedName, subjectLine, targetEmail, body
+    Dim trimmedName, subjectLine, targetEmail, body, dedupeHint, allowSubjectFallback
     trimmedName = Trim(labManagerName)
 
     targetEmail = ResolveEmailOrManager(trimmedName)
