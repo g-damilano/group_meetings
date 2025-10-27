@@ -54,6 +54,7 @@ Const WEEKDAY_EMAIL_ONLY = True  ' <<< set False to allow weekend email sending
 Const MANAGER   = "gd2613@ic.ac.uk"
 Const BUILDING_ADMIN_EMAIL   = "i.gomezvilchis@imperial.ac.uk"
 Const SUPERVISOR_EMAIL   = "agi@imperial.ac.uk"
+Const DEFAULT_PREVIOUS_LAB_MANAGER = "Agi"
 
 Const EMAIL_TO = "brandt-talbot-group@imperial.ac.uk"
 Const EXCEL_PATH = "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx"
@@ -234,6 +235,7 @@ End Function
 '==============================================================
 Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     Dim literature, results, alternate, room, labManager, next_lit, next_res, next_alt, content, nameParts
+    Dim previousLabManager, previousFriday, previousFridayRow, searchRow, lastRow, candidateDate, meetingLeadName
     literature = Trim(objSheetRota.Cells(row, 2).Value)
     results    = Trim(objSheetRota.Cells(row, 3).Value)
     alternate  = Trim(objSheetRota.Cells(row, 4).Value)
@@ -260,6 +262,29 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     End If
     
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+
+    previousFriday = DateAdd("d", -7, meetingDate)
+    previousFridayRow = -1
+    lastRow = objSheetRota.Cells(objSheetRota.Rows.Count, "A").End(-4162).Row
+    For searchRow = 2 To lastRow
+        candidateDate = objSheetRota.Cells(searchRow, 1).Value
+        If candidateDate = previousFriday Then
+            previousFridayRow = searchRow
+            Exit For
+        End If
+    Next
+
+    If previousFridayRow <> -1 Then
+        previousLabManager = Trim(objSheetRota.Cells(previousFridayRow, 6).Value)
+    Else
+        previousLabManager = ""
+    End If
+
+    If previousLabManager = "" Then
+        previousLabManager = DEFAULT_PREVIOUS_LAB_MANAGER
+    End If
+
+    meetingLeadName = previousLabManager
     
     content = "Hi all," & vbCrLf
     If Trim(room) <> "" Then
@@ -282,11 +307,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         End If
     End If
 
-    Dim trimmedNextRes
-    trimmedNextRes = Trim(next_res)
-    If trimmedNextRes <> "" Then
-        content = content & vbCrLf & trimmedNextRes & " will lead the meeting and do the inclusion activity." & vbCrLf
-    End If
+    content = content & vbCrLf & meetingLeadName & " will lead the meeting and do the inclusion activity." & vbCrLf
 
     If next_lit <> "" Or next_res <> "" Or next_alt <> "" Then
         content = content & vbCrLf & "The week after:" & vbCrLf
@@ -326,7 +347,7 @@ End Function
 ' Module 2b: Presenter Reminder Generation
 '==============================================================
 Function GeneratePresenterReminderEmail(presenterName, presentationType)
-    Dim content, nameParts, normalizedType, description
+    Dim content, nameParts, normalizedType, description, greetingName, tokens, missingDescription
     presenterName = Trim(presenterName)
     presentationType = Trim(presentationType)
     Call LogEvent("Generating presenter reminder email | Presenter: " & presenterName & _
@@ -346,17 +367,42 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType)
             End If
     End Select
 
-    If presenterName = "" Then
-        presenterName = "there"
+    missingDescription = description
+    If description = "your presentation" Then
+        missingDescription = "the presentation slot"
     End If
 
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+    If presenterName = "" Then
+        content = "Hi," & vbCrLf & vbCrLf
+        content = content & "No presenter is currently assigned for " & missingDescription & _
+                  " at this week's group meeting." & vbCrLf & vbCrLf
+        content = content & "Please update the rota or advise the group so we can keep the agenda on track." & vbCrLf & vbCrLf
+        content = content & "Best," & vbCrLf & Trim(nameParts(1))
+        GeneratePresenterReminderEmail = content
+        Call LogEvent("Generated presenter reminder length: " & Len(content))
+        Exit Function
+    End If
 
-    content = "Hi " & presenterName & "," & vbCrLf
+    greetingName = presenterName
+    If InStr(greetingName, ",") > 0 Then
+        tokens = Split(greetingName, ",")
+        If UBound(tokens) >= 1 Then
+            greetingName = Trim(tokens(1))
+        ElseIf UBound(tokens) = 0 Then
+            greetingName = Trim(tokens(0))
+        End If
+    Else
+        tokens = Split(greetingName, " ")
+        If UBound(tokens) >= 0 Then
+            greetingName = Trim(tokens(0))
+        End If
+    End If
+
+    content = "Hi " & greetingName & "," & vbCrLf & vbCrLf
     content = content & "Just a reminder that you are scheduled to present " & description & _
-              " at this week's group meeting." & vbCrLf
-    content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf
-    content = content & vbCrLf
+              " at this week's group meeting." & vbCrLf & vbCrLf
+    content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf & vbCrLf
     content = content & "Best," & vbCrLf & Trim(nameParts(1))
     GeneratePresenterReminderEmail = content
     Call LogEvent("Generated presenter reminder length: " & Len(content))
@@ -367,6 +413,7 @@ End Function
 '==============================================================
 Function GenerateLabManagerReminderEmail(labManagerName)
     Dim content, nameParts, manager
+    Dim firstName, lastName, senderDisplayName, parcelAddressee
     manager = Trim(labManagerName)
     Call LogEvent("Generating lab manager reminder email | Manager: " & manager)
 
@@ -375,14 +422,47 @@ Function GenerateLabManagerReminderEmail(labManagerName)
     End If
 
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+    firstName = ""
+    lastName = ""
 
-    content = "Hi " & manager & "," & vbCrLf
-    content = content & "This is a reminder that you are the lab manager for this week." & vbCrLf
+    If UBound(nameParts) >= 1 Then
+        lastName = Trim(nameParts(0))
+        firstName = Trim(nameParts(1))
+    ElseIf UBound(nameParts) = 0 Then
+        firstName = Trim(nameParts(0))
+    End If
+
+    senderDisplayName = firstName
+    If senderDisplayName = "" Then
+        senderDisplayName = Trim(olNS.Accounts.Item(1).CurrentUser)
+    End If
+
+    parcelAddressee = senderDisplayName
+    If lastName <> "" Then
+        If senderDisplayName <> "" Then
+            parcelAddressee = senderDisplayName & " " & lastName
+        Else
+            parcelAddressee = lastName
+        End If
+    End If
+
+    If parcelAddressee = "" Then
+        parcelAddressee = "me"
+    End If
+
+    If senderDisplayName = "" Then
+        senderDisplayName = parcelAddressee
+    End If
+
+    content = "Hi " & manager & "," & vbCrLf & vbCrLf
+    content = content & "This is a reminder that you are the lab manager for this week." & vbCrLf & vbCrLf
     content = content & "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
-              " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
-    content = content & "Thank you for keeping the lab organized." & vbCrLf
-    content = content & vbCrLf
-    content = content & "Best," & vbCrLf & Trim(nameParts(1))
+              " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf & vbCrLf
+    content = content & "Please pick up all parcels addressed to " & parcelAddressee & _
+              "; most of them contain consumables that need to be re-stocked in the lab." & vbCrLf & vbCrLf
+    content = content & "Also, please send me the list of missing items from the whiteboard so we can replenish supplies promptly." & vbCrLf & vbCrLf
+    content = content & "Thank you for keeping the lab organized." & vbCrLf & vbCrLf
+    content = content & "Best," & vbCrLf & senderDisplayName
     GenerateLabManagerReminderEmail = content
     Call LogEvent("Generated lab manager reminder length: " & Len(content))
 End Function
