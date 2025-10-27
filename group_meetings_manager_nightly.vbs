@@ -135,7 +135,7 @@ End Sub
 Function SyncMeetingWorkbook()
     Call LogVerbose("SyncMeetingWorkbook invoked")
     Dim cmd, exitCode
-    cmd = "C:\\rclone\\rclone.exe copy ""ABTsharepoint:/Group Meetings/meeting_rota.xlsx"" ""C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings""""
+    cmd = "C:\rclone\rclone.exe copy ""ABTsharepoint:/Group Meetings/meeting_rota.xlsx"" ""C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"""
     LogEvent "Executing rclone command: " & cmd
     exitCode = objShell.Run(cmd, 0, True)
     LogEvent "rclone command completed with exit code: " & exitCode
