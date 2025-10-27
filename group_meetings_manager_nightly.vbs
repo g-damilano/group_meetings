@@ -10,7 +10,7 @@ Dim OL, olNS
 '==============================================================
 ' Configuration Constants
 '==============================================================
-Const DEBUG_MODE = True    ' Dry run mode enabled by default for nightly testing
+Const DEBUG_MODE = False   ' Set to True to dry-run without sending emails
 Const EXTENDED_LOGGING = True
 Const LOG_VARIANT = "[Nightly] "
 Const DISPLAY_DEBUG_POPUPS = False
@@ -332,6 +332,39 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     End If
 
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+    Dim senderFirstName
+    senderFirstName = ""
+    If UBound(nameParts) >= 1 Then
+        senderFirstName = Trim(nameParts(1))
+    ElseIf UBound(nameParts) = 0 Then
+        senderFirstName = Trim(nameParts(0))
+    End If
+    If senderFirstName = "" Then
+        senderFirstName = Trim(olNS.Accounts.Item(1).CurrentUser)
+    End If
+
+    previousFriday = DateAdd("d", -7, meetingDate)
+    previousFridayRow = -1
+    lastRow = objSheetRota.Cells(objSheetRota.Rows.Count, "A").End(-4162).Row
+    For searchRow = 2 To lastRow
+        candidateDate = objSheetRota.Cells(searchRow, 1).Value
+        If candidateDate = previousFriday Then
+            previousFridayRow = searchRow
+            Exit For
+        End If
+    Next
+
+    If previousFridayRow <> -1 Then
+        previousLabManager = Trim(objSheetRota.Cells(previousFridayRow, 6).Value)
+    Else
+        previousLabManager = ""
+    End If
+
+    If previousLabManager = "" Then
+        previousLabManager = DEFAULT_PREVIOUS_LAB_MANAGER
+    End If
+
+    meetingLeadName = previousLabManager
 
     previousFriday = DateAdd("d", -7, meetingDate)
     previousFridayRow = -1
@@ -367,47 +400,47 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
 
     content = content & vbCrLf & "Meeting agenda:" & vbCrLf
     If Trim(alternate) <> "" Then
-        content = content & "    " & alternate & vbCrLf
+        content = content & "    " & Trim(alternate) & vbCrLf
     Else
         If Trim(results) <> "" Then
-            content = content & "    " & results & " will present results." & vbCrLf
+            content = content & "    " & Trim(results) & " will present results." & vbCrLf
         End If
         If Trim(literature) <> "" Then
-            content = content & "    " & literature & " will present literature." & vbCrLf
-        End If
-    End If
-
-    content = content & vbCrLf & meetingLeadName & " will lead the meeting and do the inclusion activity." & vbCrLf
-
-    If next_lit <> "" Or next_res <> "" Or next_alt <> "" Then
-        content = content & vbCrLf & "The week after:" & vbCrLf
-        If Trim(next_alt) <> "" Then
-            content = content & "    " & next_alt & vbCrLf
-        Else
-            If Trim(next_res) <> "" Then
-                content = content & "    " & next_res & " will present results." & vbCrLf
-            End If
-            If Trim(next_lit) <> "" Then
-                content = content & "    " & next_lit & " will present literature." & vbCrLf
-            End If
+            content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
         End If
     Else
         content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
     End If
+
+    content = content & vbCrLf & Trim(meetingLeadName) & " will lead the meeting and do the inclusion activity." & vbCrLf
 
     If labManager = "" Then
         labManager = "TBD"
     End If
 
     content = content & vbCrLf & vbCrLf
-    content = content & "The lab manager for this week is " & labManager & "." & vbCrLf & _
-              "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
-              " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf
+    content = content & "The lab manager for this week is " & Trim(labManager) & "." & vbCrLf
+
+    If next_lit <> "" Or next_res <> "" Or next_alt <> "" Then
+        content = content & vbCrLf & "Next week:" & vbCrLf
+        If Trim(next_alt) <> "" Then
+            content = content & "    " & Trim(next_alt) & vbCrLf
+        Else
+            If Trim(next_res) <> "" Then
+                content = content & "    " & Trim(next_res) & " will present results." & vbCrLf
+            End If
+            If Trim(next_lit) <> "" Then
+                content = content & "    " & Trim(next_lit) & " will present literature." & vbCrLf
+            End If
+        End If
+    Else
+        content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
+    End If
 
     content = content & "Upcoming weeks schedule: " & _
               "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx?web=1" & vbCrLf
 
-    content = content & "Best," & vbCrLf & Trim(nameParts(1))
+    content = content & "Best," & vbCrLf & Trim(senderFirstName)
 
     GenerateEmailContent = content
     LogEvent "Generated email body length: " & Len(content)
@@ -444,13 +477,23 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
     reminderSubject = LCase(typeLabel)
     meetingDateText = FormatDateTime(meetingDate, 2)
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+    Dim senderFirstName
+    senderFirstName = ""
+    If UBound(nameParts) >= 1 Then
+        senderFirstName = Trim(nameParts(1))
+    ElseIf UBound(nameParts) = 0 Then
+        senderFirstName = Trim(nameParts(0))
+    End If
+    If senderFirstName = "" Then
+        senderFirstName = Trim(olNS.Accounts.Item(1).CurrentUser)
+    End If
 
     If presenterName = "" Then
         content = "Hi," & vbCrLf & vbCrLf
         content = content & "No presenter is currently assigned for the " & reminderSubject & _
                   " scheduled on " & meetingDateText & "." & vbCrLf & vbCrLf
         content = content & "Please update the rota or advise the group so we can keep the agenda on track." & vbCrLf & vbCrLf
-        content = content & "Best," & vbCrLf & Trim(nameParts(1))
+        content = content & "Best," & vbCrLf & Trim(senderFirstName)
         GeneratePresenterReminderEmail = content
         LogEvent "Generated presenter reminder length: " & Len(content)
         Exit Function
@@ -471,11 +514,11 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
         End If
     End If
 
-    content = "Hi " & greetingName & "," & vbCrLf & vbCrLf
+    content = "Hi " & Trim(greetingName) & "," & vbCrLf & vbCrLf
     content = content & "Just a reminder that you are scheduled to present " & description & _
               " at this week's group meeting on " & meetingDateText & "." & vbCrLf & vbCrLf
     content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf & vbCrLf
-    content = content & "Best," & vbCrLf & Trim(nameParts(1))
+    content = content & "Best," & vbCrLf & Trim(senderFirstName)
     GeneratePresenterReminderEmail = content
     LogEvent "Generated presenter reminder length: " & Len(content)
 End Function
@@ -551,15 +594,28 @@ Function GenerateLabManagerReminderEmail(labManagerName, meetingDate)
     endText = FormatDateTime(DateAdd("d", 7, meetingDate), 2)
     weekRange = startText & " " & ChrW(&H2013) & " " & endText
 
-    content = "Hi " & greetingName & "," & vbCrLf & vbCrLf
+    Dim greetingDisplay
+    If LCase(greetingName) = "there" Then
+        greetingDisplay = greetingName
+    Else
+        greetingDisplay = Trim(greetingName)
+    End If
+
+    content = "Hi " & greetingDisplay & "," & vbCrLf & vbCrLf
     content = content & "This is a reminder that you are the lab manager for the week of " & weekRange & "." & vbCrLf & vbCrLf
     content = content & "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
               " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf & vbCrLf
-    content = content & "On friday, please pick up all parcels addressed to " & parcelAddressee & _
+    Dim parcelDisplay
+    parcelDisplay = parcelAddressee
+    If LCase(parcelAddressee) <> "me" Then
+        parcelDisplay = Trim(parcelAddressee)
+    End If
+
+    content = content & "On friday, please pick up all parcels addressed to " & parcelDisplay & _
               "; most of them contain the consumables ordered the last week that need to be re-stocked in the lab." & vbCrLf & vbCrLf
     content = content & "Also, please send me the list of missing items I should procure from the whiteboard and procure the rest from the stores so that we can maintain supplies available at all time." & vbCrLf & vbCrLf
     content = content & "Thank you for keeping the lab organized." & vbCrLf & vbCrLf
-    content = content & "Best," & vbCrLf & senderDisplayName
+    content = content & "Best," & vbCrLf & Trim(senderDisplayName)
     GenerateLabManagerReminderEmail = content
     LogEvent "Generated lab manager reminder length: " & Len(content)
 End Function
@@ -580,13 +636,20 @@ Function ResolveEmailOrManager(personName)
     End If
 End Function
 
-Sub DispatchReminderEmail(toAddress, subjectText, bodyText)
+Sub DispatchReminderEmail(toAddress, subjectText, bodyText, recipientHint, allowSubjectFallback)
     Call LogVerbose("DispatchReminderEmail invoked for subject='" & subjectText & "'")
     Dim mail
     LogEvent "Preparing reminder email with subject: " & subjectText & " to " & toAddress
 
-    If EmailExists(subjectText, 5, False) Then
-        LogEvent "Negative feedback loop prevented duplicate reminder for subject: " & subjectText
+    Dim effectiveHint
+    effectiveHint = recipientHint
+    If Trim(effectiveHint & "") = "" Then
+        effectiveHint = toAddress
+    End If
+
+    If ReminderAlreadySent(subjectText, toAddress, effectiveHint, allowSubjectFallback) Then
+        LogEvent "Negative feedback loop prevented duplicate reminder for subject: " & subjectText & _
+                 " and recipient: " & toAddress
         Exit Sub
     End If
 
@@ -643,6 +706,179 @@ Function BuildLabManagerReminderSubject(labManagerName, meetingDate)
     BuildLabManagerReminderSubject = "Lab management reminder (" & startText & " " & ChrW(&H2013) & " " & endText & ")"
 End Function
 
+Function ReminderAlreadySent(subjectText, recipientAddress, recipientHint, allowSubjectFallback)
+    Call LogVerbose("ReminderAlreadySent invoked for subject='" & subjectText & "'")
+    Dim sentFolder, items, mail, matched, recipient, candidate, exchUser
+    Dim rawTargets, rawToken, normalizedToken, nameToken
+    Dim dictionary, localPart, useSubjectOnly
+
+    Set dictionary = CreateObject("Scripting.Dictionary")
+    useSubjectOnly = False
+    If Not IsEmpty(allowSubjectFallback) Then
+        On Error Resume Next
+        useSubjectOnly = CBool(allowSubjectFallback)
+        If Err.Number <> 0 Then
+            useSubjectOnly = False
+        End If
+        Err.Clear
+        On Error GoTo 0
+    End If
+
+    rawTargets = Split(recipientAddress & "", ";")
+    For Each rawToken In rawTargets
+        normalizedToken = LCase(Trim(rawToken))
+        Call AddTokenIfNew(dictionary, normalizedToken)
+        If InStr(normalizedToken, "@") > 0 Then
+            localPart = Split(normalizedToken, "@")(0)
+            Call AddTokenIfNew(dictionary, localPart)
+            Call AddDelimitedFragments(dictionary, localPart, ".")
+            Call AddDelimitedFragments(dictionary, localPart, "_")
+        End If
+    Next
+
+    nameToken = LCase(Trim(recipientHint & ""))
+    Call AddTokenIfNew(dictionary, nameToken)
+    Call AddDelimitedFragments(dictionary, nameToken, " ")
+    Call AddDelimitedFragments(dictionary, nameToken, "-")
+
+    If dictionary.Count = 0 Then
+        LogEvent "ReminderAlreadySent defaulting to subject-only comparison for: " & subjectText
+    End If
+
+    On Error Resume Next
+    Set sentFolder = olNS.GetDefaultFolder(5)
+    If Err.Number <> 0 Then
+        LogError "Unable to access Sent Items while checking reminder duplication"
+        Err.Clear
+        On Error GoTo 0
+        ReminderAlreadySent = False
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    Set items = sentFolder.Items
+    On Error Resume Next
+    items.Sort "SentOn", True
+    On Error GoTo 0
+
+    matched = False
+    For Each mail In items
+        If TypeName(mail) = "MailItem" Then
+            If mail.Subject = subjectText Then
+                If dictionary.Count = 0 Or useSubjectOnly Then
+                    matched = True
+                Else
+                    Dim toField
+                    toField = LCase(mail.To & "")
+                    matched = TokensAppearInString(dictionary, toField)
+                    If Not matched Then
+                        For Each recipient In mail.Recipients
+                            candidate = LCase(Trim(recipient.Address & ""))
+                            If candidate = "" Then
+                                On Error Resume Next
+                                candidate = LCase(Trim(recipient.AddressEntry.Address & ""))
+                                On Error GoTo 0
+                            End If
+                            If candidate = "" Then
+                                On Error Resume Next
+                                Set exchUser = recipient.AddressEntry.GetExchangeUser()
+                                If Err.Number = 0 Then
+                                    If Not exchUser Is Nothing Then
+                                        candidate = LCase(Trim(exchUser.PrimarySmtpAddress & ""))
+                                    End If
+                                End If
+                                Err.Clear
+                                On Error GoTo 0
+                                Set exchUser = Nothing
+                            End If
+                            If candidate = "" Then
+                                candidate = LCase(Trim(recipient.Name & ""))
+                            End If
+                            If candidate <> "" Then
+                                matched = TokensMatchValue(dictionary, candidate)
+                                If matched Then Exit For
+                            End If
+                        Next
+                        If Not matched Then
+                            matched = TokensAppearInString(dictionary, LCase(mail.CC & ""))
+                        End If
+                        If Not matched Then
+                            matched = TokensAppearInString(dictionary, LCase(mail.BCC & ""))
+                        End If
+                        If Not matched Then
+                            matched = TokensAppearInString(dictionary, LCase(mail.Body & ""))
+                        End If
+                    End If
+                End If
+
+                If matched Then
+                    LogEvent "Reminder already sent with subject '" & subjectText & "' to recipient matching: " & _
+                             recipientAddress
+                    ReminderAlreadySent = True
+                    Exit Function
+                End If
+            End If
+        End If
+    Next
+
+    ReminderAlreadySent = False
+End Function
+
+Function TokensAppearInString(tokenDict, haystack)
+    Dim key
+    TokensAppearInString = False
+    If tokenDict Is Nothing Then Exit Function
+    If haystack = "" Then Exit Function
+
+    For Each key In tokenDict.Keys
+        If key <> "" Then
+            If InStr(haystack, key) > 0 Then
+                TokensAppearInString = True
+                Exit Function
+            End If
+        End If
+    Next
+End Function
+
+Function TokensMatchValue(tokenDict, candidateValue)
+    Dim key, normalized
+    TokensMatchValue = False
+    If tokenDict Is Nothing Then Exit Function
+    normalized = LCase(candidateValue & "")
+    If normalized = "" Then Exit Function
+
+    For Each key In tokenDict.Keys
+        If key <> "" Then
+            If normalized = key Or InStr(normalized, key) > 0 Or InStr(key, normalized) > 0 Then
+                TokensMatchValue = True
+                Exit Function
+            End If
+        End If
+    Next
+End Function
+
+Sub AddTokenIfNew(tokenDict, tokenValue)
+    Dim normalized
+    If tokenDict Is Nothing Then Exit Sub
+    normalized = LCase(Trim(tokenValue & ""))
+    If normalized = "" Then Exit Sub
+    If Len(normalized) < 3 And InStr(normalized, "@") = 0 Then Exit Sub
+    If Not tokenDict.Exists(normalized) Then
+        tokenDict.Add normalized, True
+    End If
+End Sub
+
+Sub AddDelimitedFragments(tokenDict, sourceValue, delimiter)
+    Dim parts, part
+    If tokenDict Is Nothing Then Exit Sub
+    If delimiter = "" Then Exit Sub
+    If sourceValue = "" Then Exit Sub
+    parts = Split(sourceValue, delimiter)
+    For Each part In parts
+        Call AddTokenIfNew(tokenDict, part)
+    Next
+End Sub
+
 Sub TriggerReminderEmails(literaturePresenter, resultsPresenter, labManagerName, meetingDate)
     Call LogVerbose("TriggerReminderEmails invoked")
     LogEvent "Triggering reminder workflow for meeting date " & FormatDateTime(meetingDate, 2)
@@ -653,36 +889,46 @@ End Sub
 
 Sub MaybeSendPresenterReminder(presenterName, presentationType, meetingDate)
     Call LogVerbose("MaybeSendPresenterReminder invoked for presenter='" & presenterName & "'")
-    Dim trimmedName, subjectLine, targetEmail, body
+    Dim trimmedName, subjectLine, targetEmail, body, dedupeHint, allowSubjectFallback
     trimmedName = Trim(presenterName)
 
+    targetEmail = ResolveEmailOrManager(trimmedName)
     subjectLine = BuildPresenterReminderSubject(presentationType, meetingDate)
 
-    If EmailExists(subjectLine, 5, False) Then
-        LogEvent "Skipping presenter reminder because Sent Items already contains subject: " & subjectLine
+    dedupeHint = trimmedName
+    If dedupeHint = "" Then dedupeHint = targetEmail
+    allowSubjectFallback = (Trim(trimmedName) = "")
+
+    If ReminderAlreadySent(subjectLine, targetEmail, dedupeHint, allowSubjectFallback) Then
+        LogEvent "Skipping presenter reminder because Sent Items already contain subject '" & subjectLine & _
+                 "' for recipient: " & targetEmail
         Exit Sub
     End If
 
-    targetEmail = ResolveEmailOrManager(trimmedName)
     body = GeneratePresenterReminderEmail(trimmedName, presentationType, meetingDate)
-    DispatchReminderEmail targetEmail, subjectLine, body
+    DispatchReminderEmail targetEmail, subjectLine, body, dedupeHint, allowSubjectFallback
 End Sub
 
 Sub MaybeSendLabManagerReminder(labManagerName, meetingDate)
     Call LogVerbose("MaybeSendLabManagerReminder invoked for manager='" & labManagerName & "'")
-    Dim trimmedName, subjectLine, targetEmail, body
+    Dim trimmedName, subjectLine, targetEmail, body, dedupeHint, allowSubjectFallback
     trimmedName = Trim(labManagerName)
 
+    targetEmail = ResolveEmailOrManager(trimmedName)
     subjectLine = BuildLabManagerReminderSubject(trimmedName, meetingDate)
 
-    If EmailExists(subjectLine, 5, False) Then
-        LogEvent "Skipping lab manager reminder because Sent Items already contains subject: " & subjectLine
+    dedupeHint = trimmedName
+    If dedupeHint = "" Then dedupeHint = targetEmail
+    allowSubjectFallback = (Trim(trimmedName) = "")
+
+    If ReminderAlreadySent(subjectLine, targetEmail, dedupeHint, allowSubjectFallback) Then
+        LogEvent "Skipping lab manager reminder because Sent Items already contain subject '" & subjectLine & _
+                 "' for recipient: " & targetEmail
         Exit Sub
     End If
 
-    targetEmail = ResolveEmailOrManager(trimmedName)
     body = GenerateLabManagerReminderEmail(trimmedName, meetingDate)
-    DispatchReminderEmail targetEmail, subjectLine, body
+    DispatchReminderEmail targetEmail, subjectLine, body, dedupeHint, allowSubjectFallback
 End Sub
 
 '==============================================================
