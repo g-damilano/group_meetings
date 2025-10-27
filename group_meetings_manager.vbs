@@ -411,10 +411,11 @@ End Function
 '==============================================================
 ' Module 2c: Lab Manager Reminder Generation
 '==============================================================
-Function GenerateLabManagerReminderEmail(labManagerName)
+Function GenerateLabManagerReminderEmail(labManagerName, meetingDate)
     Dim content, nameParts, manager
     Dim firstName, lastName, senderDisplayName, parcelAddressee
     Dim greetingName, tokens
+    Dim startText, endText, weekRange
     manager = Trim(labManagerName)
     Call LogEvent("Generating lab manager reminder email | Manager: " & manager)
 
@@ -476,13 +477,17 @@ Function GenerateLabManagerReminderEmail(labManagerName)
         senderDisplayName = parcelAddressee
     End If
 
+    startText = FormatDateTime(meetingDate, 2)
+    endText = FormatDateTime(DateAdd("d", 7, meetingDate), 2)
+    weekRange = startText & " " & ChrW(&H2013) & " " & endText
+
     content = "Hi " & greetingName & "," & vbCrLf & vbCrLf
-    content = content & "This is a reminder that you are the lab manager for this week." & vbCrLf & vbCrLf
+    content = content & "This is a reminder that you are the lab manager for the week of " & weekRange & "." & vbCrLf & vbCrLf
     content = content & "Lab cleaning starts on Friday and must be completed by next Friday " & ChrW(&H2014) & _
               " please try to finish it by Friday EOD so the lab is ready for Monday." & vbCrLf & vbCrLf
-    content = content & "Please pick up all parcels addressed to " & parcelAddressee & _
-              "; most of them contain consumables that need to be re-stocked in the lab." & vbCrLf & vbCrLf
-    content = content & "Also, please send me the list of missing items from the whiteboard so we can replenish supplies promptly." & vbCrLf & vbCrLf
+    content = content & "On friday, please pick up all parcels addressed to " & parcelAddressee & _
+              "; most of them contain the consumables ordered the last week that need to be re-stocked in the lab." & vbCrLf & vbCrLf
+    content = content & "Also, please send me the list of missing items I should procure from the whiteboard and procure the rest from the stores so that we can maintain supplies available at all time." & vbCrLf & vbCrLf
     content = content & "Thank you for keeping the lab organized." & vbCrLf & vbCrLf
     content = content & "Best," & vbCrLf & senderDisplayName
     GenerateLabManagerReminderEmail = content
