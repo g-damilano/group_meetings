@@ -214,20 +214,28 @@ Function GetExactEmail(searchName)
     End If
 End Function
 
-Function EmailExists(header, Optional folderConstant, Optional checkOnly)
+Function EmailExists(header, folderConstant, checkOnly)
     Call LogVerbose("EmailExists invoked for subject='" & header & "'")
     Dim targetFolderId, folderLabel, sortField
     Dim targetFolder, items, mail
     Dim found, checkMode
 
     targetFolderId = 6 ' Inbox by default
-    If Not IsMissing(folderConstant) Then
+    If Not IsEmpty(folderConstant) Then
+        On Error Resume Next
         targetFolderId = CLng(folderConstant)
+        On Error GoTo 0
+        If targetFolderId = 0 Then targetFolderId = 6
     End If
 
     checkMode = False
-    If Not IsMissing(checkOnly) Then
+    If Not IsEmpty(checkOnly) Then
+        On Error Resume Next
         checkMode = CBool(checkOnly)
+        If Err.Number <> 0 Then
+            checkMode = False
+        End If
+        On Error GoTo 0
     End If
 
     Select Case targetFolderId
@@ -466,7 +474,7 @@ Sub DispatchReminderEmail(toAddress, subjectText, bodyText)
     Dim mail
     LogEvent "Preparing reminder email with subject: " & subjectText & " to " & toAddress
 
-    If EmailExists(subjectText, 5) Then
+    If EmailExists(subjectText, 5, False) Then
         LogEvent "Negative feedback loop prevented duplicate reminder for subject: " & subjectText
         Exit Sub
     End If
@@ -533,7 +541,7 @@ Sub MaybeSendPresenterReminder(presenterName, presentationType, meetingDate)
 
     subjectLine = BuildPresenterReminderSubject(trimmedName, presentationType, meetingDate)
 
-    If EmailExists(subjectLine, 5) Then
+    If EmailExists(subjectLine, 5, False) Then
         LogEvent "Skipping presenter reminder because Sent Items already contains subject: " & subjectLine
         Exit Sub
     End If
@@ -550,7 +558,7 @@ Sub MaybeSendLabManagerReminder(labManagerName, meetingDate)
 
     subjectLine = BuildLabManagerReminderSubject(trimmedName, meetingDate)
 
-    If EmailExists(subjectLine, 5) Then
+    If EmailExists(subjectLine, 5, False) Then
         LogEvent "Skipping lab manager reminder because Sent Items already contains subject: " & subjectLine
         Exit Sub
     End If
@@ -871,7 +879,7 @@ Sub SendCriticalAlert(alertType, targetDate, recipient, objSheetEmails)
     Dim subject, tentativeRota, csvPath
     subject = "ALERT: " & alertType & " for " & FormatDateTime(targetDate, 2)
 
-    If EmailExists(subject) Then Exit Sub
+    If EmailExists(subject, 6, False) Then Exit Sub
 
     If alertType = "MissingDate" Or alertType = "Unassigned" Then
         tentativeRota = GenerateTentativeRota(objSheetEmails)
@@ -939,7 +947,7 @@ Sub HandleCommunications(ByRef fridayDates, ByRef rowIndexes, ByRef objSheetRota
     If literature = "" And results = "" And alternate = "" Then
         LogEvent "No presenters or alternate assigned for " & FormatDateTime(fridayDates(0), 2) & ". Regular meeting email suppressed."
         managerAlertSubject = "ALERT: MeetingNotSet for " & FormatDateTime(fridayDates(0), 2)
-        If Not EmailExists(managerAlertSubject, 5) Then
+        If Not EmailExists(managerAlertSubject, 5, False) Then
             LogEvent "Sending manager alert that the meeting is not set for " & FormatDateTime(fridayDates(0), 2)
             Call AlertEmail(MANAGER, _
                 GenerateEmailAlert("MeetingNotSet", FormatDateTime(fridayDates(0), 2), MANAGER, ""), _

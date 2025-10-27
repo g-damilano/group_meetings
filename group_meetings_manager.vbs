@@ -150,19 +150,27 @@ End Function
 '==============================================================
 ' Module 1: Email Verification
 '==============================================================
-Function EmailExists(header, Optional folderConstant, Optional checkOnly)
+Function EmailExists(header, folderConstant, checkOnly)
     Dim targetFolderId, folderLabel, sortField
     Dim targetFolder, items, mail
     Dim found, checkMode
 
     targetFolderId = 6 ' Inbox by default
-    If Not IsMissing(folderConstant) Then
+    If Not IsEmpty(folderConstant) Then
+        On Error Resume Next
         targetFolderId = CLng(folderConstant)
+        On Error GoTo 0
+        If targetFolderId = 0 Then targetFolderId = 6
     End If
 
     checkMode = False
-    If Not IsMissing(checkOnly) Then
+    If Not IsEmpty(checkOnly) Then
+        On Error Resume Next
         checkMode = CBool(checkOnly)
+        If Err.Number <> 0 Then
+            checkMode = False
+        End If
+        On Error GoTo 0
     End If
 
     Select Case targetFolderId
@@ -631,7 +639,7 @@ Sub Coordinator()
                   " | Next+1: " & FormatDateTime(nextNextFriday, 2))
 
     '--- Exit if regular meeting email already exists ---
-    If EmailExists(header) Then
+    If EmailExists(header, 6, False) Then
         Call LogEvent("Existing meeting email detected. Coordinator will exit early.")
         Exit Sub
     End If
@@ -720,7 +728,7 @@ Sub Coordinator()
                 ' MissingRoom is independent; we allow sending separately
                 Dim missingRoomSubject
                 missingRoomSubject = "ALERT: MissingRoom for " & FormatDateTime(criticalDates(idx), 2)
-                If Not EmailExists(missingRoomSubject) Then
+                If Not EmailExists(missingRoomSubject, 6, False) Then
                     Call LogEvent("Missing room detected for " & FormatDateTime(criticalDates(idx), 2) & _
                                   ". Alert will be sent to building admin.")
                     Call AlertEmail(BUILDING_ADMIN_EMAIL, _
@@ -736,7 +744,7 @@ Sub Coordinator()
     For idx = 0 To 2
         If criticalTypes(idx) = "MissingDate" Or criticalTypes(idx) = "Unassigned" Then
             alertSubject = "ALERT: " & criticalTypes(idx) & " for " & FormatDateTime(criticalDates(idx), 2)
-            If Not EmailExists(alertSubject) Then
+            If Not EmailExists(alertSubject, 6, False) Then
                 If criticalTypes(idx) = "MissingDate" Or criticalTypes(idx) = "Unassigned" Then
                     tentativeRota = GenerateTentativeRota(objSheetEmails)
                     ' Create CSV attachment
@@ -768,7 +776,7 @@ Sub Coordinator()
         If literature = "" And results = "" And alternate = "" Then
             Call LogEvent("No presenters or alternate assigned for " & FormatDateTime(thisFriday, 2) & ". Regular meeting email suppressed.")
             managerAlertSubject = "ALERT: MeetingNotSet for " & FormatDateTime(thisFriday, 2)
-            If Not EmailExists(managerAlertSubject, 5) Then
+            If Not EmailExists(managerAlertSubject, 5, False) Then
                 Call LogEvent("Sending manager alert that the meeting is not set for " & FormatDateTime(thisFriday, 2))
                 Call AlertEmail(MANAGER, _
                     GenerateEmailAlert("MeetingNotSet", FormatDateTime(thisFriday, 2), MANAGER, ""), _
