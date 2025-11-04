@@ -144,6 +144,7 @@ Function LoadSignatureWithImages_AutoCharset(olMail)
         sigFile = file.Path
         baseName = fso.GetBaseName(file.Name)
         sigHTML = ReadHtmlAuto(sigFile)
+        sigHTML = ExtractBodyInnerHtml(sigHTML)
         found = True
         Exit For
       End If
@@ -167,6 +168,23 @@ Function LoadSignatureWithImages_AutoCharset(olMail)
   End If
 
   LoadSignatureWithImages_AutoCharset = sigHTML
+End Function
+
+Function ExtractBodyInnerHtml(html)
+  Dim htmlLower, startTagPos, afterStart, endTagPos, inner
+  htmlLower = LCase(html)
+  startTagPos = InStr(1, htmlLower, "<body")
+  If startTagPos > 0 Then
+    afterStart = InStr(startTagPos, html, ">")
+    If afterStart > 0 Then
+      endTagPos = InStr(afterStart + 1, htmlLower, "</body")
+      If endTagPos = 0 Then endTagPos = Len(html) + 1
+      inner = Mid(html, afterStart + 1, endTagPos - (afterStart + 1))
+      ExtractBodyInnerHtml = inner
+      Exit Function
+    End If
+  End If
+  ExtractBodyInnerHtml = html
 End Function
 
 Function DetectHtmlCharset(filePath)
