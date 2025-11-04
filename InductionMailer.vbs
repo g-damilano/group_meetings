@@ -9,9 +9,13 @@ SetLocale 1033
 ' Global objects and config
 '---------------------------
 Dim fso, scriptFolder, templateFolder, logFilePath
-Const TEMPLATE_DIR_NAME = "Induction"
+Const TEMPLATE_DIR_NAME = "templates"
 Const LOG_FILE_NAME = "InductionMailer.log"
 Const DEFAULT_ACTION = "display"   ' display | send | save
+Const MAILER_LIB_FILE = "mail_utils_mailer_dynamiclinks.vbs"
+Const MAILER_LIB_EXT_DIR = "mail_utils_utf8_plus_dynamiclinks_ext"
+Const MAILER_LIB_EXT_PATH = MAILER_LIB_EXT_DIR & "\" & MAILER_LIB_FILE
+Const LINK_MAP_FILE = "links_map.txt"
 
 Call Main()
 
@@ -88,9 +92,9 @@ End Sub
 Function LoadMailerLibrary()
   Dim candidates
   candidates = Array(_
-    fso.BuildPath(scriptFolder, "mail_utils_mailer_dynamiclinks.vbs"), _
-    fso.BuildPath(scriptFolder, "mail_utils_utf8_plus_dynamiclinks_ext\mail_utils_mailer_dynamiclinks.vbs"), _
-    fso.BuildPath(templateFolder, "mail_utils_mailer_dynamiclinks.vbs"))
+    fso.BuildPath(scriptFolder, MAILER_LIB_FILE), _
+    fso.BuildPath(scriptFolder, MAILER_LIB_EXT_PATH), _
+    fso.BuildPath(templateFolder, MAILER_LIB_FILE))
 
   Dim i
   For i = LBound(candidates) To UBound(candidates)
@@ -114,8 +118,8 @@ End Function
 Sub EnsureLinkMapAvailable(libraryPath)
   On Error Resume Next
   Dim libFolder: libFolder = fso.GetParentFolderName(libraryPath)
-  Dim sourceMap: sourceMap = fso.BuildPath(libFolder, "links_map.txt")
-  Dim targetMap: targetMap = fso.BuildPath(scriptFolder, "links_map.txt")
+  Dim sourceMap: sourceMap = fso.BuildPath(libFolder, LINK_MAP_FILE)
+  Dim targetMap: targetMap = fso.BuildPath(scriptFolder, LINK_MAP_FILE)
   If fso.FileExists(sourceMap) Then
     If Not fso.FileExists(targetMap) Then
       fso.CopyFile sourceMap, targetMap
