@@ -14,7 +14,8 @@ Const LOG_FILE_NAME = "InductionMailer.log"
 Const DEFAULT_ACTION = "display"   ' display | send | save
 Const MAILER_LIB_FILE = "mail_utils_mailer_dynamiclinks.vbs"
 Const MAILER_LIB_EXT_DIR = "mail_utils_utf8_plus_dynamiclinks_ext"
-Const MAILER_LIB_EXT_PATH = MAILER_LIB_EXT_DIR & "\" & MAILER_LIB_FILE
+'Const MAILER_LIB_EXT_PATH = MAILER_LIB_EXT_DIR & "\" & MAILER_LIB_FILE
+Const MAILER_LIB_EXT_PATH = "mail_utils.vbs"
 Const LINK_MAP_FILE = "links_map.txt"
 
 Call Main()
