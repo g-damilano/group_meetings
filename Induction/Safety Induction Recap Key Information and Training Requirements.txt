@@ -1,0 +1,122 @@
+Subject:	Safety Induction Recap: Key Information and Training Requirements
+
+Dear all,
+This email serves as a recap of the induction received over the last few weeks and to allow you to have a 
+reference for the induction received over the last few weeks. It outlines the mandatory training, safety 
+measures, and key information for all individuals working in laboratories or hazardous areas at Imperial 
+College. If you have any doubts or need assistance, please reach out to a member of the group who will 
+be able to help you.
+1. Commitment to Safety
+At Imperial College, safety is a top priority for all staff, students, contractors, and visitors. Senior 
+management is fully committed to maintaining a strong safety culture, and your vigilance is essential to 
+safeguarding personal property, equipment, and the building.
+2. Mandatory Training Requirements
+Before performing any lab activities, it is crucial that you complete the following online training:
+*	Risk Assessment Foundation Training (RAFT): Required for post-docs and postgraduate 
+students. Complete this within your first month, save the confirmation email, and store it in 
+your safety folder. Complete the RAFT Training Here
+*	Month One Safety Training (MOST): Required for staff and PhD students. Complete this within 
+your first month and place the confirmation email in your safety folder. Complete the MOST 
+Training Here
+*	Fire Safety Awareness: It is compulsory to complete the Fire Safety Awareness training e-
+learning as part of your induction. All access requests where the Hazardous Area Form indicates 
+that this training is incomplete will be rejected. Inductors must not sign off forms with 
+incomplete Fire Safety Awareness training. Complete the Fire Safety Awareness Training Here.
+*	Fire Prevention and Fire Safety at Work: While not mandatory for access, it should be 
+completed within a few weeks of starting. For more details and to register, please visit the 
+training page here.
+*	Computer Health Assessment: Ensures proper ergonomic practices for extensive computer 
+work. If applicable to your work setting, this course must also be completed within your first 
+month.
+3. Emergency Arrangements
+*	Emergency Contacts: In any emergency (e.g., fire, security incident, gas leak), contact Security 
+Control at +44 (0)20 7589 1000 or 4444 from any phone (except Northwick Park: 3999; Silwood 
+Park: 42444). Save these numbers in your phone. Alternatively, use the Safezone app.
+*	Fire Safety: When the fire alarm sounds, evacuate the building immediately via the nearest exit 
+and proceed to the designated assembly point. Do not return to the building until it is declared 
+safe. Ensure that you are familiar with all emergency exits and assembly points. More details on 
+fire safety can be found here. Additionally, please review the MSRH General Emergency 
+Evacuation Plan (GEEP) here.
+*	First Aid: First aid is available via Security or through local provisions in your work area. 
+Familiarize yourself with the location of first aid kits and other emergency equipment. More 
+details can be found here.
+4. Good Laboratory Practices (GLP)
+To minimize risks of contamination and injury, please observe the following:
+*	Personal Hygiene: No eating, drinking, or applying cosmetics in the lab. Keep personal 
+belongings, such as coats and bags, outside the lab.
+*	Lab Attire: Lab coats, gloves, goggles, and other protective gear must be worn when necessary. 
+For specific guidance on glove use, refer to this page. 
+*	Housekeeping: Keep your workspace clean and dispose of waste properly. Report any spillages 
+immediately and follow the correct clean-up protocol.
+*	Risk Reduction: Plan all experiments carefully, identify potential hazards, and minimize the use 
+of glassware and sharps where possible. Store heavy items at bench height.
+6. Working Hours
+*	MSci Students: Expected to work in the labs on Mondays, Tuesdays, Thursdays, and Fridays 
+from 09:00 to 18:00 and on Wednesdays from 09:00 to 12:00 during the Autumn (7 Oct - 13 
+Dec) and Spring (13 Jan - 21 March) terms.
+*	BSc Students: Expected to work from 09:00 to 18:00 on Mondays, Tuesdays, Thursdays, and 
+Fridays during lab weeks. See the attached ‘Key Dates’ document for more information on lab 
+weeks.
+*	Students are not permitted in MSRH laboratories outside of these hours.
+*	Lone Working: Work involving hazardous materials must not be conducted alone. For more 
+information on the Lone Working Policy, please refer to the guidelines here. If you need to work 
+beyond 11 PM, apply for extended hours access through the Life Sciences webpage.
+7. Shared Equipment and Hazardous Materials
+When using shared equipment or working with hazardous substances, you must understand and follow 
+proper safety procedures. This includes:
+*	Glove Use: Gloves should not be worn outside hazardous areas. Replace gloves regularly and 
+immediately if contaminated.
+*	Emergency Procedures: Familiarize yourself with the location and correct use of spill kits, eye 
+wash stations, and other safety equipment.
+8. Reporting Accidents and Unsafe Practices
+*	Accidents and Near Misses: Report any accidents, near misses, or unsafe conditions to your 
+supervisor and on the College’s SALUS system to ensure corrective actions are taken. More 
+information on reporting accidents can be found here.
+*	Building Defects: Report any building defects or faults immediately. Further details on how to 
+report these issues can be found here.
+*	Reporting Unsafe Conditions: If you notice unsafe practices or conditions, immediately report 
+them to your lab manager, Safety Adviser, or one of the following:
+o	Security Control: 020 7589 1000
+o	Estates Operations: 020 7594 8000
+o	ICT Helpdesk: 020 7594 9000
+o	Occupational Health: 020 7594 9401
+o	Safety Department: 020 7594 9423
+o	Safety Contacts: For a complete list of safety contacts, refer to this page.
+9. Departmental and Local Rules
+Familiarize yourself with the departmental safety personnel, local rules, and guidelines before starting 
+work. Safety guidance and additional training needs will be provided by your local team or through the 
+department's web pages.
+Faculty Health and Safety Team 
+The Faculty of Natural Sciences Health and Safety Team advises on health and safety matters across all 
+departments. Their goal is to ensure consistent implementation of College policies, safeguard staff and 
+students, and support the academic mission by fostering a strong safety culture.
+*	Stefan Hoyle: Head of Health & Safety (FoNS)
+*	Emma Edwards: Faculty Safety Manager
+*	Aaron Williams: Faculty Safety Officer
+*	Julia Dore: Faculty Safety Officer
+*	Sasha Angell: Faculty Safety Officer
+*	Richard Price: Electrical Testing Technician 
+Contact the team via fonssafety@imperial.ac.uk for health and safety-related queries. For more 
+details, you can visit the Faculty Health and Safety Team page.
+Additional Resources
+*	Offsite Working and Driving Policy: For more information on offsite working and driving safety, 
+refer to the guidelines here.
+*	Office and General Workplace Safety: Learn more about office safety here.
+*	Laboratory and Workshop Safety: Further information can be found here.
+
+If you have any questions or need further assistance, please don’t hesitate to reach out. If you 
+encounter any issues with the links provided, let me know.
+Best,
+Giacomo Damilano
+ 
+
+Dr Giacomo Damilano (He/Him)
+Post-Doctoral Research Associate 
+Department of Chemistry 
+Imperial College London 
+White City Campus 
+Floor 4, Molecular Sciences Research Hub
+London W12 7TA
+
+My usual working hours are 9am-4pm Monday-Friday. I don’t expect a reply outside of your normal working hours.
+
