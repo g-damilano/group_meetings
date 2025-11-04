@@ -4,6 +4,8 @@ SetLocale 1033
 
 Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
 Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName) : If Len(folder)=0 Then folder = "."
+Dim repoRoot: repoRoot = fso.GetParentFolderName(folder)
+If Len(repoRoot) = 0 Then repoRoot = folder
 
 ' Load mailer (which loads the shield core)
 ExecuteGlobal fso.OpenTextFile(folder & "\mail_utils_mailer.vbs", 1).ReadAll
@@ -11,7 +13,7 @@ ExecuteGlobal fso.OpenTextFile(folder & "\mail_utils_mailer.vbs", 1).ReadAll
 Dim toAddr, subjectText, templatePath, inlineImgFolder, action, logPath, ok
 toAddr          = "gd2613@ic.ac.uk"
 subjectText     = "UTF‑8 Plus – External HTML Template Test"
-templatePath    = folder & "\sample_template_utf8.html"
+templatePath    = fso.BuildPath(repoRoot, "templates\sample_template_utf8.html")
 inlineImgFolder = folder & "\assets"    ' will embed images as cid:filename
 action          = "display"             ' change to "send" after review
 logPath         = ""
