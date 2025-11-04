@@ -8,8 +8,8 @@ team's scripts.
 ## Repository layout
 
 - `InductionMailer.vbs` — interactive script that discovers HTML templates under the
-  `Induction/` folder, prompts for a selection, and prepares the message metadata and body.
-- `Induction/` — repository of HTML templates and their associated assets. Each template may
+  `templates/` folder, prompts for a selection, and prepares the message metadata and body.
+- `templates/` — repository of HTML templates and their associated assets. Each template may
   include an optional HTML comment block at the top to specify recipients, subject, and
   attachments.
 - `mail_utils_utf8_plus_dynamiclinks_ext/` — source of the shared mail utility and the example
