@@ -1,0 +1,19 @@
+{
+  "package": "brandttalbot-induction-agent",
+  "version": "1.1",
+  "files": [
+    "AGENT.md",
+    "Induction",
+    "Induction/A new group member will be coming in tomorrow.htm",
+    "Induction/Day one visit to the MSRH Building.htm",
+    "Induction/Folder Structure for Group Members.htm",
+    "Induction/Invitation to Join WhatsApp Group Chats.htm",
+    "Induction/Request for a new ID card.htm",
+    "Induction/Request to authorise swipe card access to IWBC LAB 403 Open Plan Lab.htm",
+    "Induction/Required courses for accessing Imperial College facilities.htm",
+    "Induction/Required courses for performing laboratory activities.htm",
+    "Induction/Safety Induction Recap Key Information and Training Requirements.htm",
+    "InductionMailer_developer_notes.md",
+    "blueprint.json"
+  ]
+}

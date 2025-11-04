@@ -1,0 +1,136 @@
+{
+  "agent": "brandttalbot_induction_agent",
+  "version": "1.1",
+  "description": "Blueprint for Brandt-Talbot Induction mailer. Drives templates, options, recipients and attachments.",
+  "mail_backend": "Outlook via mail_utils_utf8_plus_dynamiclinks_ext.vbs",
+  "directories": {
+    "template_root": "Induction/",
+    "forms": {
+      "day_one": "Induction/DayOne_Induction_Form.pdf",
+      "msrh_access": "Induction/MSRH_Access_Form_IWBC_L4_AdminOffice.pdf",
+      "data_guidelines": "Induction/Data_Management_Guidelines.pdf"
+    }
+  },
+  "emails": {
+    "idc_card": "id.card@imperial.ac.uk",
+    "supervisor": "agi@imperial.ac.uk",
+    "reception": "chemistryreception@imperial.ac.uk",
+    "access_team": "id.card@imperial.ac.uk"
+  },
+  "options": {
+    "0": {
+      "label": "ID",
+      "sequence": [
+        "EMAIL_1"
+      ],
+      "recipient_mode": "individual",
+      "cc": []
+    },
+    "2": {
+      "label": "Preliminary training",
+      "sequence": [
+        "EMAIL_2",
+        "EMAIL_3",
+        "EMAIL_4",
+        "EMAIL_5"
+      ],
+      "recipient_mode": "individual",
+      "cc": []
+    },
+    "3": {
+      "label": "Induction scheduling",
+      "sequence": [
+        "EMAIL_6",
+        "EMAIL_6_1"
+      ],
+      "recipient_mode": "group",
+      "cc": [
+        "agi@imperial.ac.uk"
+      ]
+    },
+    "4": {
+      "label": "Access control",
+      "sequence": [
+        "EMAIL_7",
+        "EMAIL_7_1"
+      ],
+      "recipient_mode": "mixed",
+      "cc": [
+        "agi@imperial.ac.uk"
+      ]
+    },
+    "5": {
+      "label": "Recap email",
+      "sequence": [
+        "EMAIL_8"
+      ],
+      "recipient_mode": "individual",
+      "cc": [
+        "agi@imperial.ac.uk"
+      ]
+    }
+  },
+  "templates": {
+    "EMAIL_1": {
+      "file": "Induction/Request for a new ID card.htm",
+      "subject": "Request for a new ID card"
+    },
+    "EMAIL_2": {
+      "file": "Induction/Required courses for accessing Imperial College facilities.htm",
+      "subject": "Required courses for accessing Imperial College facilities"
+    },
+    "EMAIL_3": {
+      "file": "Induction/Required courses for performing laboratory activities.htm",
+      "subject": "Required courses for performing laboratory activities"
+    },
+    "EMAIL_4": {
+      "file": "Induction/Invitation to Join WhatsApp Group Chats.htm",
+      "subject": "Invitation to Join WhatsApp Group Chats"
+    },
+    "EMAIL_5": {
+      "file": "Induction/Folder Structure for Group Members.htm",
+      "subject": "Folder Structure for Group Members"
+    },
+    "EMAIL_6": {
+      "file": "Induction/Day one visit to the MSRH Building.htm",
+      "subject": "Day one visit to the MSRH Building"
+    },
+    "EMAIL_6_1": {
+      "file": "Induction/Reception Notification - auto.htm",
+      "subject": "Planned Induction Visit Notification (Reception)"
+    },
+    "EMAIL_7": {
+      "file": "Induction/Request to authorise swipe card access to IWBC LAB 403 Open Plan Lab.htm",
+      "subject": "Request to authorise swipe card access to IWBC LAB 403 Open Plan Lab"
+    },
+    "EMAIL_7_1": {
+      "file": "Induction/Access Request Instructions - auto.htm",
+      "subject": "Access request: documents required"
+    },
+    "EMAIL_8": {
+      "file": "Induction/Safety Induction Recap Key Information and Training Requirements.htm",
+      "subject": "Safety Induction Recap: Key Information and Training Requirements"
+    }
+  },
+  "rules": {
+    "greeting": {
+      "individual": "Hi {FirstName},\n\n{Body}",
+      "group": "{Body}"
+    },
+    "attachments": {
+      "EMAIL_6": [
+        "Induction/DayOne_Induction_Form.pdf",
+        "Induction/MSRH_Access_Form_IWBC_L4_AdminOffice.pdf"
+      ],
+      "EMAIL_5": [
+        "Induction/Data_Management_Guidelines.pdf"
+      ]
+    },
+    "post_send_actions": {
+      "EMAIL_6": [
+        "send_reception_notification"
+      ]
+    },
+    "send_tool": "mail_utils_utf8_plus_dynamiclinks_ext.vbs"
+  }
+}

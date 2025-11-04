@@ -1,0 +1,3 @@
+LINK_1=https://example.com/home
+LINK_2=https://example.com/report.pdf
+LINK_3=https://example.com/dashboard
