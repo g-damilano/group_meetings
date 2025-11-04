@@ -11,7 +11,8 @@ team's scripts.
   `templates/` folder, prompts for a selection, and prepares the message metadata and body.
 - `templates/` — repository of HTML templates and their associated assets. Each template may
   include an optional HTML comment block at the top to specify recipients, subject, and
-  attachments.
+  attachments. If Outlook exported the message, keep the sibling `*.files/` folder next to the
+  HTML file so inline images are embedded automatically.
 - `mail_utils_utf8_plus_dynamiclinks_ext/` — source of the shared mail utility and the example
   `links_map.txt` file that maps placeholder tokens to real URLs.
 
@@ -35,6 +36,10 @@ Attachments: intro.pdf; .\checklist.xlsx
   paths with commas or semicolons.
 - The comment must end before the rendered HTML starts.
 
+Inline `<img>` references that point to a sibling `*.files/` folder (the structure Outlook creates
+when saving a message) are rewritten to `cid:` URLs and attached automatically, so the graphics
+appear inside the email instead of as broken links.
+
 ## Dynamic link substitution
 
 Hyperlink placeholders use double-brace tokens (for example `{{TEAMS_LINK}}`). When the mail
@@ -56,6 +61,7 @@ cscript //nologo InductionMailer.vbs [display|send|save]
 - Choose `display` (default) to review the draft.
 - Use `send` to dispatch immediately, or `save` to store the message in Drafts.
 - The script logs activity to `InductionMailer.log` in the repository root.
+- Your default Outlook signature (including embedded graphics) is appended automatically.
 
 If the script cannot find the mail utility or templates, it will show a message box and write the
 error to the log file.

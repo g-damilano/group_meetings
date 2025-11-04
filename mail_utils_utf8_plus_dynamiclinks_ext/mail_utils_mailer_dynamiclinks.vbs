@@ -34,7 +34,7 @@ Function CreateMail(toAddr, ccAddr, bccAddr, subjectText, htmlBody, attachPaths,
                 "<body style='font-family:Segoe UI, Arial, sans-serif;'>" & bodyHtml
 
   Set olMail = olApp.CreateItem(olMailItem)
-  sigHTML = "" ' skip signature for simplicity
+  sigHTML = LoadSignatureWithImages_AutoCharset(olMail)
 
   With olMail
     .To = toAddr
@@ -114,7 +114,7 @@ Function EmbedImagesFromFolder(olMail, folderPath)
   Dim fso, file, cid, att
   Set fso = CreateObject("Scripting.FileSystemObject")
   For Each file In fso.GetFolder(folderPath).Files
-    cid = fso.GetFileName(file.Name)
+    cid = Replace(fso.GetFileName(file.Name), " ", "_")
     Set att = olMail.Attachments.Add(file.Path)
     att.PropertyAccessor.SetProperty PR_ATTACH_CONTENT_ID, cid
   Next
@@ -127,6 +127,110 @@ Function LoadHtmlFromSource(src)
   Else
     LoadHtmlFromSource = src
   End If
+End Function
+
+Function LoadSignatureWithImages_AutoCharset(olMail)
+  Dim fso, shell, sigPath, folder, file, sigHTML, sigFile, baseName, imgFolder, imgFile, att, imgName, cid
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  Set shell = CreateObject("WScript.Shell")
+  sigPath = shell.ExpandEnvironmentStrings("%APPDATA%") & "\Microsoft\Signatures\"
+  sigHTML = ""
+
+  If fso.FolderExists(sigPath) Then
+    Set folder = fso.GetFolder(sigPath)
+    Dim found: found = False
+    For Each file In folder.Files
+      If LCase(fso.GetExtensionName(file.Name)) = "htm" Then
+        sigFile = file.Path
+        baseName = fso.GetBaseName(file.Name)
+        sigHTML = ReadHtmlAuto(sigFile)
+        found = True
+        Exit For
+      End If
+    Next
+    If Not found Then LoadSignatureWithImages_AutoCharset = "" : Exit Function
+  Else
+    LoadSignatureWithImages_AutoCharset = ""
+    Exit Function
+  End If
+
+  imgFolder = sigPath & baseName & ".files"
+  If fso.FolderExists(imgFolder) Then
+    For Each imgFile In fso.GetFolder(imgFolder).Files
+      imgName = fso.GetFileName(imgFile.Name)
+      cid = Replace(imgName, " ", "_")
+      Set att = olMail.Attachments.Add(imgFile.Path)
+      att.PropertyAccessor.SetProperty PR_ATTACH_CONTENT_ID, cid
+      sigHTML = Replace(sigHTML, baseName & ".files/" & imgName, "cid:" & cid)
+      sigHTML = Replace(sigHTML, baseName & ".files\" & imgName, "cid:" & cid)
+    Next
+  End If
+
+  LoadSignatureWithImages_AutoCharset = sigHTML
+End Function
+
+Function DetectHtmlCharset(filePath)
+  On Error Resume Next
+  Dim s : Set s = CreateObject("ADODB.Stream")
+  s.Type = 2 : s.Charset = "windows-1252" : s.Open : s.LoadFromFile filePath
+  Dim header : header = LCase(Left(s.ReadText, 1024))
+  s.Close
+  Dim charset : charset = ""
+
+  Dim re: Set re = CreateObject("VBScript.RegExp")
+  re.Global = False : re.IgnoreCase = True
+  re.Pattern = "charset\s*=\s*([a-z0-9\-\_]+)"
+  Dim m: Set m = re.Execute(header)
+  If m.Count > 0 Then
+    charset = LCase(m(0).SubMatches(0))
+  End If
+
+  If charset = "" Then
+    DetectHtmlCharset = "windows-1252"
+  ElseIf charset = "utf8" Then
+    DetectHtmlCharset = "utf-8"
+  Else
+    DetectHtmlCharset = charset
+  End If
+End Function
+
+Function ReadHtmlAuto(filePath)
+  On Error Resume Next
+  Dim cs: cs = DetectHtmlCharset(filePath)
+  Dim s : Set s = CreateObject("ADODB.Stream")
+  s.Type = 2 : s.Charset = cs : s.Open : s.LoadFromFile filePath
+  Dim txt : txt = s.ReadText : s.Close
+
+  If cs = "windows-1252" Then
+    If (InStr(txt, "Ã")>0) Or (InStr(txt, "â€”")>0) Or (InStr(txt, "â€œ")>0) Or (InStr(txt, "â€™")>0) Then
+      Dim s2: Set s2 = CreateObject("ADODB.Stream")
+      s2.Type = 2 : s2.Charset = "utf-8" : s2.Open : s2.LoadFromFile filePath
+      Dim t2: t2 = s2.ReadText : s2.Close
+      If MarkerCount(t2) < MarkerCount(txt) Then txt = t2
+    End If
+  End If
+  ReadHtmlAuto = txt
+End Function
+
+Function MarkerCount(s)
+  Dim tokens, i, total
+  tokens = Array("Ã", "Â", "â€”", "â€“", "â€œ", "â€�", "â€˜", "â€™", "â€¦")
+  total = 0
+  For i = 0 To UBound(tokens)
+    total = total + CountOf(s, tokens(i))
+  Next
+  MarkerCount = total
+End Function
+
+Function CountOf(s, token)
+  Dim p, n: p = 1: n = 0
+  Do
+    p = InStr(p, s, token)
+    If p = 0 Then Exit Do
+    n = n + 1
+    p = p + Len(token)
+  Loop
+  CountOf = n
 End Function
 
 Function ReadUTF8File(filePath)

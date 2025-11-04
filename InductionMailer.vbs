@@ -14,8 +14,7 @@ Const LOG_FILE_NAME = "InductionMailer.log"
 Const DEFAULT_ACTION = "display"   ' display | send | save
 Const MAILER_LIB_FILE = "mail_utils_mailer_dynamiclinks.vbs"
 Const MAILER_LIB_EXT_DIR = "mail_utils_utf8_plus_dynamiclinks_ext"
-'Const MAILER_LIB_EXT_PATH = MAILER_LIB_EXT_DIR & "\" & MAILER_LIB_FILE
-Const MAILER_LIB_EXT_PATH = "mail_utils.vbs"
+Const MAILER_LIB_EXT_PATH = MAILER_LIB_EXT_DIR & "\" & MAILER_LIB_FILE
 Const LINK_MAP_FILE = "links_map.txt"
 
 Call Main()
@@ -56,6 +55,10 @@ Sub Main()
   Dim attachments: attachments = ResolveAttachments(templateData("Attachments"), templateData("TemplateFolder"))
   Dim htmlBody: htmlBody = templateData("HtmlBody")
 
+  Dim inlineInfo: Set inlineInfo = PrepareInlineImageSupport(htmlBody, templatePath)
+  htmlBody = inlineInfo("HtmlBody")
+  Dim inlineFolder: inlineFolder = inlineInfo("InlineFolder")
+
   Dim ok
   ok = CreateMail(templateData("To"), _
                   templateData("Cc"), _
@@ -66,7 +69,7 @@ Sub Main()
                   action, _
                   "", _
                   "", _
-                  "", _
+                  inlineFolder, _
                   0, _
                   logFilePath)
 
@@ -428,6 +431,59 @@ Function IsAbsolutePath(path)
   Else
     IsAbsolutePath = False
   End If
+End Function
+
+'---------------------------
+' Inline image helpers
+'---------------------------
+Function PrepareInlineImageSupport(htmlBody, templatePath)
+  Dim info: Set info = CreateObject("Scripting.Dictionary")
+  info("HtmlBody") = htmlBody
+  info("InlineFolder") = ""
+
+  Dim baseFolder: baseFolder = fso.GetParentFolderName(templatePath)
+  Dim baseName: baseName = fso.GetBaseName(templatePath)
+  Dim inlineFolder: inlineFolder = fso.BuildPath(baseFolder, baseName & ".files")
+
+  If Not fso.FolderExists(inlineFolder) Then
+    Set PrepareInlineImageSupport = info
+    Exit Function
+  End If
+
+  LogEvent "Inline image folder detected: " & inlineFolder
+
+  Dim file
+  For Each file In fso.GetFolder(inlineFolder).Files
+    info("HtmlBody") = RewriteInlineReferences(info("HtmlBody"), baseName, file.Name)
+  Next
+
+  info("InlineFolder") = inlineFolder
+  Set PrepareInlineImageSupport = info
+End Function
+
+Function RewriteInlineReferences(htmlText, templateBaseName, fileName)
+  Dim sanitizedCid: sanitizedCid = SanitizeContentId(fileName)
+  Dim encodedBase: encodedBase = Replace(templateBaseName, " ", "%20")
+  Dim encodedFile: encodedFile = Replace(fileName, " ", "%20")
+  Dim target: target = "cid:" & sanitizedCid
+
+  htmlText = Replace(htmlText, templateBaseName & ".files/" & fileName, target)
+  htmlText = Replace(htmlText, templateBaseName & ".files\" & fileName, target)
+  htmlText = Replace(htmlText, encodedBase & ".files/" & encodedFile, target)
+  htmlText = Replace(htmlText, encodedBase & ".files\" & encodedFile, target)
+
+  htmlText = Replace(htmlText, "=""" & fileName & """", "=""" & target & """")
+  htmlText = Replace(htmlText, "='" & fileName & "'", "='" & target & "'")
+  htmlText = Replace(htmlText, "=""" & encodedFile & """", "=""" & target & """")
+  htmlText = Replace(htmlText, "='" & encodedFile & "'", "='" & target & "'")
+
+  RewriteInlineReferences = htmlText
+End Function
+
+Function SanitizeContentId(fileName)
+  Dim cid: cid = fso.GetFileName(fileName)
+  cid = Replace(cid, " ", "_")
+  SanitizeContentId = cid
 End Function
 
 '---------------------------
