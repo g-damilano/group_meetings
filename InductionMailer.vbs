@@ -14,7 +14,7 @@ Const LOG_FILE_NAME = "InductionMailer.log"
 Const DEFAULT_ACTION = "display"   ' display | send | save
 Const MAILER_LIB_FILE = "mail_utils_mailer_dynamiclinks.vbs"
 Const MAILER_LIB_EXT_DIR = "mail_utils_utf8_plus_dynamiclinks_ext"
-Const MAILER_LIB_EXT_PATH = MAILER_LIB_EXT_DIR & "\" & MAILER_LIB_FILE
+Const MAILER_LIB_EXT_SUBPATH = "mail_utils_utf8_plus_dynamiclinks_ext\\mail_utils_mailer_dynamiclinks.vbs"
 Const LINK_MAP_FILE = "links_map.txt"
 
 Call Main()
@@ -97,7 +97,7 @@ Function LoadMailerLibrary()
   Dim candidates
   candidates = Array(_
     fso.BuildPath(scriptFolder, MAILER_LIB_FILE), _
-    fso.BuildPath(scriptFolder, MAILER_LIB_EXT_PATH), _
+    fso.BuildPath(scriptFolder, MAILER_LIB_EXT_SUBPATH), _
     fso.BuildPath(templateFolder, MAILER_LIB_FILE))
 
   Dim i
