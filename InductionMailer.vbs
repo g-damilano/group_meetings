@@ -410,7 +410,6 @@ Function SelectTemplatesByStage(templates)
   For Each stageName In stageMap.Keys
     If Not ContainsInArrayList(displayList, stageName) Then displayList.Add stageName
   Next
-End Sub
 
   WScript.Echo "Available stages:"
   Dim i
@@ -438,19 +437,15 @@ End Sub
   Loop
 End Function
 
-  Function SelectTemplatesIndividually(templates)
-    Dim list
-    Set list = CreateObject("System.Collections.ArrayList")
-    Dim key
-    For Each key In templates.Keys
-      list.Add templates(key)
-    Next
+Function SelectTemplatesIndividually(templates)
+  Dim list: Set list = CreateObject("System.Collections.ArrayList")
+  Dim key
+  For Each key In templates.Keys
+    list.Add templates(key)
+  Next
 
-    Dim ordered
-    Set ordered = SortTemplateList(list)
-
-    Dim selectionResult
-    Set selectionResult = Nothing
+  Dim ordered: Set ordered = SortTemplateList(list)
+  Dim selectionResult: Set selectionResult = Nothing
 
   If ordered.Count = 0 Then
     Set SelectTemplatesIndividually = Nothing
@@ -468,13 +463,12 @@ End Function
     If Len(response) = 0 Then
       Exit Do
     End If
-    Dim selections
-    Set selections = ParseNumberList(response)
+
+    Dim selections: Set selections = ParseNumberList(response)
     If selections.Count = 0 Then
       WScript.Echo "No valid selections detected."
     Else
-        Dim dict
-        Set dict = CreateObject("Scripting.Dictionary")
+      Dim dict: Set dict = CreateObject("Scripting.Dictionary")
       Dim invalid: invalid = False
       Dim number
       For Each number In selections.Keys
@@ -484,20 +478,22 @@ End Function
           Exit For
         End If
       Next
+
       If invalid Then
         WScript.Echo "One or more selections were out of range."
       Else
-          Dim orderedKeys
-          Set orderedKeys = CreateObject("System.Collections.ArrayList")
+        Dim orderedKeys: Set orderedKeys = CreateObject("System.Collections.ArrayList")
         For Each number In selections.Keys
           orderedKeys.Add CInt(number)
         Next
         orderedKeys.Sort
+
         Dim idx
         For i = 0 To orderedKeys.Count - 1
           idx = orderedKeys(i) - 1
           dict.Add CStr(dict.Count + 1), ordered(idx)
         Next
+
         Set selectionResult = dict
         Exit Do
       End If
@@ -1336,11 +1332,12 @@ Function RewriteInlineReferences(htmlText, templateBaseName, fileName)
   Dim encodedBase: encodedBase = Replace(templateBaseName, " ", "%20")
   Dim encodedFile: encodedFile = Replace(fileName, " ", "%20")
   Dim target: target = "cid:" & sanitizedCid
+  Dim backslash: backslash = Chr(92)
 
   htmlText = Replace(htmlText, templateBaseName & ".files/" & fileName, target)
-  htmlText = Replace(htmlText, templateBaseName & ".files\\" & fileName, target)
+  htmlText = Replace(htmlText, templateBaseName & ".files" & backslash & fileName, target)
   htmlText = Replace(htmlText, encodedBase & ".files/" & encodedFile, target)
-  htmlText = Replace(htmlText, encodedBase & ".files\\" & encodedFile, target)
+  htmlText = Replace(htmlText, encodedBase & ".files" & backslash & encodedFile, target)
 
   htmlText = Replace(htmlText, "=""" & fileName & """", "=""" & target & """")
   htmlText = Replace(htmlText, "='" & fileName & "'", "='" & target & "'")
