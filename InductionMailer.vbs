@@ -410,6 +410,7 @@ Function SelectTemplatesByStage(templates)
   For Each stageName In stageMap.Keys
     If Not ContainsInArrayList(displayList, stageName) Then displayList.Add stageName
   Next
+End Sub
 
   WScript.Echo "Available stages:"
   Dim i
@@ -524,6 +525,20 @@ Function BuildTemplateLabel(tmpl)
   Else
     BuildTemplateLabel = label
   End If
+
+Function ParseNumberList(text)
+  Dim dict: Set dict = CreateObject("Scripting.Dictionary")
+  dict.CompareMode = 1
+  Dim cleaned: cleaned = Replace(Replace(text, ",", " "), ";", " ")
+  Dim parts: parts = Split(cleaned, " ")
+  Dim part
+  For Each part In parts
+    part = Trim(part)
+    If Len(part) > 0 And IsNumeric(part) Then
+      dict(CStr(CInt(part))) = True
+    End If
+  Next
+  Set ParseNumberList = dict
 End Function
 
 Function ParseNumberList(text)
@@ -821,7 +836,14 @@ Sub EnsurePlaceholderValues(textItems, context, templateName)
           LogEvent "Placeholder [" & lookup & "] has no known value for template '" & templateName & "'"
         End If
       End If
-    Next
+    End If
+  Loop
+  ts.Close
+
+  If dict.Count > 0 Then
+    LogEvent "Loaded " & dict.Count & " link map entries"
+  Else
+    LogEvent "Link map was empty: " & mapPath
   End If
 End Sub
 
