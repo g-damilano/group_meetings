@@ -943,24 +943,11 @@ Function ResolveNameFromEmail(emailAddress)
       If Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
       If Len(exch.LastName) > 0 Then info("Last") = exch.LastName
       If Len(info("Full")) = 0 Then info("Full") = exch.Name
+      Call PopulateNameFromPropertyAccessor(exch, info)
     End If
     Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info)
   End If
   On Error GoTo 0
-  Dim list: Set list = CreateObject("System.Collections.ArrayList")
-  AppendAddressesFromString list, seen, baseList
-  Dim i
-  If IsArray(extraArray) Then
-    For i = LBound(extraArray) To UBound(extraArray)
-      AppendAddress list, seen, extraArray(i)
-    Next
-  End If
-  If list.Count = 0 Then
-    MergeRecipients = ""
-  Else
-    MergeRecipients = Join(ArrayFromArrayList(list), "; ")
-  End If
-End Function
 
   If Len(info("First")) = 0 Or Len(info("Last")) = 0 Then
     Call PopulateNameFromAddressLists(ns, emailAddress, info)
@@ -1010,18 +997,20 @@ End Function
 Sub PopulateNameFromAddressLists(ns, emailAddress, info)
   If ns Is Nothing Then Exit Sub
 
-  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
-  Dim i
+  Dim listNames
+  listNames = Array("Global Address List", "Offline Global Address List")
+
+  Dim i, addressList, entry, exch
   On Error Resume Next
   For i = LBound(listNames) To UBound(listNames)
-    Dim addressList: Set addressList = Nothing
+    Set addressList = Nothing
     Set addressList = ns.AddressLists(listNames(i))
     If Err.Number <> 0 Then
       Err.Clear
       Set addressList = Nothing
     End If
     If Not addressList Is Nothing Then
-      Dim entry: Set entry = Nothing
+      Set entry = Nothing
       Set entry = addressList.AddressEntries.Find("[SMTPAddress] = '" & emailAddress & "'")
       If Err.Number <> 0 Then
         Err.Clear
@@ -1037,7 +1026,7 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
       If Not entry Is Nothing Then
         info("Found") = True
         If Len(info("Full")) = 0 Then info("Full") = entry.Name
-        Dim exch: Set exch = entry.GetExchangeUser()
+        Set exch = entry.GetExchangeUser()
         If Err.Number <> 0 Then
           Err.Clear
           Set exch = Nothing
@@ -1046,6 +1035,7 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
           If Len(info("First")) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
           If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
           If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+          Call PopulateNameFromPropertyAccessor(exch, info)
         End If
         Call PopulateNameFromPropertyAccessor(entry, info)
         Exit For
@@ -1059,7 +1049,8 @@ Sub PopulateNameFromPropertyAccessor(addressEntry, info)
   If addressEntry Is Nothing Then Exit Sub
 
   On Error Resume Next
-  Dim accessor: Set accessor = addressEntry.PropertyAccessor
+  Dim accessor
+  Set accessor = addressEntry.PropertyAccessor
   If Err.Number <> 0 Then
     Err.Clear
     Set accessor = Nothing
@@ -1069,30 +1060,58 @@ Sub PopulateNameFromPropertyAccessor(addressEntry, info)
     Exit Sub
   End If
 
-  Dim given: given = accessor.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3A06001E")
-  If Err.Number = 0 Then
-    If Len(info("First")) = 0 And Len(given) > 0 Then info("First") = given
-  Else
-    Err.Clear
+  Dim given, surname, display, foundAny
+  given = GetAccessorString(accessor, Array( _
+    "http://schemas.microsoft.com/mapi/proptag/0x3A06001F", _
+    "http://schemas.microsoft.com/mapi/proptag/0x3A06001E"))
+  If Len(info("First")) = 0 And Len(given) > 0 Then
+    info("First") = given
+    foundAny = True
   End If
 
-  Dim surname: surname = accessor.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3A11001E")
-  If Err.Number = 0 Then
-    If Len(info("Last")) = 0 And Len(surname) > 0 Then info("Last") = surname
-  Else
-    Err.Clear
+  surname = GetAccessorString(accessor, Array( _
+    "http://schemas.microsoft.com/mapi/proptag/0x3A11001F", _
+    "http://schemas.microsoft.com/mapi/proptag/0x3A11001E"))
+  If Len(info("Last")) = 0 And Len(surname) > 0 Then
+    info("Last") = surname
+    foundAny = True
   End If
 
-  Dim display: display = accessor.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3001001E")
-  If Err.Number = 0 Then
-    If Len(info("Full")) = 0 And Len(display) > 0 Then info("Full") = display
-  Else
-    Err.Clear
+  display = GetAccessorString(accessor, Array( _
+    "http://schemas.microsoft.com/mapi/proptag/0x3001001F", _
+    "http://schemas.microsoft.com/mapi/proptag/0x3001001E"))
+  If Len(info("Full")) = 0 And Len(display) > 0 Then
+    info("Full") = display
+    foundAny = True
   End If
 
-  info("Found") = True
+  If foundAny Then info("Found") = True
   On Error GoTo 0
 End Sub
+
+Function GetAccessorString(accessor, propertyUris)
+  GetAccessorString = ""
+  If accessor Is Nothing Then Exit Function
+  If Not IsArray(propertyUris) Then Exit Function
+
+  Dim i, candidate
+  On Error Resume Next
+  For i = LBound(propertyUris) To UBound(propertyUris)
+    candidate = accessor.GetProperty(propertyUris(i))
+    If Err.Number = 0 Then
+      If Not IsNull(candidate) And Not IsEmpty(candidate) Then
+        candidate = CStr(candidate)
+        If Len(candidate) > 0 Then
+          GetAccessorString = candidate
+          Exit For
+        End If
+      End If
+    Else
+      Err.Clear
+    End If
+  Next
+  On Error GoTo 0
+End Function
 
 Function ResolveAttachments(rawValue, baseFolder)
   Dim cleaned: cleaned = Trim(rawValue)
