@@ -443,13 +443,11 @@ Function SelectTemplatesIndividually(templates)
   For Each key In templates.Keys
     list.Add templates(key)
   Next
-  Dim subFolder
-  For Each subFolder In folder.SubFolders
-    CollectTemplates subFolder.Path, dict, counter
-  Next
 End Sub
 
   Dim ordered: Set ordered = SortTemplateList(list)
+  Dim selectionResult: Set selectionResult = Nothing
+
   If ordered.Count = 0 Then
     Set SelectTemplatesIndividually = Nothing
     Exit Function
@@ -464,8 +462,7 @@ End Sub
   Do
     Dim response: response = PromptLine("Select template numbers (comma-separated) or press Enter to cancel: ")
     If Len(response) = 0 Then
-      Set SelectTemplatesIndividually = Nothing
-      Exit Function
+      Exit Do
     End If
     Dim selections: Set selections = ParseNumberList(response)
     If selections.Count = 0 Then
@@ -494,11 +491,13 @@ End Sub
           idx = orderedKeys(i) - 1
           dict.Add CStr(dict.Count + 1), ordered(idx)
         Next
-        Set SelectTemplatesIndividually = dict
-        Exit Function
+        Set selectionResult = dict
+        Exit Do
       End If
     End If
   Loop
+
+  Set SelectTemplatesIndividually = selectionResult
 End Function
 
 Function BuildTemplateLabel(tmpl)
@@ -519,6 +518,21 @@ Function BuildTemplateLabel(tmpl)
   Else
     BuildTemplateLabel = label
   End If
+
+Function ParseNumberList(text)
+  Dim dict: Set dict = CreateObject("Scripting.Dictionary")
+  dict.CompareMode = 1
+  Dim cleaned: cleaned = Replace(Replace(text, ",", " "), ";", " ")
+  Dim parts: parts = Split(cleaned, " ")
+  Dim part
+  For Each part In parts
+    part = Trim(part)
+    If Len(part) > 0 And IsNumeric(part) Then
+      dict(CStr(CInt(part))) = True
+    End If
+  Next
+  Set ParseNumberList = dict
+End Function
 
 Function ParseNumberList(text)
   Dim dict: Set dict = CreateObject("Scripting.Dictionary")
@@ -814,39 +828,15 @@ Sub EnsurePlaceholderValues(textItems, context, templateName)
         Else
           LogEvent "Placeholder [" & lookup & "] has no known value for template '" & templateName & "'"
         End If
-      Next
-      If invalid Then
-        WScript.Echo "One or more selections were out of range."
-      Else
-        Dim orderedKeys: Set orderedKeys = CreateObject("System.Collections.ArrayList")
-        For Each number In selections.Keys
-          orderedKeys.Add CInt(number)
-        Next
-        orderedKeys.Sort
-        Dim idx
-        For i = 0 To orderedKeys.Count - 1
-          idx = orderedKeys(i) - 1
-          dict.Add CStr(dict.Count + 1), ordered(idx)
-        Next
-        Set SelectTemplatesIndividually = dict
-        Exit Function
       End If
     End If
   Loop
-End Function
+  ts.Close
 
-Function BuildTemplateLabel(tmpl)
-  Dim stage: stage = tmpl("Stage")
-  Dim code: code = tmpl("Code")
-  Dim label: label = tmpl("FileName")
-  Dim prefix: prefix = ""
-  If Len(stage) > 0 Then prefix = Capitalize(stage)
-  If Len(code) > 0 Then
-    If Len(prefix) > 0 Then
-      prefix = prefix & " - " & code
-    Else
-      prefix = code
-    End If
+  If dict.Count > 0 Then
+    LogEvent "Loaded " & dict.Count & " link map entries"
+  Else
+    LogEvent "Link map was empty: " & mapPath
   End If
 End Sub
 
