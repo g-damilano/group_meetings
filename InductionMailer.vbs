@@ -269,8 +269,8 @@ Sub CollectTemplates(folderPath, dict, ByRef counter)
       End If
     End If
     WScript.Echo "Invalid selection."
-  Loop
-End Function
+  Next
+End Sub
 
 Function SelectTemplatesIndividually(templates)
   Dim list: Set list = CreateObject("System.Collections.ArrayList")
@@ -278,15 +278,10 @@ Function SelectTemplatesIndividually(templates)
   For Each key In templates.Keys
     list.Add templates(key)
   Next
-  Dim subFolder
   For Each subFolder In folder.SubFolders
     CollectTemplates subFolder.Path, dict, counter
   Next
-  Dim subFolder
-  For Each subFolder In folder.SubFolders
-    CollectTemplates subFolder.Path, dict, counter
-  Next
-End Sub
+End Function
 
 Function ParseTemplate(filePath)
   Dim resultText: resultText = ReadFileSmart(filePath)
