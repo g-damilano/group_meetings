@@ -258,7 +258,7 @@ Function ParseTemplate(filePath)
   template("Path") = filePath
   template("Folder") = fso.GetParentFolderName(filePath)
   template("FileName") = fso.GetFileName(filePath)
-  template("Meta") = meta
+  Set template("Meta") = meta
   template("Body") = bodyText
   template("DisplayName") = fso.GetFileName(filePath)
   template("Stage") = LCase(GetDictionaryValue(meta, "stage"))
