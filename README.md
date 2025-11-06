@@ -93,8 +93,9 @@ The script then:
    mode (send the selected template(s)).
 3. Requests any metadata left blank in the template header, including the delivery mode if it was
    omitted.
-4. For personal deliveries, looks up the recipient in the Outlook directory to populate `[NAME]`
-   and `[SURNAME]`, prompting only if the lookup fails.
+4. For personal deliveries, looks up the recipient in the Outlook Global Address List (falling
+   back to the Offline Global Address List) to populate `[NAME]` and `[SURNAME]`, prompting only if
+   those lookups fail.
 5. Builds either a broadcast message (all targets in one email) or one personalised email per
    recipient, attaches any referenced files, and opens/sends/saves it according to the command-line
    action (`display` by default).

@@ -946,6 +946,10 @@ Function ResolveNameFromEmail(emailAddress)
   On Error GoTo 0
 
   If Len(info("First")) = 0 Or Len(info("Last")) = 0 Then
+    Call PopulateNameFromAddressLists(ns, emailAddress, info)
+  End If
+
+  If Len(info("First")) = 0 Or Len(info("Last")) = 0 Then
     Dim best: best = info("Full")
     Dim parts
     If Len(best) > 0 Then
@@ -985,6 +989,53 @@ Function ResolveNameFromEmail(emailAddress)
 
   Set ResolveNameFromEmail = info
 End Function
+
+Sub PopulateNameFromAddressLists(ns, emailAddress, info)
+  If ns Is Nothing Then Exit Sub
+
+  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
+  Dim i
+  On Error Resume Next
+  For i = LBound(listNames) To UBound(listNames)
+    Dim addressList: Set addressList = Nothing
+    Set addressList = ns.AddressLists(listNames(i))
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    If Not addressList Is Nothing Then
+      Dim entry: Set entry = Nothing
+      Set entry = addressList.AddressEntries.Find("[SMTPAddress] = '" & emailAddress & "'")
+      If Err.Number <> 0 Then
+        Err.Clear
+        Set entry = Nothing
+      End If
+      If entry Is Nothing Then
+        Set entry = addressList.AddressEntries.Find("[EmailAddress] = '" & emailAddress & "'")
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set entry = Nothing
+        End If
+      End If
+      If Not entry Is Nothing Then
+        info("Found") = True
+        If Len(info("Full")) = 0 Then info("Full") = entry.Name
+        Dim exch: Set exch = entry.GetExchangeUser()
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set exch = Nothing
+        End If
+        If Not exch Is Nothing Then
+          If Len(info("First")) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
+          If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+          If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+        End If
+        Exit For
+      End If
+    End If
+  Next
+  On Error GoTo 0
+End Sub
 
 Function ResolveAttachments(rawValue, baseFolder)
   Dim cleaned: cleaned = Trim(rawValue)
