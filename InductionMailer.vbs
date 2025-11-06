@@ -268,20 +268,12 @@ Sub CollectTemplates(folderPath, dict, ByRef counter)
         dict.Add CStr(counter), tmpl
       End If
     End If
-    WScript.Echo "Invalid selection."
   Next
-End Sub
-
-Function SelectTemplatesIndividually(templates)
-  Dim list: Set list = CreateObject("System.Collections.ArrayList")
-  Dim key
-  For Each key In templates.Keys
-    list.Add templates(key)
-  Next
+  Dim subFolder
   For Each subFolder In folder.SubFolders
     CollectTemplates subFolder.Path, dict, counter
   Next
-End Function
+End Sub
 
 Function ParseTemplate(filePath)
   Dim resultText: resultText = ReadFileSmart(filePath)
@@ -514,6 +506,38 @@ Function SelectTemplatesIndividually(templates)
 End Function
 
 '======================================================================
+' Delivery helpers
+'======================================================================
+Function ResolveDeliveryMode(tmpl, meta)
+  Dim delivery: delivery = LCase(GetDictionaryValue(meta, "delivery"))
+  If delivery = DELIVERY_BROADCAST Or delivery = DELIVERY_PERSONAL Then
+    ResolveDeliveryMode = delivery
+    Exit Function
+  End If
+
+  Dim inferred: inferred
+  inferred = DELIVERY_PERSONAL
+  Dim toField: toField = LCase(GetDictionaryValue(meta, "to"))
+
+  If InStr(toField, "[targets]") > 0 Then
+    inferred = DELIVERY_BROADCAST
+  ElseIf InStr(toField, "[email]") > 0 Then
+    inferred = DELIVERY_PERSONAL
+  ElseIf InStr(toField, "[name]") > 0 Or InStr(toField, "[surname]") > 0 Or InStr(toField, "[full_name]") > 0 Then
+    inferred = DELIVERY_PERSONAL
+  ElseIf Len(Trim(toField)) = 0 Then
+    inferred = DELIVERY_PERSONAL
+  Else
+    inferred = DELIVERY_BROADCAST
+  End If
+
+  LogEvent "Delivery mode not specified for '" & tmpl("DisplayName") & "'. Defaulting to " & inferred
+  WScript.Echo "  Delivery mode not specified. Defaulting to " & inferred & "."
+
+  ResolveDeliveryMode = inferred
+End Function
+
+'======================================================================
 ' Template processing
 '======================================================================
 Sub ProcessTemplate(tmpl, targets, action)
@@ -523,11 +547,7 @@ Sub ProcessTemplate(tmpl, targets, action)
   Dim meta: Set meta = CloneDictionary(tmpl("Meta"))
   Call PromptForEmptyTags(meta, tmpl("DisplayName"))
 
-  Dim delivery: delivery = LCase(GetDictionaryValue(meta, "delivery"))
-  Do
-    If delivery = DELIVERY_BROADCAST Or delivery = DELIVERY_PERSONAL Then Exit Do
-    delivery = LCase(PromptLine("Specify delivery type for '" & tmpl("DisplayName") & "' (broadcast/personal): "))
-  Loop
+  Dim delivery: delivery = ResolveDeliveryMode(tmpl, meta)
   meta("delivery") = delivery
 
   Dim subjectText: subjectText = GetDictionaryValue(meta, "subject")
@@ -597,6 +617,8 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
       If Len(nameInfo("Full")) > 0 Then context("FULL_NAME") = nameInfo("Full")
     End If
 
+    Call ReviewResolvedName(address, context)
+
     If Len(context("FULL_NAME")) = 0 Then
       context("FULL_NAME") = Trim(context("NAME") & " " & context("SURNAME"))
     End If
@@ -620,6 +642,51 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
       LogEvent "ERROR: Personal delivery failed for " & finalTo
     End If
   Next
+End Sub
+
+Sub ReviewResolvedName(address, context)
+  Dim currentFirst: currentFirst = SafeText(context("NAME"))
+  Dim currentLast: currentLast = SafeText(context("SURNAME"))
+  Dim currentFull: currentFull = SafeText(context("FULL_NAME"))
+
+  WScript.Echo "  Resolved name for " & address & ":"
+  If Len(currentFirst) > 0 Then
+    WScript.Echo "    First name: " & currentFirst
+  Else
+    WScript.Echo "    First name: (empty)"
+  End If
+  If Len(currentLast) > 0 Then
+    WScript.Echo "    Surname: " & currentLast
+  Else
+    WScript.Echo "    Surname: (empty)"
+  End If
+  If Len(currentFull) > 0 Then
+    WScript.Echo "    Display name: " & currentFull
+  Else
+    WScript.Echo "    Display name: (empty)"
+  End If
+
+  Dim input
+  input = PromptLine("    Enter first name or press Enter to keep current: ")
+  If Len(input) > 0 Then
+    context("NAME") = input
+  End If
+
+  input = PromptLine("    Enter surname or press Enter to keep current: ")
+  If Len(input) > 0 Then
+    context("SURNAME") = input
+  End If
+
+  Dim computedFull: computedFull
+  computedFull = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
+  If Len(computedFull) = 0 Then computedFull = currentFull
+
+  input = PromptLine("    Enter display name or press Enter to keep current: ")
+  If Len(input) > 0 Then
+    context("FULL_NAME") = input
+  ElseIf Len(SafeText(context("FULL_NAME"))) = 0 Then
+    context("FULL_NAME") = computedFull
+  End If
 End Sub
 Function LoadLinkMapContext()
   Dim dict: Set dict = CreateCaseInsensitiveDictionary()
