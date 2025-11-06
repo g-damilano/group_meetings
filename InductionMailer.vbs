@@ -410,6 +410,7 @@ Function SelectTemplatesByStage(templates)
   For Each stageName In stageMap.Keys
     If Not ContainsInArrayList(displayList, stageName) Then displayList.Add stageName
   Next
+End Sub
 
   WScript.Echo "Available stages:"
   Dim i
@@ -437,16 +438,19 @@ Function SelectTemplatesByStage(templates)
   Loop
 End Function
 
-Function SelectTemplatesIndividually(templates)
-  Dim list: Set list = CreateObject("System.Collections.ArrayList")
-  Dim key
-  For Each key In templates.Keys
-    list.Add templates(key)
-  Next
-End Sub
+  Function SelectTemplatesIndividually(templates)
+    Dim list
+    Set list = CreateObject("System.Collections.ArrayList")
+    Dim key
+    For Each key In templates.Keys
+      list.Add templates(key)
+    Next
 
-  Dim ordered: Set ordered = SortTemplateList(list)
-  Dim selectionResult: Set selectionResult = Nothing
+    Dim ordered
+    Set ordered = SortTemplateList(list)
+
+    Dim selectionResult
+    Set selectionResult = Nothing
 
   If ordered.Count = 0 Then
     Set SelectTemplatesIndividually = Nothing
@@ -464,11 +468,13 @@ End Sub
     If Len(response) = 0 Then
       Exit Do
     End If
-    Dim selections: Set selections = ParseNumberList(response)
+    Dim selections
+    Set selections = ParseNumberList(response)
     If selections.Count = 0 Then
       WScript.Echo "No valid selections detected."
     Else
-      Dim dict: Set dict = CreateObject("Scripting.Dictionary")
+        Dim dict
+        Set dict = CreateObject("Scripting.Dictionary")
       Dim invalid: invalid = False
       Dim number
       For Each number In selections.Keys
@@ -481,7 +487,8 @@ End Sub
       If invalid Then
         WScript.Echo "One or more selections were out of range."
       Else
-        Dim orderedKeys: Set orderedKeys = CreateObject("System.Collections.ArrayList")
+          Dim orderedKeys
+          Set orderedKeys = CreateObject("System.Collections.ArrayList")
         For Each number In selections.Keys
           orderedKeys.Add CInt(number)
         Next
