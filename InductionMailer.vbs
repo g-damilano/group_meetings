@@ -397,6 +397,15 @@ Function ContainsInArrayList(list, value)
       ContainsInArrayList = True
       Exit Function
     End If
+    WScript.Echo "Invalid selection."
+  Loop
+End Function
+
+Function SelectTemplatesIndividually(templates)
+  Dim list: Set list = CreateObject("System.Collections.ArrayList")
+  Dim key
+  For Each key In templates.Keys
+    list.Add templates(key)
   Next
   ContainsInArrayList = False
 End Function
@@ -477,6 +486,20 @@ Function BuildTemplateLabel(tmpl)
   Else
     BuildTemplateLabel = label
   End If
+
+Function ParseNumberList(text)
+  Dim dict: Set dict = CreateObject("Scripting.Dictionary")
+  dict.CompareMode = 1
+  Dim cleaned: cleaned = Replace(Replace(text, ",", " "), ";", " ")
+  Dim parts: parts = Split(cleaned, " ")
+  Dim part
+  For Each part In parts
+    part = Trim(part)
+    If Len(part) > 0 And IsNumeric(part) Then
+      dict(CStr(CInt(part))) = True
+    End If
+  Next
+  Set ParseNumberList = dict
 End Function
 
 Function SelectTemplatesByStage(templates)
@@ -550,6 +573,23 @@ Function SelectTemplatesIndividually(templates)
     Set SelectTemplatesIndividually = Nothing
     Exit Function
   End If
+End Function
+
+'======================================================================
+' Template processing
+'======================================================================
+Sub ProcessTemplate(tmpl, targets, action)
+  WScript.Echo "Preparing template: " & tmpl("DisplayName")
+  LogEvent "Processing template: " & tmpl("DisplayName")
+
+  Dim meta: Set meta = CloneDictionary(tmpl("Meta"))
+  Call PromptForEmptyTags(meta, tmpl("DisplayName"))
+
+  Dim delivery: delivery = LCase(GetDictionaryValue(meta, "delivery"))
+  Do While delivery <> DELIVERY_BROADCAST And delivery <> DELIVERY_PERSONAL
+    delivery = LCase(PromptLine("Specify delivery type for '" & tmpl("DisplayName") & "' (broadcast/personal): "))
+  Loop
+  meta("delivery") = delivery
 
   WScript.Echo "Available templates:"
   Dim i
@@ -818,7 +858,14 @@ Sub EnsurePlaceholderValues(textItems, context, templateName)
           LogEvent "Placeholder [" & lookup & "] has no known value for template '" & templateName & "'"
         End If
       End If
-    Next
+    End If
+  Loop
+  ts.Close
+
+  If dict.Count > 0 Then
+    LogEvent "Loaded " & dict.Count & " link map entries"
+  Else
+    LogEvent "Link map was empty: " & mapPath
   End If
 End Sub
 
@@ -1274,7 +1321,7 @@ Function IsAbsolutePath(path)
     IsAbsolutePath = False
   ElseIf Mid(path, 2, 1) = ":" Then
     IsAbsolutePath = True
-  ElseIf Left(path, 2) = "\\" Then
+  ElseIf Left(path, 2) = "\" Then
     IsAbsolutePath = True
   Else
     IsAbsolutePath = False
