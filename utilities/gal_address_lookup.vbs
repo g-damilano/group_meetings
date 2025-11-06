@@ -56,6 +56,8 @@ Sub LoadModule(baseFolder, relativePath)
   Dim contents: contents = ts.ReadAll
   ts.Close
 
+  contents = RemoveByteOrderMark(contents)
+
   On Error Resume Next
   ExecuteGlobal contents
   If Err.Number <> 0 Then
@@ -64,6 +66,35 @@ Sub LoadModule(baseFolder, relativePath)
   End If
   On Error GoTo 0
 End Sub
+
+Function RemoveByteOrderMark(text)
+  RemoveByteOrderMark = text
+  If Len(text) = 0 Then Exit Function
+
+  If Len(text) >= 3 Then
+    Dim leading: leading = Mid(text, 1, 3)
+    If StrComp(leading, Chr(239) & Chr(187) & Chr(191), vbBinaryCompare) = 0 Then
+      RemoveByteOrderMark = Mid(text, 4)
+      Exit Function
+    End If
+  End If
+
+  Dim firstChar: firstChar = Mid(text, 1, 1)
+  If Len(firstChar) = 0 Then Exit Function
+
+  On Error Resume Next
+  Dim codePoint: codePoint = AscW(firstChar)
+  If Err.Number <> 0 Then
+    Err.Clear
+    On Error GoTo 0
+    Exit Function
+  End If
+  On Error GoTo 0
+
+  If codePoint = &HFEFF Or codePoint = &HFFFE Then
+    RemoveByteOrderMark = Mid(text, 2)
+  End If
+End Function
 
 Function PromptLine(prompt)
   WScript.StdOut.Write prompt
@@ -77,7 +108,10 @@ Sub DisplayResolution(emailAddress)
   WScript.Echo "Resolving '" & emailAddress & "'..."
 
   Dim info: Set info = ResolveNameFromEmail(emailAddress)
+  On Error Resume Next
   Call MaybeRefineNameUsingGivenName(emailAddress, info)
+  If Err.Number <> 0 Then Err.Clear
+  On Error GoTo 0
   If info Is Nothing Then
     WScript.Echo "  No resolution information returned."
     Exit Sub
