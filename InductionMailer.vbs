@@ -268,6 +268,15 @@ Sub CollectTemplates(folderPath, dict, ByRef counter)
         dict.Add CStr(counter), tmpl
       End If
     End If
+    WScript.Echo "Invalid selection."
+  Loop
+End Function
+
+Function SelectTemplatesIndividually(templates)
+  Dim list: Set list = CreateObject("System.Collections.ArrayList")
+  Dim key
+  For Each key In templates.Keys
+    list.Add templates(key)
   Next
   Dim subFolder
   For Each subFolder In folder.SubFolders
@@ -317,6 +326,13 @@ Function ExtractHeaderAndBody(resultText)
       ExtractHeaderAndBody = Array(headerText, bodyText)
       Exit Function
     End If
+    stageMap(stage).Add template
+  Next
+
+  If stageMap.Count = 0 Then
+    WScript.Echo "No stage information available in templates."
+    Set SelectTemplatesByStage = Nothing
+    Exit Function
   End If
 
   startPos = InStr(1, resultText, HEADER_PREFIX, vbTextCompare)
@@ -327,6 +343,13 @@ Function ExtractHeaderAndBody(resultText)
       bodyText = Mid(resultText, endPos + Len(HEADER_SUFFIX))
     End If
   End If
+End Function
+
+  WScript.Echo "Available templates:"
+  Dim i
+  For i = 0 To ordered.Count - 1
+    WScript.Echo "  " & (i + 1) & ") " & BuildTemplateLabel(ordered(i))
+  Next
 
   ExtractHeaderAndBody = Array(headerText, bodyText)
 End Function
