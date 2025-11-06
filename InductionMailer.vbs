@@ -515,8 +515,7 @@ Function ResolveDeliveryMode(tmpl, meta)
     Exit Function
   End If
 
-  Dim inferred: inferred
-  inferred = DELIVERY_PERSONAL
+  Dim inferred: inferred = DELIVERY_PERSONAL
   Dim toField: toField = LCase(GetDictionaryValue(meta, "to"))
 
   If InStr(toField, "[targets]") > 0 Then
@@ -609,6 +608,8 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     If Not context.Exists("NAME") Then context("NAME") = ""
     If Not context.Exists("SURNAME") Then context("SURNAME") = ""
     If Not context.Exists("FULL_NAME") Then context("FULL_NAME") = ""
+    If Not context.Exists("DIRECTORY_SOURCE") Then context("DIRECTORY_SOURCE") = ""
+    If Not context.Exists("DIRECTORY_ATTEMPTED") Then context("DIRECTORY_ATTEMPTED") = ""
 
     Dim nameInfo: Set nameInfo = ResolveNameFromEmail(address)
     If nameInfo("Found") Then
@@ -616,6 +617,10 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
       If Len(nameInfo("Last")) > 0 Then context("SURNAME") = nameInfo("Last")
       If Len(nameInfo("Full")) > 0 Then context("FULL_NAME") = nameInfo("Full")
     End If
+    If nameInfo.Exists("DirectorySource") Then context("DIRECTORY_SOURCE") = nameInfo("DirectorySource")
+    If nameInfo.Exists("DirectoryAttempted") Then context("DIRECTORY_ATTEMPTED") = nameInfo("DirectoryAttempted")
+
+    Call ReviewResolvedName(address, context)
 
     Call ReviewResolvedName(address, context)
 
@@ -648,8 +653,22 @@ Sub ReviewResolvedName(address, context)
   Dim currentFirst: currentFirst = SafeText(context("NAME"))
   Dim currentLast: currentLast = SafeText(context("SURNAME"))
   Dim currentFull: currentFull = SafeText(context("FULL_NAME"))
+  Dim directorySource: directorySource = ""
+  Dim directoryAttempted: directoryAttempted = ""
+  If context.Exists("DIRECTORY_SOURCE") Then directorySource = SafeText(context("DIRECTORY_SOURCE"))
+  If context.Exists("DIRECTORY_ATTEMPTED") Then directoryAttempted = SafeText(context("DIRECTORY_ATTEMPTED"))
 
   WScript.Echo "  Resolved name for " & address & ":"
+  If Len(directorySource) > 0 Then
+    WScript.Echo "    Directory source: " & directorySource
+  Else
+    WScript.Echo "    Directory source: (none)"
+  End If
+  If Len(directoryAttempted) > 0 Then
+    WScript.Echo "    Address lists checked: " & directoryAttempted
+  Else
+    WScript.Echo "    Address lists checked: (none)"
+  End If
   If Len(currentFirst) > 0 Then
     WScript.Echo "    First name: " & currentFirst
   Else
@@ -677,8 +696,7 @@ Sub ReviewResolvedName(address, context)
     context("SURNAME") = input
   End If
 
-  Dim computedFull: computedFull
-  computedFull = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
+  Dim computedFull: computedFull = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
   If Len(computedFull) = 0 Then computedFull = currentFull
 
   input = PromptLine("    Enter display name or press Enter to keep current: ")
