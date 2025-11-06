@@ -7,6 +7,22 @@ template so the same file describes the recipients, subject, attachments, delive
 
 ## Repository layout
 
+### Utility modules
+
+The helper scripts are now split out of `InductionMailer.vbs` so non-core logic can be debugged
+independently. They are loaded automatically at startup and each file covers a specific concern:
+
+- `utilities/mail_collections.vbs` — dictionary helpers, template ordering, and shared collection
+  utilities used across the prompts.
+- `utilities/mail_template_utils.vbs` — template parsing, placeholder resolution, and address
+  list merging helpers.
+- `utilities/mail_delivery_utils.vbs` — attachment resolution and inline image rewriting.
+- `utilities/mail_name_resolution.vbs` — Global/Offline Address List lookups and name extraction
+  helpers for personalised deliveries.
+
+If any module is missing the loader prints a warning before continuing, making it easier to diagnose
+segmentation issues without digging through the main script.
+
 - `InductionMailer.vbs` — console workflow that discovers templates under `templates/`, prompts
   for recipients and a stage/email choice, and prepares the personalised/broadcast deliveries.
 - `templates/` — repository of HTML or text templates and their associated assets. Sub-folders are
@@ -14,6 +30,8 @@ template so the same file describes the recipients, subject, attachments, delive
   so inline images can be embedded automatically.
 - `mail_utils_utf8_plus_dynamiclinks_ext/` — shared mail utility that sends messages and resolves
   the shared dynamic link placeholders.
+- `utilities/` — VBScript helper modules for collection helpers, template parsing, attachment handling,
+  and GAL name resolution that are now loaded automatically by `InductionMailer.vbs`.
 
 ## Template format
 
