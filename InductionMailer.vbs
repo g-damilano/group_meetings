@@ -443,6 +443,11 @@ Function SelectTemplatesIndividually(templates)
   For Each key In templates.Keys
     list.Add templates(key)
   Next
+  Dim subFolder
+  For Each subFolder In folder.SubFolders
+    CollectTemplates subFolder.Path, dict, counter
+  Next
+End Sub
 
   Dim ordered: Set ordered = SortTemplateList(list)
   If ordered.Count = 0 Then
@@ -514,7 +519,6 @@ Function BuildTemplateLabel(tmpl)
   Else
     BuildTemplateLabel = label
   End If
-End Function
 
 Function ParseNumberList(text)
   Dim dict: Set dict = CreateObject("Scripting.Dictionary")
@@ -810,8 +814,39 @@ Sub EnsurePlaceholderValues(textItems, context, templateName)
         Else
           LogEvent "Placeholder [" & lookup & "] has no known value for template '" & templateName & "'"
         End If
+      Next
+      If invalid Then
+        WScript.Echo "One or more selections were out of range."
+      Else
+        Dim orderedKeys: Set orderedKeys = CreateObject("System.Collections.ArrayList")
+        For Each number In selections.Keys
+          orderedKeys.Add CInt(number)
+        Next
+        orderedKeys.Sort
+        Dim idx
+        For i = 0 To orderedKeys.Count - 1
+          idx = orderedKeys(i) - 1
+          dict.Add CStr(dict.Count + 1), ordered(idx)
+        Next
+        Set SelectTemplatesIndividually = dict
+        Exit Function
       End If
-    Next
+    End If
+  Loop
+End Function
+
+Function BuildTemplateLabel(tmpl)
+  Dim stage: stage = tmpl("Stage")
+  Dim code: code = tmpl("Code")
+  Dim label: label = tmpl("FileName")
+  Dim prefix: prefix = ""
+  If Len(stage) > 0 Then prefix = Capitalize(stage)
+  If Len(code) > 0 Then
+    If Len(prefix) > 0 Then
+      prefix = prefix & " - " & code
+    Else
+      prefix = code
+    End If
   End If
 End Sub
 
@@ -867,6 +902,25 @@ Function ApplyContextToText(text, context)
     result = Replace(result, "[" & key & "]", CStr(value))
   Next
   ApplyContextToText = result
+End Function
+
+Function SafeText(value)
+  If IsObject(value) Then
+    SafeText = ""
+    Exit Function
+  End If
+
+  If IsNull(value) Or IsEmpty(value) Then
+    SafeText = ""
+  Else
+    On Error Resume Next
+    SafeText = CStr(value)
+    If Err.Number <> 0 Then
+      Err.Clear
+      SafeText = ""
+    End If
+    On Error GoTo 0
+  End If
 End Function
 
 Function ArrayFromArrayList(list)
@@ -1038,11 +1092,103 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
           Call PopulateNameFromPropertyAccessor(exch, info)
         End If
         Call PopulateNameFromPropertyAccessor(entry, info)
+        ReportAddressListLookup emailAddress, listNames(i), entry, exch, info
         Exit For
       End If
     End If
   Next
   On Error GoTo 0
+End Sub
+
+Sub ReportAddressListLookup(emailAddress, listName, entry, exch, info)
+  WScript.Echo "  Directory lookup for " & emailAddress & " via " & listName & ":"
+
+  Dim entryName
+  entryName = ""
+  If Not entry Is Nothing Then
+    On Error Resume Next
+    entryName = entry.Name
+    If Err.Number <> 0 Then
+      Err.Clear
+      entryName = ""
+    End If
+    On Error GoTo 0
+  End If
+  If Len(entryName) > 0 Then
+    WScript.Echo "    Address entry name: " & entryName
+  Else
+    WScript.Echo "    Address entry name: (empty)"
+  End If
+
+  Dim exchName, exchFirst, exchLast
+  exchName = ""
+  exchFirst = ""
+  exchLast = ""
+  If Not exch Is Nothing Then
+    On Error Resume Next
+    exchName = exch.Name
+    If Err.Number <> 0 Then
+      Err.Clear
+      exchName = ""
+    End If
+    exchFirst = exch.FirstName
+    If Err.Number <> 0 Then
+      Err.Clear
+      exchFirst = ""
+    End If
+    exchLast = exch.LastName
+    If Err.Number <> 0 Then
+      Err.Clear
+      exchLast = ""
+    End If
+    On Error GoTo 0
+  End If
+
+  If Len(exchName) > 0 Or Len(exchFirst) > 0 Or Len(exchLast) > 0 Then
+    If Len(exchName) > 0 Then
+      WScript.Echo "    Exchange display name: " & exchName
+    Else
+      WScript.Echo "    Exchange display name: (empty)"
+    End If
+    If Len(exchFirst) > 0 Then
+      WScript.Echo "    Exchange first name: " & exchFirst
+    Else
+      WScript.Echo "    Exchange first name: (empty)"
+    End If
+    If Len(exchLast) > 0 Then
+      WScript.Echo "    Exchange last name: " & exchLast
+    Else
+      WScript.Echo "    Exchange last name: (empty)"
+    End If
+  Else
+    WScript.Echo "    Exchange information: (not available)"
+  End If
+
+  Dim resolvedFirst, resolvedLast, resolvedFull
+  resolvedFirst = ""
+  resolvedLast = ""
+  resolvedFull = ""
+  If Not info Is Nothing Then
+    If info.Exists("First") Then resolvedFirst = SafeText(info("First"))
+    If info.Exists("Last") Then resolvedLast = SafeText(info("Last"))
+    If info.Exists("Full") Then resolvedFull = SafeText(info("Full"))
+  End If
+
+  If Len(resolvedFirst) > 0 Then
+    WScript.Echo "    Resolved first name: " & resolvedFirst
+  Else
+    WScript.Echo "    Resolved first name: (empty)"
+  End If
+  If Len(resolvedLast) > 0 Then
+    WScript.Echo "    Resolved surname: " & resolvedLast
+  Else
+    WScript.Echo "    Resolved surname: (empty)"
+  End If
+  If Len(resolvedFull) > 0 Then
+    WScript.Echo "    Resolved full name: " & resolvedFull
+  Else
+    WScript.Echo "    Resolved full name: (empty)"
+  End If
 End Sub
 
 Sub PopulateNameFromPropertyAccessor(addressEntry, info)
