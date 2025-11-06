@@ -2,100 +2,205 @@ Option Explicit
 SetLocale 1033
 
 '======================================================================
-' InductionMailer.vbs — Compose induction templates via dynamic link mailer
+' InductionMailer.vbs — Console workflow for staged induction templates
 '======================================================================
 
-'---------------------------
-' Global objects and config
-'---------------------------
-Dim fso, scriptFolder, templateFolder, logFilePath
 Const TEMPLATE_DIR_NAME = "templates"
-Const LOG_FILE_NAME = "InductionMailer.log"
-Const DEFAULT_ACTION = "display"   ' display | send | save
-Const MAILER_LIB_FILE = "mail_utils_mailer_dynamiclinks.vbs"
-Const MAILER_LIB_EXT_DIR = "mail_utils_utf8_plus_dynamiclinks_ext"
-Const MAILER_LIB_EXT_SUBPATH = "mail_utils_utf8_plus_dynamiclinks_ext\\mail_utils_mailer_dynamiclinks.vbs"
+Const LOG_FILE_NAME     = "InductionMailer.log"
+Const DEFAULT_ACTION    = "display"   ' display | send | save
+Const MAILER_LIB_FILE   = "mail_utils_mailer_dynamiclinks.vbs"
+Const MAILER_LIB_EXT_SUBPATH = "mail_utils_utf8_plus_dynamiclinks_ext\mail_utils_mailer_dynamiclinks.vbs"
 Const LINK_MAP_FILE = "links_map.txt"
 
+Const HEADER_PREFIX = "@--"
+Const HEADER_SUFFIX = "--"
+Const HTML_HEADER_PREFIX = "<!--"
+Const HTML_HEADER_SUFFIX = "-->"
+Const DELIVERY_BROADCAST = "broadcast"
+Const DELIVERY_PERSONAL  = "personal"
+
+Dim fso, scriptFolder, templateFolder, logFilePath, linkMapContext
+
+Call LoadUtilityModules()
 Call Main()
 
-'---------------------------
+'======================================================================
+' Support module bootstrap
+'======================================================================
+Sub LoadUtilityModules()
+  Dim loaderFso: Set loaderFso = CreateObject("Scripting.FileSystemObject")
+  Dim baseFolder: baseFolder = loaderFso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(baseFolder) = 0 Then baseFolder = "."
+  Dim modules
+  modules = Array( _
+    "utilities\mail_collections.vbs", _
+    "utilities\mail_template_utils.vbs", _
+    "utilities\mail_delivery_utils.vbs", _
+    "utilities\mail_name_resolution.vbs")
+  Dim i, modulePath, ts, contents
+  For i = LBound(modules) To UBound(modules)
+    modulePath = loaderFso.BuildPath(baseFolder, modules(i))
+    If loaderFso.FileExists(modulePath) Then
+      Set ts = loaderFso.OpenTextFile(modulePath, 1)
+      contents = ts.ReadAll
+      ts.Close
+      On Error Resume Next
+      ExecuteGlobal contents
+      If Err.Number <> 0 Then
+        WScript.Echo "Warning: failed to load module '" & modules(i) & "': " & Err.Description
+        Err.Clear
+      End If
+      On Error GoTo 0
+    Else
+      WScript.Echo "Warning: utility module not found: " & modules(i)
+    End If
+  Next
+End Sub
+
+'======================================================================
 ' Entry point
-'---------------------------
+'======================================================================
 Sub Main()
+  If Not EnsureConsoleHost() Then Exit Sub
+
   InitializeEnvironment
 
   If Not LoadMailerLibrary() Then
-    ShowError "Unable to load mail_utils_mailer_dynamiclinks.vbs"
+    LogEvent "Unable to load mail_utils_mailer_dynamiclinks.vbs"
+    WScript.Echo "Fatal: mail utility library missing."
     Exit Sub
   End If
 
-  Dim templates: Set templates = DiscoverTemplates(templateFolder)
+  Set linkMapContext = LoadLinkMapContext()
+
+  Dim templates: Set templates = LoadTemplates(templateFolder)
   If templates.Count = 0 Then
-    ShowError "No HTML templates found in " & templateFolder
+    WScript.Echo "No templates were found under '" & templateFolder & "'."
     Exit Sub
   End If
 
-  Dim selectionKey: selectionKey = PromptTemplateSelection(templates)
-  If Len(selectionKey) = 0 Then
-    LogEvent "User cancelled template selection."
-    Exit Sub
-  End If
-
-  Dim templatePath: templatePath = templates(selectionKey)
-  LogEvent "Selected template: " & templatePath
-
-  Dim templateData: Set templateData = ParseTemplateFile(templatePath)
-  If templateData Is Nothing Then
-    ShowError "Could not parse template: " & templatePath
+  Dim targets: targets = PromptTargetEmails()
+  If UBound(targets) < 0 Then
+    WScript.Echo "No valid target email addresses supplied."
     Exit Sub
   End If
 
   Dim action: action = DetermineAction()
-  Dim attachments: attachments = ResolveAttachments(templateData("Attachments"), templateData("TemplateFolder"))
-  Dim htmlBody: htmlBody = templateData("HtmlBody")
 
-  Dim inlineInfo: Set inlineInfo = PrepareInlineImageSupport(htmlBody, templatePath)
-  htmlBody = inlineInfo("HtmlBody")
-  Dim inlineFolder: inlineFolder = inlineInfo("InlineFolder")
-
-  Dim ok
-  ok = CreateMail(templateData("To"), _
-                  templateData("Cc"), _
-                  templateData("Bcc"), _
-                  templateData("Subject"), _
-                  htmlBody, _
-                  attachments, _
-                  action, _
-                  "", _
-                  "", _
-                  inlineFolder, _
-                  0, _
-                  logFilePath)
-
-  If ok Then
-    LogEvent "CreateMail succeeded with action='" & action & "'"
-  Else
-    ShowError "CreateMail reported a failure. Check log for details."
+  Dim mode: mode = PromptOperationMode()
+  If Len(mode) = 0 Then
+    WScript.Echo "Operation cancelled."
+    Exit Sub
   End If
+
+  Dim selectedTemplates: Set selectedTemplates = Nothing
+  If mode = "stage" Then
+    Set selectedTemplates = SelectTemplatesByStage(templates)
+  Else
+    Set selectedTemplates = SelectTemplatesIndividually(templates)
+  End If
+
+  If selectedTemplates Is Nothing Or selectedTemplates.Count = 0 Then
+    WScript.Echo "No templates selected."
+    Exit Sub
+  End If
+
+  Dim key
+  For Each key In selectedTemplates.Keys
+    ProcessTemplate selectedTemplates(key), targets, action
+  Next
+
+  WScript.Echo "All requested templates processed."
 End Sub
 
-'---------------------------
-' Environment helpers
-'---------------------------
+'======================================================================
+' Console helpers
+'======================================================================
+Function EnsureConsoleHost()
+  Dim host: host = LCase(WScript.FullName)
+  If InStr(host, "cscript.exe") = 0 Then
+    WScript.Echo "Please run this script with cscript.exe to use the console interface."
+    EnsureConsoleHost = False
+  Else
+    EnsureConsoleHost = True
+  End If
+End Function
+
+Function PromptLine(prompt)
+  WScript.StdOut.Write prompt
+  PromptLine = Trim(WScript.StdIn.ReadLine())
+End Function
+
+Function PromptTargetEmails()
+  Dim responses: responses = Array()
+  Do While True
+    Dim input: input = PromptLine("Enter target email addresses (use ';' to separate multiple addresses): ")
+    input = Replace(input, ",", ";")
+    Dim parts: parts = Split(input, ";")
+    Dim list: Set list = CreateObject("System.Collections.ArrayList")
+    Dim seen: Set seen = CreateObject("Scripting.Dictionary")
+    On Error Resume Next
+    seen.CompareMode = 1
+    On Error GoTo 0
+    Dim i, item, trimmed
+    For i = 0 To UBound(parts)
+      item = parts(i)
+      trimmed = Trim(item)
+      If Len(trimmed) > 0 Then
+        If Not seen.Exists(LCase(trimmed)) Then
+          seen.Add LCase(trimmed), True
+          list.Add trimmed
+        End If
+      End If
+    Next
+    If list.Count > 0 Then
+      responses = ArrayFromArrayList(list)
+      Exit Do
+    Else
+      WScript.Echo "At least one email address is required."
+    End If
+  Loop
+  PromptTargetEmails = responses
+End Function
+
+Function PromptOperationMode()
+  WScript.Echo "Select the operation mode:"& vbCrLf & _
+               "  1) Stage mode (send every email in a stage)" & vbCrLf & _
+               "  2) Email mode (pick one or more templates)"
+  Dim mode: mode = ""
+  Do While True
+    Dim choice: choice = PromptLine("Enter choice (1/2) or press Enter to cancel: ")
+    If Len(choice) = 0 Then
+      mode = ""
+      Exit Do
+    End If
+    Select Case choice
+      Case "1": mode = "stage": Exit Do
+      Case "2": mode = "email": Exit Do
+      Case Else
+        WScript.Echo "Invalid option. Please choose 1 or 2."
+    End Select
+  Loop
+  PromptOperationMode = mode
+End Function
+
+'======================================================================
+' Environment bootstrap
+'======================================================================
 Sub InitializeEnvironment()
   Set fso = CreateObject("Scripting.FileSystemObject")
   scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
   If Len(scriptFolder) = 0 Then scriptFolder = "."
   templateFolder = fso.BuildPath(scriptFolder, TEMPLATE_DIR_NAME)
   logFilePath = fso.BuildPath(scriptFolder, LOG_FILE_NAME)
-  LogEvent "=== Induction Mailer started ==="
+  LogEvent "=== Induction Mailer (console) started ==="
   LogEvent "Template folder: " & templateFolder
+  Set linkMapContext = CreateCaseInsensitiveDictionary()
 End Sub
 
 Function LoadMailerLibrary()
   Dim candidates
-  candidates = Array(_
+  candidates = Array( _
     fso.BuildPath(scriptFolder, MAILER_LIB_FILE), _
     fso.BuildPath(scriptFolder, MAILER_LIB_EXT_SUBPATH), _
     fso.BuildPath(templateFolder, MAILER_LIB_FILE))
@@ -115,7 +220,6 @@ Function LoadMailerLibrary()
     End If
   Next
 
-  LogEvent "Failed to locate mail_utils_mailer_dynamiclinks.vbs"
   LoadMailerLibrary = False
 End Function
 
@@ -128,9 +232,9 @@ Sub EnsureLinkMapAvailable(libraryPath)
     If Not fso.FileExists(targetMap) Then
       fso.CopyFile sourceMap, targetMap
       If Err.Number = 0 Then
-        LogEvent "Copied links_map.txt to script folder"
+        LogEvent "Copied " & LINK_MAP_FILE & " to script folder"
       Else
-        LogEvent "Failed to copy links_map.txt: " & Err.Description
+        LogEvent "Failed to copy " & LINK_MAP_FILE & ": " & Err.Description
         Err.Clear
       End If
     End If
@@ -138,357 +242,427 @@ Sub EnsureLinkMapAvailable(libraryPath)
   On Error GoTo 0
 End Sub
 
-'---------------------------
-' Template discovery and selection
-'---------------------------
-Function DiscoverTemplates(folderPath)
-  Dim dict: Set dict = CreateObject("Scripting.Dictionary")
-  On Error Resume Next
-  If Not fso.FolderExists(folderPath) Then
-    LogEvent "Template folder missing: " & folderPath
-    Set DiscoverTemplates = dict
+'======================================================================
+' Template discovery and parsing
+'======================================================================
+Function LoadTemplates(rootFolder)
+  Dim items: Set items = CreateCaseInsensitiveDictionary()
+  If Not fso.FolderExists(rootFolder) Then
+    Set LoadTemplates = items
     Exit Function
   End If
-  On Error GoTo 0
+  Dim counter: counter = 0
+  Call CollectTemplates(rootFolder, items, counter)
+  Set LoadTemplates = items
+End Function
 
-  Dim files, file, idx
-  Set files = fso.GetFolder(folderPath).Files
-
-  Dim orderedPaths, sortFailed
-  On Error Resume Next
-  Set orderedPaths = CreateObject("System.Collections.ArrayList")
-  If Err.Number <> 0 Then
-    sortFailed = True
-    Err.Clear
-  End If
-  On Error GoTo 0
-
-  For Each file In files
+Sub CollectTemplates(folderPath, dict, ByRef counter)
+  Dim folder: Set folder = fso.GetFolder(folderPath)
+  Dim file
+  For Each file In folder.Files
     Dim ext: ext = LCase(fso.GetExtensionName(file.Name))
-    If ext = "html" Or ext = "htm" Then
-      If sortFailed Then
-        dict.Add CStr(dict.Count + 1), file.Path
-      Else
-        orderedPaths.Add file.Path
+    If ext = "htm" Or ext = "html" Or ext = "txt" Then
+      Dim tmpl: Set tmpl = ParseTemplate(file.Path)
+      If Not tmpl Is Nothing Then
+        counter = counter + 1
+        dict.Add CStr(counter), tmpl
       End If
     End If
   Next
-
-  If Not sortFailed Then
-    orderedPaths.Sort
-    For idx = 0 To orderedPaths.Count - 1
-      dict.Add CStr(idx + 1), orderedPaths(idx)
-    Next
-  End If
-
-  Set DiscoverTemplates = dict
-End Function
-
-Function PromptTemplateSelection(templates)
-  Dim key, prompt, i
-  prompt = "Select a template by number:" & vbCrLf & vbCrLf
-  For i = 1 To templates.Count
-    key = CStr(i)
-    If templates.Exists(key) Then
-      prompt = prompt & key & ". " & fso.GetFileName(templates(key)) & vbCrLf
-    End If
+  Dim subFolder
+  For Each subFolder In folder.SubFolders
+    CollectTemplates subFolder.Path, dict, counter
   Next
-  prompt = prompt & vbCrLf & "Cancel to exit."
+End Sub
 
-  Dim selection
-  selection = Trim(InputBox(prompt, "Induction Mailer"))
-  If Len(selection) = 0 Then
-    PromptTemplateSelection = ""
-  ElseIf templates.Exists(selection) Then
-    PromptTemplateSelection = selection
-  Else
-    MsgBox "Invalid selection.", vbExclamation, "Induction Mailer"
-    PromptTemplateSelection = PromptTemplateSelection(templates)
-  End If
-End Function
-
-'---------------------------
-' Template parsing
-'---------------------------
-Function ParseTemplateFile(filePath)
-  On Error Resume Next
-  Dim s: Set s = CreateObject("ADODB.Stream")
-  s.Type = 2
-  s.Charset = "utf-8"
-  s.Open
-  s.LoadFromFile filePath
-  Dim content: content = s.ReadText
-  s.Close
-  Set s = Nothing
-  If Err.Number <> 0 Then
-    Dim fallback: fallback = ReadFileWithFallback(filePath)
-    If fallback("Success") Then
-      content = fallback("Content")
-    Else
-      LogEvent "Error reading template: " & filePath & " | " & Err.Description
-      Err.Clear
-      Set ParseTemplateFile = Nothing
-      Exit Function
-    End If
-  End If
-  On Error GoTo 0
-
-  content = NormalizeLineEndings(content)
-  Dim parsed: Set parsed = ExtractMetadataAndBody(content)
-  If parsed Is Nothing Then
-    LogEvent "Metadata extraction failed for: " & filePath
-    Set ParseTemplateFile = Nothing
+Function ParseTemplate(filePath)
+  Dim resultText: resultText = ReadFileSmart(filePath)
+  If Len(resultText) = 0 Then
+    LogEvent "Skipped empty template: " & filePath
+    Set ParseTemplate = Nothing
     Exit Function
   End If
 
-  Dim data: Set data = CreateObject("Scripting.Dictionary")
-  data("TemplateFolder") = fso.GetParentFolderName(filePath)
-  data("To") = parsed("To")
-  data("Cc") = parsed("Cc")
-  data("Bcc") = parsed("Bcc")
-  If Len(Trim(parsed("Subject"))) = 0 Then
-    data("Subject") = fso.GetBaseName(filePath)
-  Else
-    data("Subject") = parsed("Subject")
-  End If
-  data("Attachments") = parsed("Attachments")
-  data("HtmlBody") = parsed("HtmlBody")
-  data("HtmlPath") = filePath
-  Set ParseTemplateFile = data
+  Dim pieces: pieces = ExtractHeaderAndBody(resultText)
+  Dim metaText, bodyText
+  metaText = NormalizeLineEndings(pieces(0))
+  bodyText = TrimLeadingBlankLines(pieces(1))
+
+  Dim meta: Set meta = ParseHeaderBlock(metaText)
+
+  Dim template: Set template = CreateObject("Scripting.Dictionary")
+  template("Path") = filePath
+  template("Folder") = fso.GetParentFolderName(filePath)
+  template("FileName") = fso.GetFileName(filePath)
+  Set template("Meta") = meta
+  template("Body") = bodyText
+  template("DisplayName") = fso.GetFileName(filePath)
+  template("Stage") = LCase(GetDictionaryValue(meta, "stage"))
+  template("Code") = GetDictionaryValue(meta, "code")
+  Set ParseTemplate = template
 End Function
 
-Function NormalizeLineEndings(text)
-  text = Replace(text, vbCrLf, vbLf)
-  text = Replace(text, vbCr, vbLf)
-  NormalizeLineEndings = text
-End Function
+Function ExtractHeaderAndBody(resultText)
+  Dim headerText: headerText = ""
+  Dim bodyText: bodyText = resultText
 
-Function TrimTrailingEmptyLines(text)
-  Dim cleaned: cleaned = text
-  Do While Len(cleaned) > 0 And Right(cleaned, 1) = vbLf
-    cleaned = Left(cleaned, Len(cleaned) - 1)
-  Loop
-  TrimTrailingEmptyLines = cleaned
-End Function
+  Dim startPos, endPos
 
-'---------------------------
-' HTML metadata helpers
-'---------------------------
-Function ExtractMetadataAndBody(content)
-  Dim data: Set data = CreateObject("Scripting.Dictionary")
-  data("To") = ""
-  data("Cc") = ""
-  data("Bcc") = ""
-  data("Subject") = ""
-  data("Attachments") = ""
-
-  Dim working: working = RemoveUtf8Bom(content)
-  Dim trimmed: trimmed = LTrim(working)
-  Dim leadingWs: leadingWs = Left(working, Len(working) - Len(trimmed))
-
-  Dim metaText, htmlBody, metaEnd
-  metaText = ""
-  htmlBody = working
-
-  If Left(trimmed, 4) = "<!--" Then
-    metaEnd = InStr(5, trimmed, "-->")
-    If metaEnd > 0 Then
-      metaText = Mid(trimmed, 5, metaEnd - 5)
-      htmlBody = leadingWs & Mid(trimmed, metaEnd + 3)
-    End If
-  End If
-
-  If Len(metaText) > 0 Then
-    Dim lines, line, pos, key, value
-    metaText = NormalizeLineEndings(metaText)
-    lines = Split(metaText, vbLf)
-    For Each line In lines
-      If Len(Trim(line)) > 0 Then
-        pos = InStr(line, ":")
-        If pos > 0 Then
-          key = LCase(Trim(Left(line, pos - 1)))
-          value = Trim(Mid(line, pos + 1))
-          Select Case key
-            Case "to": data("To") = value
-            Case "cc": data("Cc") = value
-            Case "bcc": data("Bcc") = value
-            Case "subject": data("Subject") = value
-            Case "attachments": data("Attachments") = value
-          End Select
-        End If
-      End If
-    Next
-  End If
-
-  data("HtmlBody") = TrimLeadingBlankLines(htmlBody)
-  Set ExtractMetadataAndBody = data
-End Function
-
-Function TrimLeadingBlankLines(text)
-  Dim result: result = text
-  Do While Len(result) > 0 And (Left(result, 1) = vbLf Or Left(result, 1) = vbCr)
-    result = Mid(result, 2)
-  Loop
-  TrimLeadingBlankLines = result
-End Function
-
-Function RemoveUtf8Bom(text)
-  If Len(text) >= 3 Then
-    If Asc(Mid(text, 1, 1)) = 239 And _
-       Asc(Mid(text, 2, 1)) = 187 And _
-       Asc(Mid(text, 3, 1)) = 191 Then
-      RemoveUtf8Bom = Mid(text, 4)
+  startPos = InStr(1, resultText, HTML_HEADER_PREFIX, vbTextCompare)
+  If startPos > 0 Then
+    endPos = InStr(startPos + Len(HTML_HEADER_PREFIX), resultText, HTML_HEADER_SUFFIX)
+    If endPos > 0 Then
+      headerText = Mid(resultText, startPos + Len(HTML_HEADER_PREFIX), endPos - startPos - Len(HTML_HEADER_PREFIX))
+      bodyText = Mid(resultText, endPos + Len(HTML_HEADER_SUFFIX))
+      ExtractHeaderAndBody = Array(headerText, bodyText)
       Exit Function
     End If
   End If
-  RemoveUtf8Bom = text
+
+  startPos = InStr(1, resultText, HEADER_PREFIX, vbTextCompare)
+  If startPos > 0 Then
+    endPos = InStr(startPos + Len(HEADER_PREFIX), resultText, HEADER_SUFFIX)
+    If endPos > 0 Then
+      headerText = Mid(resultText, startPos + Len(HEADER_PREFIX), endPos - startPos - Len(HEADER_PREFIX))
+      bodyText = Mid(resultText, endPos + Len(HEADER_SUFFIX))
+    End If
+  End If
+
+  ExtractHeaderAndBody = Array(headerText, bodyText)
 End Function
 
-Function ReadFileWithFallback(filePath)
-  Dim result: Set result = CreateObject("Scripting.Dictionary")
-  result("Success") = False
-  result("Content") = ""
+Function ParseHeaderBlock(blockText)
+  Dim dict: Set dict = CreateCaseInsensitiveDictionary()
+  If Len(Trim(blockText)) = 0 Then
+    Set ParseHeaderBlock = dict
+    Exit Function
+  End If
 
-  Dim encodings: encodings = Array("utf-8", "utf-16le", "unicode", "windows-1252")
-  Dim i
-
-  For i = LBound(encodings) To UBound(encodings)
-    On Error Resume Next
-    Dim s: Set s = CreateObject("ADODB.Stream")
-    s.Type = 2
-    s.Charset = encodings(i)
-    s.Open
-    s.LoadFromFile filePath
-    Dim text: text = s.ReadText
-    s.Close
-    Set s = Nothing
-    If Err.Number = 0 Then
-      result("Success") = True
-      result("Content") = text
-      Exit For
+  Dim lines: lines = Split(blockText, vbLf)
+  Dim line, pos, key, value
+  For Each line In lines
+    pos = InStr(line, ":")
+    If pos > 0 Then
+      key = Trim(Left(line, pos - 1))
+      value = Trim(Mid(line, pos + 1))
+      If Len(key) > 0 Then
+        dict(LCase(key)) = value
+      End If
     End If
+  Next
+
+  Set ParseHeaderBlock = dict
+End Function
+'======================================================================
+' Template selection
+'======================================================================
+Function BuildTemplateLabel(tmpl)
+  Dim stage: stage = tmpl("Stage")
+  Dim code: code = tmpl("Code")
+  Dim label: label = tmpl("FileName")
+  Dim prefix: prefix = ""
+  If Len(stage) > 0 Then prefix = Capitalize(stage)
+  If Len(code) > 0 Then
+    If Len(prefix) > 0 Then
+      prefix = prefix & " - " & code
+    Else
+      prefix = code
+    End If
+  End If
+  If Len(prefix) > 0 Then
+    BuildTemplateLabel = prefix & " | " & label
+  Else
+    BuildTemplateLabel = label
+  End If
+End Function
+
+Function BuildStageIndex(templates)
+  Dim stageMap: Set stageMap = CreateCaseInsensitiveDictionary()
+  Dim key, template, stageName
+  For Each key In templates.Keys
+    Set template = templates(key)
+    stageName = template("Stage")
+    If Len(stageName) = 0 Then stageName = "(unspecified)"
+    If Not stageMap.Exists(stageName) Then
+      Dim list: Set list = CreateObject("System.Collections.ArrayList")
+      Set stageMap(stageName) = list
+    End If
+    stageMap(stageName).Add template
+  Next
+  Set BuildStageIndex = stageMap
+End Function
+
+Function SelectTemplatesByStage(templates)
+  Dim stageMap: Set stageMap = BuildStageIndex(templates)
+  Dim orderedStages: orderedStages = Array("onboarding", "scheduling", "authorisation", "finalisation")
+
+  If stageMap.Count = 0 Then
+    WScript.Echo "No stage information available in templates."
+    Set SelectTemplatesByStage = Nothing
+    Exit Function
+  End If
+
+  Dim displayList: Set displayList = CreateObject("System.Collections.ArrayList")
+  Dim stageName
+  For Each stageName In orderedStages
+    If stageMap.Exists(stageName) Then displayList.Add stageName
+  Next
+  For Each stageName In stageMap.Keys
+    If Not ContainsInArrayList(displayList, stageName) Then displayList.Add stageName
+  Next
+
+  WScript.Echo "Available stages:"
+  Dim i
+  For i = 0 To displayList.Count - 1
+    stageName = displayList(i)
+    WScript.Echo "  " & (i + 1) & ") " & Capitalize(stageName) & " (" & stageMap(stageName).Count & " template(s))"
+  Next
+
+  Dim selection: Set selection = Nothing
+  Do While True
+    Dim choice: choice = PromptLine("Select a stage by number or press Enter to cancel: ")
+    If Len(choice) = 0 Then
+      Exit Do
+    End If
+    If IsNumeric(choice) Then
+      i = CInt(choice) - 1
+      If i >= 0 And i < displayList.Count Then
+        stageName = displayList(i)
+        WScript.Echo "Stage '" & Capitalize(stageName) & "' selected."
+        Set selection = BuildOrderedDictionary(stageMap(stageName))
+        Exit Do
+      End If
+    End If
+    WScript.Echo "Invalid selection."
+  Loop
+
+  Set SelectTemplatesByStage = selection
+End Function
+
+Function SelectTemplatesIndividually(templates)
+  Dim list: Set list = CreateObject("System.Collections.ArrayList")
+  Dim key
+  For Each key In templates.Keys
+    list.Add templates(key)
+  Next
+
+  Dim ordered: Set ordered = SortTemplateList(list)
+  Dim selectionResult: Set selectionResult = Nothing
+
+  If ordered.Count = 0 Then
+    Set SelectTemplatesIndividually = Nothing
+    Exit Function
+  End If
+
+  WScript.Echo "Available templates:"
+  Dim i
+  For i = 0 To ordered.Count - 1
+    WScript.Echo "  " & (i + 1) & ") " & BuildTemplateLabel(ordered(i))
+  Next
+
+  Do While True
+    Dim response: response = PromptLine("Select template numbers (comma-separated) or press Enter to cancel: ")
+    If Len(response) = 0 Then
+      Exit Do
+    End If
+
+    Dim selections: Set selections = ParseNumberList(response)
+    If selections.Count = 0 Then
+      WScript.Echo "No valid selections detected."
+    Else
+      Dim dict: Set dict = CreateObject("Scripting.Dictionary")
+      Dim invalid: invalid = False
+      Dim number
+      For Each number In selections.Keys
+        i = CInt(number) - 1
+        If i < 0 Or i >= ordered.Count Then
+          invalid = True
+          Exit For
+        End If
+      Next
+
+      If invalid Then
+        WScript.Echo "One or more selections were out of range."
+      Else
+        Dim orderedKeys: Set orderedKeys = CreateObject("System.Collections.ArrayList")
+        For Each number In selections.Keys
+          orderedKeys.Add CInt(number)
+        Next
+        orderedKeys.Sort
+
+        Dim idx
+        For i = 0 To orderedKeys.Count - 1
+          idx = orderedKeys(i) - 1
+          dict.Add CStr(dict.Count + 1), ordered(idx)
+        Next
+
+        Set selectionResult = dict
+        Exit Do
+      End If
+    End If
+  Loop
+
+  Set SelectTemplatesIndividually = selectionResult
+End Function
+
+'======================================================================
+' Template processing
+'======================================================================
+Sub ProcessTemplate(tmpl, targets, action)
+  WScript.Echo "Preparing template: " & tmpl("DisplayName")
+  LogEvent "Processing template: " & tmpl("DisplayName")
+
+  Dim meta: Set meta = CloneDictionary(tmpl("Meta"))
+  Call PromptForEmptyTags(meta, tmpl("DisplayName"))
+
+  Dim delivery: delivery = LCase(GetDictionaryValue(meta, "delivery"))
+  Do While delivery <> DELIVERY_BROADCAST And delivery <> DELIVERY_PERSONAL
+    delivery = LCase(PromptLine("Specify delivery type for '" & tmpl("DisplayName") & "' (broadcast/personal): "))
+  Loop
+  meta("delivery") = delivery
+
+  Dim subjectText: subjectText = GetDictionaryValue(meta, "subject")
+  Dim toText: toText = GetDictionaryValue(meta, "to")
+  Dim ccText: ccText = GetDictionaryValue(meta, "cc")
+  Dim bccText: bccText = GetDictionaryValue(meta, "bcc")
+  Dim attachmentsValue: attachmentsValue = GetDictionaryValue(meta, "attachments")
+
+  Dim attachments: attachments = ResolveAttachments(attachmentsValue, tmpl("Folder"))
+
+  Dim inlineInfo: Set inlineInfo = PrepareInlineImageSupport(tmpl("Body"), tmpl("Path"))
+  Dim htmlBody: htmlBody = inlineInfo("HtmlBody")
+  Dim inlineFolder: inlineFolder = inlineInfo("InlineFolder")
+
+  Dim baseContext: Set baseContext = BuildContextFromMeta(meta)
+  baseContext("TEMPLATE_NAME") = tmpl("DisplayName")
+  baseContext("RECIPIENT_COUNT") = CStr(UBound(targets) + 1)
+  baseContext("TARGETS") = Join(targets, "; ")
+
+  If delivery = DELIVERY_BROADCAST Then
+    HandleBroadcast tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext
+  Else
+    HandlePersonal tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext
+  End If
+End Sub
+
+Sub HandleBroadcast(tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext)
+  Dim joinedTargets: joinedTargets = Join(targets, "; ")
+  baseContext("TARGETS") = joinedTargets
+
+  Dim context: Set context = CloneDictionary(baseContext)
+  Call EnsurePlaceholderValues(Array(subjectText, htmlBody, toText, ccText, bccText), context, tmpl("DisplayName"))
+
+  Dim finalSubject: finalSubject = ApplyContextToText(subjectText, context)
+  Dim finalBody: finalBody = ApplyContextToText(htmlBody, context)
+  Dim templatedTo: templatedTo = ApplyContextToText(toText, context)
+  Dim finalTo: finalTo = MergeRecipients(templatedTo, targets)
+  Dim finalCc: finalCc = ApplyContextToText(ccText, context)
+  Dim finalBcc: finalBcc = ApplyContextToText(bccText, context)
+
+  LogEvent "Broadcast delivery for " & tmpl("DisplayName") & " -> " & finalTo
+  WScript.Echo "  Sending broadcast to " & finalTo
+
+  Dim ok
+  ok = CreateMail(finalTo, finalCc, finalBcc, finalSubject, finalBody, attachments, action, "", "", inlineFolder, 0, logFilePath)
+  If Not ok Then
+    WScript.Echo "  Failed to create broadcast email for " & tmpl("DisplayName")
+    LogEvent "ERROR: Broadcast delivery failed for " & tmpl("DisplayName")
+  End If
+End Sub
+
+Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext)
+  Dim i
+  For i = LBound(targets) To UBound(targets)
+    Dim address: address = targets(i)
+    Dim context: Set context = CloneDictionary(baseContext)
+    context("EMAIL") = address
+
+    If Not context.Exists("NAME") Then context("NAME") = ""
+    If Not context.Exists("SURNAME") Then context("SURNAME") = ""
+    If Not context.Exists("FULL_NAME") Then context("FULL_NAME") = ""
+
+    Dim nameInfo: Set nameInfo = ResolveNameFromEmail(address)
+    If nameInfo("Found") Then
+      If Len(nameInfo("First")) > 0 Then context("NAME") = nameInfo("First")
+      If Len(nameInfo("Last")) > 0 Then context("SURNAME") = nameInfo("Last")
+      If Len(nameInfo("Full")) > 0 Then context("FULL_NAME") = nameInfo("Full")
+    End If
+
+    If Len(context("FULL_NAME")) = 0 Then
+      context("FULL_NAME") = Trim(context("NAME") & " " & context("SURNAME"))
+    End If
+
+    Call EnsurePlaceholderValues(Array(subjectText, htmlBody, toText, ccText, bccText), context, tmpl("DisplayName"))
+
+    Dim finalSubject: finalSubject = ApplyContextToText(subjectText, context)
+    Dim finalBody: finalBody = ApplyContextToText(htmlBody, context)
+    Dim templatedTo: templatedTo = ApplyContextToText(toText, context)
+    Dim finalTo: finalTo = MergeRecipients(templatedTo, Array(address))
+    Dim finalCc: finalCc = ApplyContextToText(ccText, context)
+    Dim finalBcc: finalBcc = ApplyContextToText(bccText, context)
+
+    LogEvent "Personal delivery for " & tmpl("DisplayName") & " -> " & finalTo
+    WScript.Echo "  Sending personal email to " & finalTo
+
+    Dim ok
+    ok = CreateMail(finalTo, finalCc, finalBcc, finalSubject, finalBody, attachments, action, "", "", inlineFolder, 0, logFilePath)
+    If Not ok Then
+      WScript.Echo "  Failed to create personal email for " & finalTo
+      LogEvent "ERROR: Personal delivery failed for " & finalTo
+    End If
+  Next
+End Sub
+Function LoadLinkMapContext()
+  Dim dict: Set dict = CreateCaseInsensitiveDictionary()
+  If fso Is Nothing Then
+    Set LoadLinkMapContext = dict
+    Exit Function
+  End If
+
+  Dim mapPath: mapPath = fso.BuildPath(scriptFolder, LINK_MAP_FILE)
+  If Len(mapPath) = 0 Or Not fso.FileExists(mapPath) Then
+    LogEvent "Link map not found at " & mapPath
+    Set LoadLinkMapContext = dict
+    Exit Function
+  End If
+
+  On Error Resume Next
+  Dim ts: Set ts = fso.OpenTextFile(mapPath, 1)
+  If Err.Number <> 0 Then
+    LogEvent "Unable to open link map: " & Err.Description
     Err.Clear
     On Error GoTo 0
-  Next
-
+    Set LoadLinkMapContext = dict
+    Exit Function
+  End If
   On Error GoTo 0
 
-  ReadFileWithFallback = result
-End Function
-
-'---------------------------
-' Attachment and body helpers
-'---------------------------
-Function ResolveAttachments(rawValue, baseFolder)
-  Dim cleaned: cleaned = Trim(rawValue)
-  cleaned = Replace(cleaned, ",", ";")
-  If Len(cleaned) = 0 Then
-    ResolveAttachments = Array()
-    Exit Function
-  End If
-
-  Dim parts: parts = Split(cleaned, ";")
-  Dim resolved(), count, i, candidate
-  count = -1
-
-  For i = 0 To UBound(parts)
-    Dim item: item = Trim(parts(i))
-    If Len(item) > 0 Then
-      candidate = item
-      If Not fso.FileExists(candidate) Then
-        If Left(candidate, 2) = ".\" Then
-          candidate = fso.BuildPath(baseFolder, Mid(candidate, 3))
-        ElseIf Not IsAbsolutePath(candidate) Then
-          candidate = fso.BuildPath(baseFolder, candidate)
+  Do Until ts.AtEndOfStream
+    Dim rawLine: rawLine = Trim(ts.ReadLine)
+    If Len(rawLine) > 0 Then
+      If Left(rawLine, 1) <> "#" Then
+        Dim pos: pos = InStr(rawLine, "=")
+        If pos > 0 Then
+          Dim key: key = Trim(Left(rawLine, pos - 1))
+          Dim value: value = Trim(Mid(rawLine, pos + 1))
+          If Len(key) > 0 Then dict(UCase(key)) = value
         End If
       End If
-
-      If fso.FileExists(candidate) Then
-        count = count + 1
-        ReDim Preserve resolved(count)
-        resolved(count) = candidate
-        LogEvent "Queued attachment: " & candidate
-      Else
-        LogEvent "Attachment not found: " & item
-      End If
     End If
-  Next
+  Loop
+  ts.Close
 
-  If count = -1 Then
-    ResolveAttachments = Array()
+  If dict.Count > 0 Then
+    LogEvent "Loaded " & dict.Count & " link map entries"
   Else
-    ResolveAttachments = resolved
-  End If
-End Function
-
-Function IsAbsolutePath(path)
-  If Len(path) < 2 Then
-    IsAbsolutePath = False
-  ElseIf Mid(path, 2, 1) = ":" Then
-    IsAbsolutePath = True
-  ElseIf Left(path, 2) = "\\" Then
-    IsAbsolutePath = True
-  Else
-    IsAbsolutePath = False
-  End If
-End Function
-
-'---------------------------
-' Inline image helpers
-'---------------------------
-Function PrepareInlineImageSupport(htmlBody, templatePath)
-  Dim info: Set info = CreateObject("Scripting.Dictionary")
-  info("HtmlBody") = htmlBody
-  info("InlineFolder") = ""
-
-  Dim baseFolder: baseFolder = fso.GetParentFolderName(templatePath)
-  Dim baseName: baseName = fso.GetBaseName(templatePath)
-  Dim inlineFolder: inlineFolder = fso.BuildPath(baseFolder, baseName & ".files")
-
-  If Not fso.FolderExists(inlineFolder) Then
-    Set PrepareInlineImageSupport = info
-    Exit Function
+    LogEvent "Link map was empty: " & mapPath
   End If
 
-  LogEvent "Inline image folder detected: " & inlineFolder
-
-  Dim file
-  For Each file In fso.GetFolder(inlineFolder).Files
-    info("HtmlBody") = RewriteInlineReferences(info("HtmlBody"), baseName, file.Name)
-  Next
-
-  info("InlineFolder") = inlineFolder
-  Set PrepareInlineImageSupport = info
+  Set LoadLinkMapContext = dict
 End Function
-
-Function RewriteInlineReferences(htmlText, templateBaseName, fileName)
-  Dim sanitizedCid: sanitizedCid = SanitizeContentId(fileName)
-  Dim encodedBase: encodedBase = Replace(templateBaseName, " ", "%20")
-  Dim encodedFile: encodedFile = Replace(fileName, " ", "%20")
-  Dim target: target = "cid:" & sanitizedCid
-
-  htmlText = Replace(htmlText, templateBaseName & ".files/" & fileName, target)
-  htmlText = Replace(htmlText, templateBaseName & ".files\" & fileName, target)
-  htmlText = Replace(htmlText, encodedBase & ".files/" & encodedFile, target)
-  htmlText = Replace(htmlText, encodedBase & ".files\" & encodedFile, target)
-
-  htmlText = Replace(htmlText, "=""" & fileName & """", "=""" & target & """")
-  htmlText = Replace(htmlText, "='" & fileName & "'", "='" & target & "'")
-  htmlText = Replace(htmlText, "=""" & encodedFile & """", "=""" & target & """")
-  htmlText = Replace(htmlText, "='" & encodedFile & "'", "='" & target & "'")
-
-  RewriteInlineReferences = htmlText
-End Function
-
-Function SanitizeContentId(fileName)
-  Dim cid: cid = fso.GetFileName(fileName)
-  cid = Replace(cid, " ", "_")
-  SanitizeContentId = cid
-End Function
-
-'---------------------------
+'======================================================================
 ' Action helpers
-'---------------------------
+'======================================================================
 Function DetermineAction()
   Dim action: action = DEFAULT_ACTION
   If WScript.Arguments.Count > 0 Then
@@ -503,18 +677,13 @@ Function DetermineAction()
   DetermineAction = action
 End Function
 
-'---------------------------
-' Logging and messaging
-'---------------------------
+'======================================================================
+' Logging
+'======================================================================
 Sub LogEvent(message)
   On Error Resume Next
   Dim ts: Set ts = fso.OpenTextFile(logFilePath, 8, True)
   ts.WriteLine Now & "  " & message
   ts.Close
   On Error GoTo 0
-End Sub
-
-Sub ShowError(msg)
-  MsgBox msg, vbCritical, "Induction Mailer"
-  LogEvent "ERROR: " & msg
 End Sub

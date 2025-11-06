@@ -83,7 +83,7 @@ End Function
 
 '================== Dynamic Link Mapping ==================
 Function ApplyLinkMap(htmlBody, mapPath)
-  Dim fso, ts, line, parts
+  Dim fso, ts, line, pos, key, value
   Set fso = CreateObject("Scripting.FileSystemObject")
   If Not fso.FileExists(mapPath) Then
     ApplyLinkMap = htmlBody
@@ -92,19 +92,29 @@ Function ApplyLinkMap(htmlBody, mapPath)
 
   Set ts = fso.OpenTextFile(mapPath, 1)
   Dim mapDict: Set mapDict = CreateObject("Scripting.Dictionary")
+  On Error Resume Next
+  mapDict.CompareMode = 1
+  On Error GoTo 0
 
   Do Until ts.AtEndOfStream
     line = Trim(ts.ReadLine)
-    If Len(line) > 0 And InStr(line, "=") > 0 Then
-      parts = Split(line, "=")
-      If UBound(parts) = 1 Then mapDict(parts(0)) = parts(1)
+    If Len(line) > 0 And Left(line, 1) <> "#" Then
+      pos = InStr(line, "=")
+      If pos > 0 Then
+        key = Trim(Left(line, pos - 1))
+        value = Trim(Mid(line, pos + 1))
+        If Len(key) > 0 Then mapDict(key) = value
+      End If
     End If
   Loop
   ts.Close
 
-  Dim key
   For Each key In mapDict.Keys
-    htmlBody = Replace(htmlBody, "{{" & key & "}}", mapDict(key))
+    value = mapDict(key)
+    htmlBody = Replace(htmlBody, "{{" & key & "}}", value)
+    htmlBody = Replace(htmlBody, "{{" & UCase(key) & "}}", value)
+    htmlBody = Replace(htmlBody, "[" & key & "]", value)
+    htmlBody = Replace(htmlBody, "[" & UCase(key) & "]", value)
   Next
 
   ApplyLinkMap = htmlBody
