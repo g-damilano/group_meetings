@@ -47,9 +47,9 @@ Delivery: personal
 - `Delivery` must be either `broadcast` or `personal`.
 - Any additional metadata keys you introduce become available as `[KEY]` placeholders inside the
   subject line, address headers, or body text.
-- Attachments can be absolute paths or relative to the template folder. Separate multiple entries
-  with commas or semicolons. Relative paths starting with `./` or `.\` are resolved next to the
-  template file.
+- Attachments can be absolute paths (including UNC shares such as `\\server\share\file.pdf`) or
+  relative to the template folder. Separate multiple entries with commas or semicolons. Relative
+  paths starting with `./` or `.\` are resolved next to the template file.
 - Use `[TOKEN]` placeholders consistently; the mailer scans the subject, `To`, `Cc`, `Bcc`, and
   body fields and only prompts for values that were declared in the header metadata (or that are
   well-known fields such as `NAME`/`SURNAME`). Placeholders with no corresponding metadata are
@@ -67,8 +67,8 @@ line) or loops over each target to build fully personalised emails (with `NAME`,
 `FULL_NAME` populated per recipient).
 
 Inline `<img>` references that point to a sibling `*.files/` folder (the structure Outlook creates
-when saving a message) are rewritten to `cid:` URLs so the graphics appear inside the email instead of
-as broken links.
+when saving a message) are rewritten to `cid:` URLs whether they use forward slashes or backslashes in
+the saved HTML, so the graphics appear inside the email instead of as broken links.
 
 ## Dynamic link substitution
 

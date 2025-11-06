@@ -99,7 +99,7 @@ End Function
 
 Function PromptTargetEmails()
   Dim responses: responses = Array()
-  Do
+  Do While True
     Dim input: input = PromptLine("Enter target email addresses (use ';' to separate multiple addresses): ")
     input = Replace(input, ",", ";")
     Dim parts: parts = Split(input, ";")
@@ -133,7 +133,7 @@ Function PromptOperationMode()
   WScript.Echo "Select the operation mode:"& vbCrLf & _
                "  1) Stage mode (send every email in a stage)" & vbCrLf & _
                "  2) Email mode (pick one or more templates)"
-  Do
+  Do While True
     Dim choice: choice = PromptLine("Enter choice (1/2) or press Enter to cancel: ")
     If Len(choice) = 0 Then
       PromptOperationMode = ""
@@ -540,7 +540,7 @@ Function SelectTemplatesByStage(templates)
     WScript.Echo "  " & (i + 1) & ") " & Capitalize(stageName) & " (" & stageMap(stageName).Count & " template(s))"
   Next
 
-  Do
+  Do While True
     Dim choice: choice = PromptLine("Select a stage by number or press Enter to cancel: ")
     If Len(choice) = 0 Then
       Set SelectTemplatesByStage = Nothing
@@ -575,29 +575,13 @@ Function SelectTemplatesIndividually(templates)
   End If
 End Function
 
-'======================================================================
-' Template processing
-'======================================================================
-Sub ProcessTemplate(tmpl, targets, action)
-  WScript.Echo "Preparing template: " & tmpl("DisplayName")
-  LogEvent "Processing template: " & tmpl("DisplayName")
-
-  Dim meta: Set meta = CloneDictionary(tmpl("Meta"))
-  Call PromptForEmptyTags(meta, tmpl("DisplayName"))
-
-  Dim delivery: delivery = LCase(GetDictionaryValue(meta, "delivery"))
-  Do While delivery <> DELIVERY_BROADCAST And delivery <> DELIVERY_PERSONAL
-    delivery = LCase(PromptLine("Specify delivery type for '" & tmpl("DisplayName") & "' (broadcast/personal): "))
-  Loop
-  meta("delivery") = delivery
-
   WScript.Echo "Available templates:"
   Dim i
   For i = 0 To ordered.Count - 1
     WScript.Echo "  " & (i + 1) & ") " & BuildTemplateLabel(ordered(i))
   Next
 
-  Do
+  Do While True
     Dim response: response = PromptLine("Select template numbers (comma-separated) or press Enter to cancel: ")
     If Len(response) = 0 Then
       Exit Do
