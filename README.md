@@ -51,14 +51,16 @@ Delivery: personal
   with commas or semicolons. Relative paths starting with `./` or `.\` are resolved next to the
   template file.
 - Use `[TOKEN]` placeholders consistently; the mailer scans the subject, `To`, `Cc`, `Bcc`, and
-  body fields and prompts for any missing values before creating the Outlook message.
+  body fields and only prompts for values that were declared in the header metadata (or that are
+  well-known fields such as `NAME`/`SURNAME`). Placeholders with no corresponding metadata are
+  left alone and noted in the log.
 - The values supplied for `To`, `Cc`, `Subject`, and `Attachments` are injected into the Outlook mail
   alongside the runtime prompts and the recipients you provide when launching the script.
 
 Placeholders such as `[NAME]`, `[SURNAME]`, or custom metadata keys are replaced automatically
 wherever they appear in the subject line, `To`, `Cc`, `Bcc`, or body fields. The script gathers values
-from header metadata, runtime prompts, and the shared link map; any placeholder that remains unset is
-requested interactively before an email is generated.
+from header metadata, runtime prompts, and the shared link map; if a placeholder is unknown entirely
+it is logged for review rather than prompting unexpectedly.
 
 The `Delivery` tag determines whether the script sends a single broadcast (all targets in the `To`
 line) or loops over each target to build fully personalised emails (with `NAME`, `SURNAME`, and
@@ -94,8 +96,8 @@ The script then:
 3. Requests any metadata left blank in the template header, including the delivery mode if it was
    omitted.
 4. For personal deliveries, looks up the recipient in the Outlook Global Address List (falling
-   back to the Offline Global Address List) to populate `[NAME]` and `[SURNAME]`, prompting only if
-   those lookups fail.
+   back to the Offline Global Address List and property accessors) to populate `[NAME]`,
+   `[SURNAME]`, and `[FULL_NAME]`, prompting only if those lookups fail.
 5. Builds either a broadcast message (all targets in one email) or one personalised email per
    recipient, attaches any referenced files, and opens/sends/saves it according to the command-line
    action (`display` by default).

@@ -667,6 +667,10 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     Dim context: Set context = CloneDictionary(baseContext)
     context("EMAIL") = address
 
+    If Not context.Exists("NAME") Then context("NAME") = ""
+    If Not context.Exists("SURNAME") Then context("SURNAME") = ""
+    If Not context.Exists("FULL_NAME") Then context("FULL_NAME") = ""
+
     Dim nameInfo: Set nameInfo = ResolveNameFromEmail(address)
     If nameInfo("Found") Then
       If Len(nameInfo("First")) > 0 Then context("NAME") = nameInfo("First")
@@ -674,13 +678,7 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
       If Len(nameInfo("Full")) > 0 Then context("FULL_NAME") = nameInfo("Full")
     End If
 
-    If Not context.Exists("NAME") Or Len(context("NAME")) = 0 Then
-      context("NAME") = PromptLine("Enter NAME for " & address & " in '" & tmpl("DisplayName") & "': ")
-    End If
-    If Not context.Exists("SURNAME") Or Len(context("SURNAME")) = 0 Then
-      context("SURNAME") = PromptLine("Enter SURNAME for " & address & " in '" & tmpl("DisplayName") & "': ")
-    End If
-    If (Not context.Exists("FULL_NAME")) Or Len(context("FULL_NAME")) = 0 Then
+    If Len(context("FULL_NAME")) = 0 Then
       context("FULL_NAME") = Trim(context("NAME") & " " & context("SURNAME"))
     End If
 
@@ -805,8 +803,12 @@ Sub EnsurePlaceholderValues(textItems, context, templateName)
       Dim token: token = tokens(i)
       If Len(token) > 0 Then
         Dim lookup: lookup = UCase(token)
-        If Not context.Exists(lookup) Or Len(CStr(context(lookup))) = 0 Then
-          context(lookup) = PromptLine("Enter value for [" & lookup & "] in '" & templateName & "': ")
+        If context.Exists(lookup) Then
+          If Len(CStr(context(lookup))) = 0 Then
+            context(lookup) = PromptLine("Enter value for [" & lookup & "] in '" & templateName & "': ")
+          End If
+        Else
+          LogEvent "Placeholder [" & lookup & "] has no known value for template '" & templateName & "'"
         End If
       End If
     Next
@@ -942,8 +944,23 @@ Function ResolveNameFromEmail(emailAddress)
       If Len(exch.LastName) > 0 Then info("Last") = exch.LastName
       If Len(info("Full")) = 0 Then info("Full") = exch.Name
     End If
+    Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info)
   End If
   On Error GoTo 0
+  Dim list: Set list = CreateObject("System.Collections.ArrayList")
+  AppendAddressesFromString list, seen, baseList
+  Dim i
+  If IsArray(extraArray) Then
+    For i = LBound(extraArray) To UBound(extraArray)
+      AppendAddress list, seen, extraArray(i)
+    Next
+  End If
+  If list.Count = 0 Then
+    MergeRecipients = ""
+  Else
+    MergeRecipients = Join(ArrayFromArrayList(list), "; ")
+  End If
+End Function
 
   If Len(info("First")) = 0 Or Len(info("Last")) = 0 Then
     Call PopulateNameFromAddressLists(ns, emailAddress, info)
@@ -1030,10 +1047,50 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
           If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
           If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
         End If
+        Call PopulateNameFromPropertyAccessor(entry, info)
         Exit For
       End If
     End If
   Next
+  On Error GoTo 0
+End Sub
+
+Sub PopulateNameFromPropertyAccessor(addressEntry, info)
+  If addressEntry Is Nothing Then Exit Sub
+
+  On Error Resume Next
+  Dim accessor: Set accessor = addressEntry.PropertyAccessor
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set accessor = Nothing
+  End If
+  If accessor Is Nothing Then
+    On Error GoTo 0
+    Exit Sub
+  End If
+
+  Dim given: given = accessor.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3A06001E")
+  If Err.Number = 0 Then
+    If Len(info("First")) = 0 And Len(given) > 0 Then info("First") = given
+  Else
+    Err.Clear
+  End If
+
+  Dim surname: surname = accessor.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3A11001E")
+  If Err.Number = 0 Then
+    If Len(info("Last")) = 0 And Len(surname) > 0 Then info("Last") = surname
+  Else
+    Err.Clear
+  End If
+
+  Dim display: display = accessor.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x3001001E")
+  If Err.Number = 0 Then
+    If Len(info("Full")) = 0 And Len(display) > 0 Then info("Full") = display
+  Else
+    Err.Clear
+  End If
+
+  info("Found") = True
   On Error GoTo 0
 End Sub
 
