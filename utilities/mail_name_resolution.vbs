@@ -201,85 +201,84 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
       Set addressList = Nothing
     End If
     On Error GoTo 0
-    If addressList Is Nothing Then GoTo NextList
 
-    WScript.Echo "  Attempting given-name lookup in " & listNames(i) & " for '" & trimmed & "'."
+    If Not addressList Is Nothing Then
+      WScript.Echo "  Attempting given-name lookup in " & listNames(i) & " for '" & trimmed & "'."
 
-    Dim beforeFirst: beforeFirst = SafeText(info("First"))
-    Dim beforeLast: beforeLast = SafeText(info("Last"))
-    Dim beforeFull: beforeFull = SafeText(info("Full"))
+      Dim beforeFirst: beforeFirst = SafeText(info("First"))
+      Dim beforeLast: beforeLast = SafeText(info("Last"))
+      Dim beforeFull: beforeFull = SafeText(info("Full"))
 
-    Dim entry, exch
-    Set entry = Nothing
-    Set exch = Nothing
-
-    On Error Resume Next
-    Dim query: query = EscapeRestrictionValue(trimmed)
-    Set entry = addressList.AddressEntries.Find("[Name] = '" & query & "'")
-    If Err.Number <> 0 Then
-      Err.Clear
+      Dim entry, exch
       Set entry = Nothing
-    End If
-    If entry Is Nothing Then
-      Set entry = addressList.AddressEntries.Find("[FirstName] = '" & query & "'")
+      Set exch = Nothing
+
+      On Error Resume Next
+      Dim query: query = EscapeRestrictionValue(trimmed)
+      Set entry = addressList.AddressEntries.Find("[Name] = '" & query & "'")
       If Err.Number <> 0 Then
         Err.Clear
         Set entry = Nothing
       End If
-    End If
-    On Error GoTo 0
-
-    If entry Is Nothing Then GoTo NextList
-
-    info("Found") = True
-    If Len(info("Full")) = 0 Then info("Full") = entry.Name
-
-    On Error Resume Next
-    Set exch = entry.GetExchangeUser()
-    If Err.Number <> 0 Then
-      Err.Clear
-      Set exch = Nothing
-    End If
-    On Error GoTo 0
-
-    If Not exch Is Nothing Then
-      If Len(info("First")) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
-      If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
-      If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
-      Call PopulateNameFromPropertyAccessor(exch, info)
-    End If
-    Call PopulateNameFromPropertyAccessor(entry, info)
-
-    Dim afterFirst: afterFirst = SafeText(info("First"))
-    Dim afterLast: afterLast = SafeText(info("Last"))
-    Dim afterFull: afterFull = SafeText(info("Full"))
-
-    Dim improved: improved = False
-    If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
-    If Not improved Then
-      If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
-    End If
-    If Not improved Then
-      If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
-    End If
-
-    Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
-    If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
-      If Len(attempts) > 0 Then
-        attempts = attempts & ", " & listNames(i)
-      Else
-        attempts = listNames(i)
+      If entry Is Nothing Then
+        Set entry = addressList.AddressEntries.Find("[FirstName] = '" & query & "'")
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set entry = Nothing
+        End If
       End If
-      info("DirectoryAttempted") = attempts
-    End If
+      On Error GoTo 0
 
-    If improved Then
-      info("DirectorySource") = listNames(i)
-      Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
-      Exit For
-    End If
+      If Not entry Is Nothing Then
+        info("Found") = True
+        If Len(info("Full")) = 0 Then info("Full") = entry.Name
 
-NextList:
+        On Error Resume Next
+        Set exch = entry.GetExchangeUser()
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set exch = Nothing
+        End If
+        On Error GoTo 0
+
+        If Not exch Is Nothing Then
+          If Len(info("First")) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
+          If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+          If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+          Call PopulateNameFromPropertyAccessor(exch, info)
+        End If
+        Call PopulateNameFromPropertyAccessor(entry, info)
+
+        Dim afterFirst: afterFirst = SafeText(info("First"))
+        Dim afterLast: afterLast = SafeText(info("Last"))
+        Dim afterFull: afterFull = SafeText(info("Full"))
+
+        Dim improved: improved = False
+        If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+        If Not improved Then
+          If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+        End If
+        If Not improved Then
+          If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+        End If
+
+        Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
+        If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
+          If Len(attempts) > 0 Then
+            attempts = attempts & ", " & listNames(i)
+          Else
+            attempts = listNames(i)
+          End If
+          info("DirectoryAttempted") = attempts
+        End If
+
+        If improved Then
+          info("DirectorySource") = listNames(i)
+          Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
+          Exit For
+        End If
+      End If
+    End If
   Next
 End Sub
 
