@@ -83,7 +83,8 @@ Function SortTemplateList(list)
   For i = 1 To UBound(arr)
     Set keyTemplate = arr(i)
     j = i - 1
-    Do While j >= 0 And TemplateSortValue(arr(j)) > TemplateSortValue(keyTemplate)
+    Do
+      If Not (j >= 0 And TemplateSortValue(arr(j)) > TemplateSortValue(keyTemplate)) Then Exit Do
       Set arr(j + 1) = arr(j)
       j = j - 1
     Loop

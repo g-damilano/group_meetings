@@ -37,7 +37,8 @@ End Function
 
 Function TrimLeadingBlankLines(text)
   Dim result: result = text
-  Do While Len(result) > 0 And (Left(result, 1) = vbCr Or Left(result, 1) = vbLf)
+  Do
+    If Not (Len(result) > 0 And (Left(result, 1) = vbCr Or Left(result, 1) = vbLf)) Then Exit Do
     result = Mid(result, 2)
   Loop
   TrimLeadingBlankLines = result

@@ -133,7 +133,7 @@ End Function
 
 Function PromptTargetEmails()
   Dim responses: responses = Array()
-  Do While True
+  Do
     Dim input: input = PromptLine("Enter target email addresses (use ';' to separate multiple addresses): ")
     input = Replace(input, ",", ";")
     Dim parts: parts = Split(input, ";")
@@ -168,7 +168,7 @@ Function PromptOperationMode()
                "  1) Stage mode (send every email in a stage)" & vbCrLf & _
                "  2) Email mode (pick one or more templates)"
   Dim mode: mode = ""
-  Do While True
+  Do
     Dim choice: choice = PromptLine("Enter choice (1/2) or press Enter to cancel: ")
     If Len(choice) = 0 Then
       mode = ""
@@ -282,6 +282,10 @@ Function SelectTemplatesIndividually(templates)
   For Each subFolder In folder.SubFolders
     CollectTemplates subFolder.Path, dict, counter
   Next
+  Dim subFolder
+  For Each subFolder In folder.SubFolders
+    CollectTemplates subFolder.Path, dict, counter
+  Next
 End Sub
 
 Function ParseTemplate(filePath)
@@ -326,13 +330,6 @@ Function ExtractHeaderAndBody(resultText)
       ExtractHeaderAndBody = Array(headerText, bodyText)
       Exit Function
     End If
-    stageMap(stage).Add template
-  Next
-
-  If stageMap.Count = 0 Then
-    WScript.Echo "No stage information available in templates."
-    Set SelectTemplatesByStage = Nothing
-    Exit Function
   End If
 
   startPos = InStr(1, resultText, HEADER_PREFIX, vbTextCompare)
@@ -343,13 +340,6 @@ Function ExtractHeaderAndBody(resultText)
       bodyText = Mid(resultText, endPos + Len(HEADER_SUFFIX))
     End If
   End If
-End Function
-
-  WScript.Echo "Available templates:"
-  Dim i
-  For i = 0 To ordered.Count - 1
-    WScript.Echo "  " & (i + 1) & ") " & BuildTemplateLabel(ordered(i))
-  Next
 
   ExtractHeaderAndBody = Array(headerText, bodyText)
 End Function
@@ -442,7 +432,7 @@ Function SelectTemplatesByStage(templates)
   Next
 
   Dim selection: Set selection = Nothing
-  Do While True
+  Do
     Dim choice: choice = PromptLine("Select a stage by number or press Enter to cancel: ")
     If Len(choice) = 0 Then
       Exit Do
@@ -483,7 +473,7 @@ Function SelectTemplatesIndividually(templates)
     WScript.Echo "  " & (i + 1) & ") " & BuildTemplateLabel(ordered(i))
   Next
 
-  Do While True
+  Do
     Dim response: response = PromptLine("Select template numbers (comma-separated) or press Enter to cancel: ")
     If Len(response) = 0 Then
       Exit Do
@@ -539,7 +529,8 @@ Sub ProcessTemplate(tmpl, targets, action)
   Call PromptForEmptyTags(meta, tmpl("DisplayName"))
 
   Dim delivery: delivery = LCase(GetDictionaryValue(meta, "delivery"))
-  Do While delivery <> DELIVERY_BROADCAST And delivery <> DELIVERY_PERSONAL
+  Do
+    If delivery = DELIVERY_BROADCAST Or delivery = DELIVERY_PERSONAL Then Exit Do
     delivery = LCase(PromptLine("Specify delivery type for '" & tmpl("DisplayName") & "' (broadcast/personal): "))
   Loop
   meta("delivery") = delivery
@@ -660,7 +651,8 @@ Function LoadLinkMapContext()
   End If
   On Error GoTo 0
 
-  Do Until ts.AtEndOfStream
+  Do
+    If ts.AtEndOfStream Then Exit Do
     Dim rawLine: rawLine = Trim(ts.ReadLine)
     If Len(rawLine) > 0 Then
       If Left(rawLine, 1) <> "#" Then
