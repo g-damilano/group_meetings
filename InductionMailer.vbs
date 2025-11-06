@@ -947,6 +947,20 @@ Function ResolveNameFromEmail(emailAddress)
     Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info)
   End If
   On Error GoTo 0
+  Dim list: Set list = CreateObject("System.Collections.ArrayList")
+  AppendAddressesFromString list, seen, baseList
+  Dim i
+  If IsArray(extraArray) Then
+    For i = LBound(extraArray) To UBound(extraArray)
+      AppendAddress list, seen, extraArray(i)
+    Next
+  End If
+  If list.Count = 0 Then
+    MergeRecipients = ""
+  Else
+    MergeRecipients = Join(ArrayFromArrayList(list), "; ")
+  End If
+End Function
 
   If Len(info("First")) = 0 Or Len(info("Last")) = 0 Then
     Call PopulateNameFromAddressLists(ns, emailAddress, info)
