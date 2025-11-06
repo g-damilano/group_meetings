@@ -268,6 +268,19 @@ Sub CollectTemplates(folderPath, dict, ByRef counter)
         dict.Add CStr(counter), tmpl
       End If
     End If
+    WScript.Echo "Invalid selection."
+  Loop
+End Function
+
+Function SelectTemplatesIndividually(templates)
+  Dim list: Set list = CreateObject("System.Collections.ArrayList")
+  Dim key
+  For Each key In templates.Keys
+    list.Add templates(key)
+  Next
+  Dim subFolder
+  For Each subFolder In folder.SubFolders
+    CollectTemplates subFolder.Path, dict, counter
   Next
   Dim subFolder
   For Each subFolder In folder.SubFolders
