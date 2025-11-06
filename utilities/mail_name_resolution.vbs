@@ -6,6 +6,8 @@ Function ResolveNameFromEmail(emailAddress)
   info("First") = ""
   info("Last") = ""
   info("Full") = ""
+  info("DirectorySource") = ""
+  info("DirectoryAttempted") = ""
 
   On Error Resume Next
   Dim olApp: Set olApp = GetOutlookApp()
@@ -19,6 +21,7 @@ Function ResolveNameFromEmail(emailAddress)
   If recip.Resolved Then
     info("Found") = True
     info("Full") = recip.Name
+    info("DirectorySource") = "Recipient resolve"
     Dim exch: Set exch = recip.AddressEntry.GetExchangeUser()
     If Not exch Is Nothing Then
       If Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
@@ -82,6 +85,7 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
   listNames = Array("Global Address List", "Offline Global Address List")
 
   Dim i, addressList, entry, exch
+  Dim attempts: attempts = ""
   On Error Resume Next
   For i = LBound(listNames) To UBound(listNames)
     Set addressList = Nothing
@@ -91,6 +95,10 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
       Set addressList = Nothing
     End If
     If Not addressList Is Nothing Then
+      If Len(attempts) > 0 Then
+        attempts = attempts & ", "
+      End If
+      attempts = attempts & listNames(i)
       Set entry = Nothing
       Set entry = addressList.AddressEntries.Find("[SMTPAddress] = '" & emailAddress & "'")
       If Err.Number <> 0 Then
@@ -119,11 +127,19 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
           Call PopulateNameFromPropertyAccessor(exch, info)
         End If
         Call PopulateNameFromPropertyAccessor(entry, info)
+        info("DirectorySource") = listNames(i)
+        info("DirectoryAttempted") = attempts
         ReportAddressListLookup emailAddress, listNames(i), entry, exch, info
         Exit For
       End If
     End If
   Next
+  If Len(info("DirectoryAttempted")) = 0 Then
+    info("DirectoryAttempted") = attempts
+  End If
+  If Len(info("DirectorySource")) = 0 And Len(attempts) > 0 Then
+    info("DirectorySource") = "(not found)"
+  End If
   On Error GoTo 0
 End Sub
 
