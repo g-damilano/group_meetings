@@ -157,6 +157,148 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
   On Error GoTo 0
 End Sub
 
+Sub MaybeRefineNameUsingGivenName(emailAddress, info)
+  If info Is Nothing Then Exit Sub
+
+  Dim firstName: firstName = ""
+  If info.Exists("First") Then firstName = SafeText(info("First"))
+  If Len(firstName) = 0 Then Exit Sub
+
+  Dim lastName: lastName = ""
+  If info.Exists("Last") Then lastName = SafeText(info("Last"))
+  If Len(lastName) > 0 Then Exit Sub
+
+  Dim localPart: localPart = ExtractEmailLocalPart(emailAddress)
+  If Len(localPart) = 0 Then Exit Sub
+
+  If SafeLower(firstName) <> SafeLower(localPart) Then Exit Sub
+
+  Dim olApp: Set olApp = GetOutlookApp()
+  If olApp Is Nothing Then Exit Sub
+
+  Dim ns: Set ns = olApp.GetNamespace("MAPI")
+  If ns Is Nothing Then Exit Sub
+
+  WScript.Echo "  First name matches email username. Searching directory for '" & firstName & "'."
+  Call PopulateNameFromAddressListsByGivenName(ns, firstName, info, emailAddress)
+End Sub
+
+Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
+  If ns Is Nothing Then Exit Sub
+  If Len(givenName) = 0 Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(givenName)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
+  Dim i
+  For i = LBound(listNames) To UBound(listNames)
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listNames(i))
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+    If addressList Is Nothing Then GoTo NextList
+
+    WScript.Echo "  Attempting given-name lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+    Dim beforeFirst: beforeFirst = SafeText(info("First"))
+    Dim beforeLast: beforeLast = SafeText(info("Last"))
+    Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+    Dim entry, exch
+    Set entry = Nothing
+    Set exch = Nothing
+
+    On Error Resume Next
+    Dim query: query = EscapeRestrictionValue(trimmed)
+    Set entry = addressList.AddressEntries.Find("[Name] = '" & query & "'")
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set entry = Nothing
+    End If
+    If entry Is Nothing Then
+      Set entry = addressList.AddressEntries.Find("[FirstName] = '" & query & "'")
+      If Err.Number <> 0 Then
+        Err.Clear
+        Set entry = Nothing
+      End If
+    End If
+    On Error GoTo 0
+
+    If entry Is Nothing Then GoTo NextList
+
+    info("Found") = True
+    If Len(info("Full")) = 0 Then info("Full") = entry.Name
+
+    On Error Resume Next
+    Set exch = entry.GetExchangeUser()
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set exch = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not exch Is Nothing Then
+      If Len(info("First")) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
+      If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+      If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+      Call PopulateNameFromPropertyAccessor(exch, info)
+    End If
+    Call PopulateNameFromPropertyAccessor(entry, info)
+
+    Dim afterFirst: afterFirst = SafeText(info("First"))
+    Dim afterLast: afterLast = SafeText(info("Last"))
+    Dim afterFull: afterFull = SafeText(info("Full"))
+
+    Dim improved: improved = False
+    If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+    If Not improved Then
+      If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+    End If
+    If Not improved Then
+      If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+    End If
+
+    Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
+    If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
+      If Len(attempts) > 0 Then
+        attempts = attempts & ", " & listNames(i)
+      Else
+        attempts = listNames(i)
+      End If
+      info("DirectoryAttempted") = attempts
+    End If
+
+    If improved Then
+      info("DirectorySource") = listNames(i)
+      Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
+      Exit For
+    End If
+
+NextList:
+  Next
+End Sub
+
+Function EscapeRestrictionValue(value)
+  Dim text: text = CStr(value)
+  EscapeRestrictionValue = Replace(text, "'", "''")
+End Function
+
+Function ExtractEmailLocalPart(emailAddress)
+  ExtractEmailLocalPart = ""
+  If Len(emailAddress) = 0 Then Exit Function
+  Dim atPos: atPos = InStr(emailAddress, "@")
+  If atPos > 0 Then
+    ExtractEmailLocalPart = Left(emailAddress, atPos - 1)
+  Else
+    ExtractEmailLocalPart = emailAddress
+  End If
+End Function
+
 Sub ReportAddressListLookup(emailAddress, listName, entry, exch, info, contact)
   WScript.Echo "  Directory lookup for " & emailAddress & " via " & listName & ":"
 

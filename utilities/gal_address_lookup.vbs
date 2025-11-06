@@ -77,6 +77,7 @@ Sub DisplayResolution(emailAddress)
   WScript.Echo "Resolving '" & emailAddress & "'..."
 
   Dim info: Set info = ResolveNameFromEmail(emailAddress)
+  Call MaybeRefineNameUsingGivenName(emailAddress, info)
   If info Is Nothing Then
     WScript.Echo "  No resolution information returned."
     Exit Sub

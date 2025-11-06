@@ -612,6 +612,7 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     If Not context.Exists("DIRECTORY_ATTEMPTED") Then context("DIRECTORY_ATTEMPTED") = ""
 
     Dim nameInfo: Set nameInfo = ResolveNameFromEmail(address)
+    Call MaybeRefineNameUsingGivenName(address, nameInfo)
     If nameInfo("Found") Then
       If Len(nameInfo("First")) > 0 Then context("NAME") = nameInfo("First")
       If Len(nameInfo("Last")) > 0 Then context("SURNAME") = nameInfo("Last")
