@@ -443,6 +443,11 @@ Function SelectTemplatesIndividually(templates)
   For Each key In templates.Keys
     list.Add templates(key)
   Next
+  Dim subFolder
+  For Each subFolder In folder.SubFolders
+    CollectTemplates subFolder.Path, dict, counter
+  Next
+End Sub
 
   Dim ordered: Set ordered = SortTemplateList(list)
   If ordered.Count = 0 Then
@@ -514,7 +519,6 @@ Function BuildTemplateLabel(tmpl)
   Else
     BuildTemplateLabel = label
   End If
-End Function
 
 Function ParseNumberList(text)
   Dim dict: Set dict = CreateObject("Scripting.Dictionary")
@@ -810,8 +814,39 @@ Sub EnsurePlaceholderValues(textItems, context, templateName)
         Else
           LogEvent "Placeholder [" & lookup & "] has no known value for template '" & templateName & "'"
         End If
+      Next
+      If invalid Then
+        WScript.Echo "One or more selections were out of range."
+      Else
+        Dim orderedKeys: Set orderedKeys = CreateObject("System.Collections.ArrayList")
+        For Each number In selections.Keys
+          orderedKeys.Add CInt(number)
+        Next
+        orderedKeys.Sort
+        Dim idx
+        For i = 0 To orderedKeys.Count - 1
+          idx = orderedKeys(i) - 1
+          dict.Add CStr(dict.Count + 1), ordered(idx)
+        Next
+        Set SelectTemplatesIndividually = dict
+        Exit Function
       End If
-    Next
+    End If
+  Loop
+End Function
+
+Function BuildTemplateLabel(tmpl)
+  Dim stage: stage = tmpl("Stage")
+  Dim code: code = tmpl("Code")
+  Dim label: label = tmpl("FileName")
+  Dim prefix: prefix = ""
+  If Len(stage) > 0 Then prefix = Capitalize(stage)
+  If Len(code) > 0 Then
+    If Len(prefix) > 0 Then
+      prefix = prefix & " - " & code
+    Else
+      prefix = code
+    End If
   End If
 End Sub
 
