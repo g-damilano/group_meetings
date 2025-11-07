@@ -180,7 +180,16 @@ Sub MaybeRefineNameUsingGivenName(emailAddress, info)
   If ns Is Nothing Then Exit Sub
 
   WScript.Echo "  First name matches email username. Searching directory for '" & firstName & "'."
-  Call PopulateNameFromAddressListsByGivenName(ns, firstName, info, emailAddress)
+
+  Call AttemptAliasRecipientResolve(ns, firstName, info, emailAddress)
+
+  Dim refinedLast: refinedLast = SafeText(info("Last"))
+  Dim refinedFirst: refinedFirst = SafeLower(SafeText(info("First")))
+  Dim targetAlias: targetAlias = SafeLower(firstName)
+
+  If Len(refinedLast) = 0 Or refinedFirst = targetAlias Then
+    Call PopulateNameFromAddressListsByGivenName(ns, firstName, info, emailAddress)
+  End If
 End Sub
 
 Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
@@ -222,6 +231,13 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
       End If
       If entry Is Nothing Then
         Set entry = addressList.AddressEntries.Find("[FirstName] = '" & query & "'")
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set entry = Nothing
+        End If
+      End If
+      If entry Is Nothing Then
+        Set entry = addressList.AddressEntries.Find("[Alias] = '" & query & "'")
         If Err.Number <> 0 Then
           Err.Clear
           Set entry = Nothing
@@ -280,6 +296,89 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
       End If
     End If
   Next
+End Sub
+
+Sub AttemptAliasRecipientResolve(ns, aliasValue, info, emailAddress)
+  If ns Is Nothing Then Exit Sub
+
+  Dim trimmedAlias: trimmedAlias = Trim(aliasValue)
+  If Len(trimmedAlias) = 0 Then Exit Sub
+
+  Dim beforeFirst: beforeFirst = SafeText(info("First"))
+  Dim beforeLast: beforeLast = SafeText(info("Last"))
+  Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+  Dim recipient: Set recipient = Nothing
+  On Error Resume Next
+  Set recipient = ns.CreateRecipient(trimmedAlias)
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set recipient = Nothing
+  End If
+  On Error GoTo 0
+
+  If recipient Is Nothing Then Exit Sub
+
+  On Error Resume Next
+  recipient.Resolve
+  If Err.Number <> 0 Then
+    Err.Clear
+    On Error GoTo 0
+    Exit Sub
+  End If
+  On Error GoTo 0
+
+  If Not recipient.Resolved Then Exit Sub
+
+  info("Found") = True
+
+  Dim exch: Set exch = Nothing
+  On Error Resume Next
+  Set exch = recipient.AddressEntry.GetExchangeUser()
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set exch = Nothing
+  End If
+  On Error GoTo 0
+
+  If Len(SafeText(info("Full"))) = 0 Then info("Full") = recipient.Name
+
+  If Not exch Is Nothing Then
+    If Len(SafeText(info("First"))) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
+    If Len(SafeText(info("Last"))) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+    If Len(SafeText(info("Full"))) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+    Call PopulateNameFromPropertyAccessor(exch, info)
+  End If
+
+  Call PopulateNameFromPropertyAccessor(recipient.AddressEntry, info)
+
+  Dim afterFirst: afterFirst = SafeText(info("First"))
+  Dim afterLast: afterLast = SafeText(info("Last"))
+  Dim afterFull: afterFull = SafeText(info("Full"))
+
+  Dim improved: improved = False
+  If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+  If Not improved Then
+    If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+  End If
+  If Not improved Then
+    If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+  End If
+
+  Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
+  Dim aliasLabel: aliasLabel = "Recipient resolve (alias '" & trimmedAlias & "')"
+  If Len(attempts) = 0 Then
+    attempts = aliasLabel
+  ElseIf InStr(1, attempts, aliasLabel, vbTextCompare) = 0 Then
+    attempts = attempts & ", " & aliasLabel
+  End If
+  info("DirectoryAttempted") = attempts
+
+  If improved Then
+    info("DirectorySource") = aliasLabel
+    WScript.Echo "  Alias recipient resolve succeeded for '" & trimmedAlias & "'."
+    Call ReportAddressListLookup(emailAddress, aliasLabel, recipient.AddressEntry, exch, info, Nothing)
+  End If
 End Sub
 
 Function EscapeRestrictionValue(value)
