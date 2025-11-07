@@ -656,12 +656,16 @@ End Sub
 
 Sub NormalizeNameParts(dict)
   If dict Is Nothing Then Exit Sub
-  If dict.Exists("NAME") Then
-    dict("NAME") = CapitalizeNamePart(dict("NAME"))
-  End If
-  If dict.Exists("SURNAME") Then
-    dict("SURNAME") = CapitalizeNamePart(dict("SURNAME"))
-  End If
+
+  Dim key, upper
+  For Each key In dict.Keys
+    upper = UCase(CStr(key))
+    If upper = "NAME" Then
+      dict(key) = CapitalizeNamePart(dict(key))
+    ElseIf upper = "SURNAME" Then
+      dict(key) = CapitalizeNamePart(dict(key))
+    End If
+  Next
 End Sub
 
 Function CapitalizeNamePart(value)
