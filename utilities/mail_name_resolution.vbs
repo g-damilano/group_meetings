@@ -23,13 +23,14 @@ Function ResolveNameFromEmail(emailAddress)
     info("Full") = recip.Name
     info("DirectorySource") = "Recipient resolve"
     Dim exch: Set exch = recip.AddressEntry.GetExchangeUser()
+    Dim primaryAlias: primaryAlias = ExtractEmailLocalPart(emailAddress)
     If Not exch Is Nothing Then
-      If Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
-      If Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+      Call ApplyFirstNameCandidate(info, exch.FirstName, primaryAlias, emailAddress)
+      If Len(exch.LastName) > 0 And Len(info("Last")) = 0 Then info("Last") = exch.LastName
       If Len(info("Full")) = 0 Then info("Full") = exch.Name
-      Call PopulateNameFromPropertyAccessor(exch, info)
+      Call PopulateNameFromPropertyAccessor(exch, info, primaryAlias, emailAddress)
     End If
-    Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info)
+    Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info, primaryAlias, emailAddress)
   End If
   On Error GoTo 0
 
@@ -134,13 +135,14 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
           Err.Clear
           Set exch = Nothing
         End If
+        Dim listAlias: listAlias = ExtractEmailLocalPart(emailAddress)
         If Not exch Is Nothing Then
-          If Len(info("First")) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
+          Call ApplyFirstNameCandidate(info, exch.FirstName, listAlias, emailAddress)
           If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
           If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
-          Call PopulateNameFromPropertyAccessor(exch, info)
+          Call PopulateNameFromPropertyAccessor(exch, info, listAlias, emailAddress)
         End If
-        Call PopulateNameFromPropertyAccessor(entry, info)
+        Call PopulateNameFromPropertyAccessor(entry, info, listAlias, emailAddress)
         info("DirectorySource") = listNames(i)
         info("DirectoryAttempted") = attempts
         ReportAddressListLookup emailAddress, listNames(i), entry, exch, info, contact
@@ -258,12 +260,12 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
         On Error GoTo 0
 
         If Not exch Is Nothing Then
-          If Len(info("First")) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
+          Call ApplyFirstNameCandidate(info, exch.FirstName, givenName, emailAddress)
           If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
           If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
-          Call PopulateNameFromPropertyAccessor(exch, info)
+          Call PopulateNameFromPropertyAccessor(exch, info, givenName, emailAddress)
         End If
-        Call PopulateNameFromPropertyAccessor(entry, info)
+        Call PopulateNameFromPropertyAccessor(entry, info, givenName, emailAddress)
 
         Dim afterFirst: afterFirst = SafeText(info("First"))
         Dim afterLast: afterLast = SafeText(info("Last"))
@@ -344,13 +346,13 @@ Sub AttemptAliasRecipientResolve(ns, aliasValue, info, emailAddress)
   If Len(SafeText(info("Full"))) = 0 Then info("Full") = recipient.Name
 
   If Not exch Is Nothing Then
-    If Len(SafeText(info("First"))) = 0 And Len(exch.FirstName) > 0 Then info("First") = exch.FirstName
+    Call ApplyFirstNameCandidate(info, exch.FirstName, trimmedAlias, emailAddress)
     If Len(SafeText(info("Last"))) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
     If Len(SafeText(info("Full"))) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
-    Call PopulateNameFromPropertyAccessor(exch, info)
+    Call PopulateNameFromPropertyAccessor(exch, info, trimmedAlias, emailAddress)
   End If
 
-  Call PopulateNameFromPropertyAccessor(recipient.AddressEntry, info)
+  Call PopulateNameFromPropertyAccessor(recipient.AddressEntry, info, trimmedAlias, emailAddress)
 
   Dim afterFirst: afterFirst = SafeText(info("First"))
   Dim afterLast: afterLast = SafeText(info("Last"))
@@ -617,6 +619,57 @@ Function ContactMatchesEmail(contact, loweredTarget)
   Next
 End Function
 
+Sub ApplyFirstNameCandidate(info, candidate, aliasValue, emailAddress)
+  If info Is Nothing Then Exit Sub
+  Dim proposed: proposed = SafeText(candidate)
+  If Len(proposed) = 0 Then Exit Sub
+
+  Dim existing: existing = ""
+  If info.Exists("First") Then existing = SafeText(info("First"))
+
+  If ShouldReplaceFirstName(existing, proposed, aliasValue, emailAddress) Or Len(existing) = 0 Then
+    info("First") = candidate
+  End If
+End Sub
+
+Function ShouldReplaceFirstName(existingValue, newValue, aliasValue, emailAddress)
+  Dim existingLower: existingLower = SafeLower(existingValue)
+  Dim newLower: newLower = SafeLower(newValue)
+
+  If Len(newLower) = 0 Then
+    ShouldReplaceFirstName = False
+    Exit Function
+  End If
+
+  If Len(existingLower) = 0 Then
+    ShouldReplaceFirstName = True
+    Exit Function
+  End If
+
+  If existingLower = newLower Then
+    ShouldReplaceFirstName = False
+    Exit Function
+  End If
+
+  Dim aliasLower: aliasLower = SafeLower(aliasValue)
+  If Len(aliasLower) > 0 Then
+    If existingLower = aliasLower Then
+      ShouldReplaceFirstName = True
+      Exit Function
+    End If
+  End If
+
+  Dim localLower: localLower = SafeLower(ExtractEmailLocalPart(emailAddress))
+  If Len(localLower) > 0 Then
+    If existingLower = localLower Then
+      ShouldReplaceFirstName = True
+      Exit Function
+    End If
+  End If
+
+  ShouldReplaceFirstName = False
+End Function
+
 Sub PopulateNameFromContactItem(contact, info)
   If contact Is Nothing Then Exit Sub
   If info Is Nothing Then Exit Sub
@@ -639,11 +692,11 @@ Sub PopulateNameFromContactItem(contact, info)
   End If
   On Error GoTo 0
 
-  If Len(info("First")) = 0 And Len(firstName) > 0 Then info("First") = firstName
+  If Len(firstName) > 0 Then Call ApplyFirstNameCandidate(info, firstName, "", "")
   If Len(info("Last")) = 0 And Len(lastName) > 0 Then info("Last") = lastName
   If Len(info("Full")) = 0 And Len(fullName) > 0 Then info("Full") = fullName
 
-  Call PopulateNameFromPropertyAccessor(contact, info)
+  Call PopulateNameFromPropertyAccessor(contact, info, "", "")
 End Sub
 
 Function SafeLower(value)
@@ -655,7 +708,7 @@ Function SafeLower(value)
   SafeLower = LCase(text)
 End Function
 
-Sub PopulateNameFromPropertyAccessor(addressEntry, info)
+Sub PopulateNameFromPropertyAccessor(addressEntry, info, aliasValue, emailAddress)
   If addressEntry Is Nothing Then Exit Sub
 
   On Error Resume Next
@@ -671,12 +724,18 @@ Sub PopulateNameFromPropertyAccessor(addressEntry, info)
   End If
 
   Dim given, surname, display, foundAny
+  Dim currentFirst: currentFirst = ""
+  If info.Exists("First") Then currentFirst = SafeText(info("First"))
   given = GetAccessorString(accessor, Array( _
     "http://schemas.microsoft.com/mapi/proptag/0x3A06001F", _
     "http://schemas.microsoft.com/mapi/proptag/0x3A06001E"))
-  If Len(info("First")) = 0 And Len(given) > 0 Then
-    info("First") = given
-    foundAny = True
+  If Len(given) > 0 Then
+    Dim shouldReplace: shouldReplace = ShouldReplaceFirstName(currentFirst, given, aliasValue, emailAddress)
+    If shouldReplace Or Len(currentFirst) = 0 Then
+      info("First") = given
+      foundAny = True
+      currentFirst = SafeText(info("First"))
+    End If
   End If
 
   surname = GetAccessorString(accessor, Array( _
