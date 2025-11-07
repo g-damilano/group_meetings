@@ -590,6 +590,12 @@ Sub HandleBroadcast(tmpl, targets, action, toText, ccText, bccText, subjectText,
   Dim finalCc: finalCc = ApplyContextToText(ccText, context)
   Dim finalBcc: finalBcc = ApplyContextToText(bccText, context)
 
+  finalSubject = EnsureCapitalizedNameText(finalSubject, context)
+  finalBody = EnsureCapitalizedNameText(finalBody, context)
+  finalTo = EnsureCapitalizedNameText(finalTo, context)
+  finalCc = EnsureCapitalizedNameText(finalCc, context)
+  finalBcc = EnsureCapitalizedNameText(finalBcc, context)
+
   LogEvent "Broadcast delivery for " & tmpl("DisplayName") & " -> " & finalTo
   WScript.Echo "  Sending broadcast to " & finalTo
 
@@ -659,6 +665,12 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     Dim finalCc: finalCc = ApplyContextToText(ccText, context)
     Dim finalBcc: finalBcc = ApplyContextToText(bccText, context)
 
+    finalSubject = EnsureCapitalizedNameText(finalSubject, context)
+    finalBody = EnsureCapitalizedNameText(finalBody, context)
+    finalTo = EnsureCapitalizedNameText(finalTo, context)
+    finalCc = EnsureCapitalizedNameText(finalCc, context)
+    finalBcc = EnsureCapitalizedNameText(finalBcc, context)
+
     LogEvent "Personal delivery for " & tmpl("DisplayName") & " -> " & finalTo
     WScript.Echo "  Sending personal email to " & finalTo
 
@@ -679,6 +691,8 @@ Sub NormalizeNameParts(dict)
 End Sub
 
 Sub NormalizeNameKey(dict, canonicalKey)
+  If dict Is Nothing Then Exit Sub
+
   Dim actualKey: actualKey = FindDictionaryKey(dict, canonicalKey)
   If Len(actualKey) = 0 Then
     If dict.Exists(canonicalKey) Then
@@ -697,6 +711,52 @@ Sub NormalizeNameKey(dict, canonicalKey)
     dict(canonicalKey) = normalized
   End If
 End Sub
+
+Function GetNormalizedNameValue(dict, canonicalKey)
+  If dict Is Nothing Then
+    GetNormalizedNameValue = ""
+    Exit Function
+  End If
+
+  Call NormalizeNameKey(dict, canonicalKey)
+
+  Dim actualKey: actualKey = FindDictionaryKey(dict, canonicalKey)
+  If Len(actualKey) = 0 Then
+    If dict.Exists(canonicalKey) Then
+      actualKey = canonicalKey
+    ElseIf dict.Exists(LCase(canonicalKey)) Then
+      actualKey = LCase(canonicalKey)
+    Else
+      GetNormalizedNameValue = ""
+      Exit Function
+    End If
+  End If
+
+  GetNormalizedNameValue = SafeText(dict(actualKey))
+End Function
+
+Function EnsureCapitalizedNameText(text, context)
+  Dim result: result = SafeText(text)
+  If Len(result) = 0 Then
+    EnsureCapitalizedNameText = result
+    Exit Function
+  End If
+
+  Dim keys: keys = Array("NAME", "SURNAME")
+  Dim i
+  For i = 0 To UBound(keys)
+    Dim key: key = keys(i)
+    Dim normalized: normalized = GetNormalizedNameValue(context, key)
+    If Len(normalized) > 0 Then
+      Dim capitalized: capitalized = CapitalizeNamePart(normalized)
+      If Len(capitalized) > 0 Then
+        result = Replace(result, normalized, capitalized, 1, -1, vbTextCompare)
+      End If
+    End If
+  Next
+
+  EnsureCapitalizedNameText = result
+End Function
 
 Function FindDictionaryKey(dict, target)
   Dim key
