@@ -684,25 +684,32 @@ Sub ReviewResolvedName(address, context)
     WScript.Echo "    Display name: (empty)"
   End If
 
-  Dim input
-  input = PromptLine("    Enter first name or press Enter to keep current: ")
-  If Len(input) > 0 Then
-    context("NAME") = input
+  Dim requireReview: requireReview = False
+  If Len(currentFirst) = 0 Or Len(currentLast) = 0 Or Len(currentFull) = 0 Then
+    requireReview = True
   End If
 
-  input = PromptLine("    Enter surname or press Enter to keep current: ")
-  If Len(input) > 0 Then
-    context("SURNAME") = input
-  End If
+  If requireReview Then
+    Dim input
+    input = PromptLine("    Enter first name or press Enter to keep current: ")
+    If Len(input) > 0 Then
+      context("NAME") = input
+    End If
 
-  Dim computedFull: computedFull = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
-  If Len(computedFull) = 0 Then computedFull = currentFull
+    input = PromptLine("    Enter surname or press Enter to keep current: ")
+    If Len(input) > 0 Then
+      context("SURNAME") = input
+    End If
 
-  input = PromptLine("    Enter display name or press Enter to keep current: ")
-  If Len(input) > 0 Then
-    context("FULL_NAME") = input
-  ElseIf Len(SafeText(context("FULL_NAME"))) = 0 Then
-    context("FULL_NAME") = computedFull
+    Dim computedFull: computedFull = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
+    If Len(computedFull) = 0 Then computedFull = currentFull
+
+    input = PromptLine("    Enter display name or press Enter to keep current: ")
+    If Len(input) > 0 Then
+      context("FULL_NAME") = input
+    ElseIf Len(SafeText(context("FULL_NAME"))) = 0 Then
+      context("FULL_NAME") = computedFull
+    End If
   End If
 End Sub
 Function LoadLinkMapContext()
