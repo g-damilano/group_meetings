@@ -617,13 +617,30 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     Dim nameInfo: Set nameInfo = ResolveNameFromEmail(address)
     Call MaybeRefineNameUsingGivenName(address, nameInfo)
     If nameInfo("Found") Then
-      If Len(nameInfo("First")) > 0 Then context("NAME") = nameInfo("First")
-      If Len(nameInfo("Last")) > 0 Then context("SURNAME") = nameInfo("Last")
-      If Len(nameInfo("Full")) > 0 Then context("FULL_NAME") = nameInfo("Full")
+      Dim resolvedFirst: resolvedFirst = SafeText(nameInfo("First"))
+      Dim resolvedLast: resolvedLast = SafeText(nameInfo("Last"))
+      Dim resolvedFull: resolvedFull = SafeText(nameInfo("Full"))
+
+      If Len(resolvedFirst) > 0 Then
+        resolvedFirst = CapitalizeNamePart(resolvedFirst)
+        nameInfo("First") = resolvedFirst
+        context("NAME") = resolvedFirst
+      End If
+
+      If Len(resolvedLast) > 0 Then
+        resolvedLast = CapitalizeNamePart(resolvedLast)
+        nameInfo("Last") = resolvedLast
+        context("SURNAME") = resolvedLast
+      End If
+
+      If Len(resolvedFull) > 0 Then
+        context("FULL_NAME") = resolvedFull
+      End If
     End If
     If nameInfo.Exists("DirectorySource") Then context("DIRECTORY_SOURCE") = nameInfo("DirectorySource")
     If nameInfo.Exists("DirectoryAttempted") Then context("DIRECTORY_ATTEMPTED") = nameInfo("DirectoryAttempted")
 
+    Call NormalizeNameParts(context)
     Call ReviewResolvedName(address, context)
 
     Call NormalizeNameParts(context)
@@ -657,16 +674,40 @@ End Sub
 Sub NormalizeNameParts(dict)
   If dict Is Nothing Then Exit Sub
 
-  Dim key, upper
+  Call NormalizeNameKey(dict, "NAME")
+  Call NormalizeNameKey(dict, "SURNAME")
+End Sub
+
+Sub NormalizeNameKey(dict, canonicalKey)
+  Dim actualKey: actualKey = FindDictionaryKey(dict, canonicalKey)
+  If Len(actualKey) = 0 Then
+    If dict.Exists(canonicalKey) Then
+      actualKey = canonicalKey
+    ElseIf dict.Exists(LCase(canonicalKey)) Then
+      actualKey = LCase(canonicalKey)
+    Else
+      Exit Sub
+    End If
+  End If
+
+  Dim normalized: normalized = CapitalizeNamePart(dict(actualKey))
+  dict(actualKey) = normalized
+
+  If StrComp(actualKey, canonicalKey, vbTextCompare) <> 0 Then
+    dict(canonicalKey) = normalized
+  End If
+End Sub
+
+Function FindDictionaryKey(dict, target)
+  Dim key
   For Each key In dict.Keys
-    upper = UCase(CStr(key))
-    If upper = "NAME" Then
-      dict(key) = CapitalizeNamePart(dict(key))
-    ElseIf upper = "SURNAME" Then
-      dict(key) = CapitalizeNamePart(dict(key))
+    If StrComp(CStr(key), target, vbTextCompare) = 0 Then
+      FindDictionaryKey = CStr(key)
+      Exit Function
     End If
   Next
-End Sub
+  FindDictionaryKey = ""
+End Function
 
 Function CapitalizeNamePart(value)
   Dim text: text = Trim(SafeText(value))
