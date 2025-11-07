@@ -545,6 +545,7 @@ Sub ProcessTemplate(tmpl, targets, action)
 
   Dim meta: Set meta = CloneDictionary(tmpl("Meta"))
   Call PromptForEmptyTags(meta, tmpl("DisplayName"))
+  Call NormalizeNameParts(meta)
 
   Dim delivery: delivery = ResolveDeliveryMode(tmpl, meta)
   meta("delivery") = delivery
@@ -565,6 +566,7 @@ Sub ProcessTemplate(tmpl, targets, action)
   baseContext("TEMPLATE_NAME") = tmpl("DisplayName")
   baseContext("RECIPIENT_COUNT") = CStr(UBound(targets) + 1)
   baseContext("TARGETS") = Join(targets, "; ")
+  Call NormalizeNameParts(baseContext)
 
   If delivery = DELIVERY_BROADCAST Then
     HandleBroadcast tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext
@@ -579,6 +581,7 @@ Sub HandleBroadcast(tmpl, targets, action, toText, ccText, bccText, subjectText,
 
   Dim context: Set context = CloneDictionary(baseContext)
   Call EnsurePlaceholderValues(Array(subjectText, htmlBody, toText, ccText, bccText), context, tmpl("DisplayName"))
+  Call NormalizeNameParts(context)
 
   Dim finalSubject: finalSubject = ApplyContextToText(subjectText, context)
   Dim finalBody: finalBody = ApplyContextToText(htmlBody, context)
@@ -623,11 +626,14 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
 
     Call ReviewResolvedName(address, context)
 
+    Call NormalizeNameParts(context)
+
     If Len(context("FULL_NAME")) = 0 Then
       context("FULL_NAME") = Trim(context("NAME") & " " & context("SURNAME"))
     End If
 
     Call EnsurePlaceholderValues(Array(subjectText, htmlBody, toText, ccText, bccText), context, tmpl("DisplayName"))
+    Call NormalizeNameParts(context)
 
     Dim finalSubject: finalSubject = ApplyContextToText(subjectText, context)
     Dim finalBody: finalBody = ApplyContextToText(htmlBody, context)
@@ -648,7 +654,33 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
   Next
 End Sub
 
+Sub NormalizeNameParts(dict)
+  If dict Is Nothing Then Exit Sub
+  If dict.Exists("NAME") Then
+    dict("NAME") = CapitalizeNamePart(dict("NAME"))
+  End If
+  If dict.Exists("SURNAME") Then
+    dict("SURNAME") = CapitalizeNamePart(dict("SURNAME"))
+  End If
+End Sub
+
+Function CapitalizeNamePart(value)
+  Dim text: text = Trim(SafeText(value))
+  If Len(text) = 0 Then
+    CapitalizeNamePart = ""
+  Else
+    Dim firstChar: firstChar = UCase(Left(text, 1))
+    If Len(text) > 1 Then
+      CapitalizeNamePart = firstChar & Mid(text, 2)
+    Else
+      CapitalizeNamePart = firstChar
+    End If
+  End If
+End Function
+
 Sub ReviewResolvedName(address, context)
+  Call NormalizeNameParts(context)
+
   Dim currentFirst: currentFirst = SafeText(context("NAME"))
   Dim currentLast: currentLast = SafeText(context("SURNAME"))
   Dim currentFull: currentFull = SafeText(context("FULL_NAME"))
@@ -693,13 +725,15 @@ Sub ReviewResolvedName(address, context)
     Dim input
     input = PromptLine("    Enter first name or press Enter to keep current: ")
     If Len(input) > 0 Then
-      context("NAME") = input
+      context("NAME") = CapitalizeNamePart(input)
     End If
 
     input = PromptLine("    Enter surname or press Enter to keep current: ")
     If Len(input) > 0 Then
-      context("SURNAME") = input
+      context("SURNAME") = CapitalizeNamePart(input)
     End If
+
+    Call NormalizeNameParts(context)
 
     Dim computedFull: computedFull = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
     If Len(computedFull) = 0 Then computedFull = currentFull
