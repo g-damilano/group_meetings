@@ -101,7 +101,7 @@ Function ExtractPlaceholders(textItems)
   Dim re: Set re = CreateObject("VBScript.RegExp")
   re.Global = True
   re.IgnoreCase = False
-  re.Pattern = "\[([A-Z0-9_]+)\]"
+  re.Pattern = "\[([A-Za-z0-9_]+)\]"
 
   If Not IsArray(textItems) Then
     ExtractPlaceholders = Array()
@@ -145,7 +145,7 @@ Function ApplyContextToText(text, context)
   For Each key In context.Keys
     value = context(key)
     If IsNull(value) Then value = ""
-    result = Replace(result, "[" & key & "]", CStr(value))
+    result = Replace(result, "[" & key & "]", CStr(value), 1, -1, vbTextCompare)
   Next
   ApplyContextToText = result
 End Function

@@ -545,6 +545,7 @@ Sub ProcessTemplate(tmpl, targets, action)
 
   Dim meta: Set meta = CloneDictionary(tmpl("Meta"))
   Call PromptForEmptyTags(meta, tmpl("DisplayName"))
+  Call NormalizeNameParts(meta)
 
   Dim delivery: delivery = ResolveDeliveryMode(tmpl, meta)
   meta("delivery") = delivery
@@ -565,6 +566,7 @@ Sub ProcessTemplate(tmpl, targets, action)
   baseContext("TEMPLATE_NAME") = tmpl("DisplayName")
   baseContext("RECIPIENT_COUNT") = CStr(UBound(targets) + 1)
   baseContext("TARGETS") = Join(targets, "; ")
+  Call NormalizeNameParts(baseContext)
 
   If delivery = DELIVERY_BROADCAST Then
     HandleBroadcast tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext
@@ -579,6 +581,7 @@ Sub HandleBroadcast(tmpl, targets, action, toText, ccText, bccText, subjectText,
 
   Dim context: Set context = CloneDictionary(baseContext)
   Call EnsurePlaceholderValues(Array(subjectText, htmlBody, toText, ccText, bccText), context, tmpl("DisplayName"))
+  Call NormalizeNameParts(context)
 
   Dim finalSubject: finalSubject = ApplyContextToText(subjectText, context)
   Dim finalBody: finalBody = ApplyContextToText(htmlBody, context)
@@ -586,6 +589,12 @@ Sub HandleBroadcast(tmpl, targets, action, toText, ccText, bccText, subjectText,
   Dim finalTo: finalTo = MergeRecipients(templatedTo, targets)
   Dim finalCc: finalCc = ApplyContextToText(ccText, context)
   Dim finalBcc: finalBcc = ApplyContextToText(bccText, context)
+
+  finalSubject = EnsureCapitalizedNameText(finalSubject, context)
+  finalBody = EnsureCapitalizedNameText(finalBody, context)
+  finalTo = EnsureCapitalizedNameText(finalTo, context)
+  finalCc = EnsureCapitalizedNameText(finalCc, context)
+  finalBcc = EnsureCapitalizedNameText(finalBcc, context)
 
   LogEvent "Broadcast delivery for " & tmpl("DisplayName") & " -> " & finalTo
   WScript.Echo "  Sending broadcast to " & finalTo
@@ -614,13 +623,30 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     Dim nameInfo: Set nameInfo = ResolveNameFromEmail(address)
     Call MaybeRefineNameUsingGivenName(address, nameInfo)
     If nameInfo("Found") Then
-      If Len(nameInfo("First")) > 0 Then context("NAME") = nameInfo("First")
-      If Len(nameInfo("Last")) > 0 Then context("SURNAME") = nameInfo("Last")
-      If Len(nameInfo("Full")) > 0 Then context("FULL_NAME") = nameInfo("Full")
+      Dim resolvedFirst: resolvedFirst = SafeText(nameInfo("First"))
+      Dim resolvedLast: resolvedLast = SafeText(nameInfo("Last"))
+      Dim resolvedFull: resolvedFull = SafeText(nameInfo("Full"))
+
+      If Len(resolvedFirst) > 0 Then
+        resolvedFirst = CapitalizeNamePart(resolvedFirst)
+        nameInfo("First") = resolvedFirst
+        context("NAME") = resolvedFirst
+      End If
+
+      If Len(resolvedLast) > 0 Then
+        resolvedLast = CapitalizeNamePart(resolvedLast)
+        nameInfo("Last") = resolvedLast
+        context("SURNAME") = resolvedLast
+      End If
+
+      If Len(resolvedFull) > 0 Then
+        context("FULL_NAME") = resolvedFull
+      End If
     End If
     If nameInfo.Exists("DirectorySource") Then context("DIRECTORY_SOURCE") = nameInfo("DirectorySource")
     If nameInfo.Exists("DirectoryAttempted") Then context("DIRECTORY_ATTEMPTED") = nameInfo("DirectoryAttempted")
 
+    Call NormalizeNameParts(context)
     Call ReviewResolvedName(address, context)
 
     If Len(context("FULL_NAME")) = 0 Then
@@ -628,6 +654,7 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     End If
 
     Call EnsurePlaceholderValues(Array(subjectText, htmlBody, toText, ccText, bccText), context, tmpl("DisplayName"))
+    Call NormalizeNameParts(context)
 
     Dim finalSubject: finalSubject = ApplyContextToText(subjectText, context)
     Dim finalBody: finalBody = ApplyContextToText(htmlBody, context)
@@ -635,6 +662,12 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     Dim finalTo: finalTo = MergeRecipients(templatedTo, Array(address))
     Dim finalCc: finalCc = ApplyContextToText(ccText, context)
     Dim finalBcc: finalBcc = ApplyContextToText(bccText, context)
+
+    finalSubject = EnsureCapitalizedNameText(finalSubject, context)
+    finalBody = EnsureCapitalizedNameText(finalBody, context)
+    finalTo = EnsureCapitalizedNameText(finalTo, context)
+    finalCc = EnsureCapitalizedNameText(finalCc, context)
+    finalBcc = EnsureCapitalizedNameText(finalBcc, context)
 
     LogEvent "Personal delivery for " & tmpl("DisplayName") & " -> " & finalTo
     WScript.Echo "  Sending personal email to " & finalTo
@@ -648,7 +681,109 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
   Next
 End Sub
 
+Sub NormalizeNameParts(dict)
+  If dict Is Nothing Then Exit Sub
+
+  Call NormalizeNameKey(dict, "NAME")
+  Call NormalizeNameKey(dict, "SURNAME")
+End Sub
+
+Sub NormalizeNameKey(dict, canonicalKey)
+  If dict Is Nothing Then Exit Sub
+
+  Dim actualKey: actualKey = FindDictionaryKey(dict, canonicalKey)
+  If Len(actualKey) = 0 Then
+    If dict.Exists(canonicalKey) Then
+      actualKey = canonicalKey
+    ElseIf dict.Exists(LCase(canonicalKey)) Then
+      actualKey = LCase(canonicalKey)
+    Else
+      Exit Sub
+    End If
+  End If
+
+  Dim normalized: normalized = CapitalizeNamePart(dict(actualKey))
+  dict(actualKey) = normalized
+
+  If StrComp(actualKey, canonicalKey, vbTextCompare) <> 0 Then
+    dict(canonicalKey) = normalized
+  End If
+End Sub
+
+Function GetNormalizedNameValue(dict, canonicalKey)
+  If dict Is Nothing Then
+    GetNormalizedNameValue = ""
+    Exit Function
+  End If
+
+  Call NormalizeNameKey(dict, canonicalKey)
+
+  Dim actualKey: actualKey = FindDictionaryKey(dict, canonicalKey)
+  If Len(actualKey) = 0 Then
+    If dict.Exists(canonicalKey) Then
+      actualKey = canonicalKey
+    ElseIf dict.Exists(LCase(canonicalKey)) Then
+      actualKey = LCase(canonicalKey)
+    Else
+      GetNormalizedNameValue = ""
+      Exit Function
+    End If
+  End If
+
+  GetNormalizedNameValue = SafeText(dict(actualKey))
+End Function
+
+Function EnsureCapitalizedNameText(text, context)
+  Dim result: result = SafeText(text)
+  If Len(result) = 0 Then
+    EnsureCapitalizedNameText = result
+    Exit Function
+  End If
+
+  Dim keys: keys = Array("NAME", "SURNAME")
+  Dim i
+  For i = 0 To UBound(keys)
+    Dim key: key = keys(i)
+    Dim normalized: normalized = GetNormalizedNameValue(context, key)
+    If Len(normalized) > 0 Then
+      Dim capitalized: capitalized = CapitalizeNamePart(normalized)
+      If Len(capitalized) > 0 Then
+        result = Replace(result, normalized, capitalized, 1, -1, vbTextCompare)
+      End If
+    End If
+  Next
+
+  EnsureCapitalizedNameText = result
+End Function
+
+Function FindDictionaryKey(dict, target)
+  Dim key
+  For Each key In dict.Keys
+    If StrComp(CStr(key), target, vbTextCompare) = 0 Then
+      FindDictionaryKey = CStr(key)
+      Exit Function
+    End If
+  Next
+  FindDictionaryKey = ""
+End Function
+
+Function CapitalizeNamePart(value)
+  Dim text: text = Trim(SafeText(value))
+  If Len(text) = 0 Then
+    CapitalizeNamePart = ""
+  Else
+    Dim firstChar: firstChar = UCase(Left(text, 1))
+    If Len(text) > 1 Then
+      CapitalizeNamePart = firstChar & Mid(text, 2)
+    Else
+      CapitalizeNamePart = firstChar
+    End If
+  End If
+End Function
+
 Sub ReviewResolvedName(address, context)
+  Call NormalizeNameParts(context)
+
   Dim currentFirst: currentFirst = SafeText(context("NAME"))
   Dim currentLast: currentLast = SafeText(context("SURNAME"))
   Dim currentFull: currentFull = SafeText(context("FULL_NAME"))
@@ -693,13 +828,15 @@ Sub ReviewResolvedName(address, context)
     Dim input
     input = PromptLine("    Enter first name or press Enter to keep current: ")
     If Len(input) > 0 Then
-      context("NAME") = input
+      context("NAME") = CapitalizeNamePart(input)
     End If
 
     input = PromptLine("    Enter surname or press Enter to keep current: ")
     If Len(input) > 0 Then
-      context("SURNAME") = input
+      context("SURNAME") = CapitalizeNamePart(input)
     End If
+
+    Call NormalizeNameParts(context)
 
     Dim computedFull: computedFull = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
     If Len(computedFull) = 0 Then computedFull = currentFull
