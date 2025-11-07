@@ -649,6 +649,8 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     Call NormalizeNameParts(context)
     Call ReviewResolvedName(address, context)
 
+    Call NormalizeNameParts(context)
+
     If Len(context("FULL_NAME")) = 0 Then
       context("FULL_NAME") = Trim(context("NAME") & " " & context("SURNAME"))
     End If
