@@ -1,6 +1,6 @@
 ' Directory resolution utilities for personal deliveries
 
-Function ResolveNameFromEmail(emailAddress)
+Function CreateEmptyResolutionInfo()
   Dim info: Set info = CreateObject("Scripting.Dictionary")
   info("Found") = False
   info("First") = ""
@@ -8,6 +8,31 @@ Function ResolveNameFromEmail(emailAddress)
   info("Full") = ""
   info("DirectorySource") = ""
   info("DirectoryAttempted") = ""
+  Set CreateEmptyResolutionInfo = info
+End Function
+
+Function ResolveNameLookup(searchValue, searchField)
+  Dim fieldName: fieldName = SafeLower(Trim(searchField))
+  If Len(fieldName) = 0 Then fieldName = "auto"
+
+  Select Case fieldName
+    Case "email", "mail", "smtp", "address"
+      Set ResolveNameLookup = ResolveNameFromEmail(searchValue)
+    Case "first", "given", "forename"
+      Set ResolveNameLookup = ResolveNameFromGivenName(searchValue)
+    Case "surname", "last", "lastname", "family", "familyname"
+      Set ResolveNameLookup = ResolveNameFromSurname(searchValue)
+    Case "display", "name"
+      Set ResolveNameLookup = ResolveNameFromDisplayName(searchValue)
+    Case "fullname", "full", "full name", "full-name", "full_name"
+      Set ResolveNameLookup = ResolveNameFromFullName(searchValue)
+    Case Else
+      Set ResolveNameLookup = ResolveNameUsingHeuristics(searchValue)
+  End Select
+End Function
+
+Function ResolveNameFromEmail(emailAddress)
+  Dim info: Set info = CreateEmptyResolutionInfo()
 
   On Error Resume Next
   Dim olApp: Set olApp = GetOutlookApp()
@@ -77,6 +102,184 @@ Function ResolveNameFromEmail(emailAddress)
   End If
 
   Set ResolveNameFromEmail = info
+End Function
+
+Function ResolveNameUsingHeuristics(searchValue)
+  Dim trimmed: trimmed = Trim(searchValue)
+  If Len(trimmed) = 0 Then
+    Set ResolveNameUsingHeuristics = CreateEmptyResolutionInfo()
+    Exit Function
+  End If
+
+  If InStr(trimmed, "@") > 0 Then
+    Set ResolveNameUsingHeuristics = ResolveNameFromEmail(trimmed)
+    Exit Function
+  End If
+
+  If InStr(trimmed, " ") > 0 Or InStr(trimmed, ",") > 0 Then
+    Dim fullInfo: Set fullInfo = ResolveNameFromFullName(trimmed)
+    If ResolutionWasSuccessful(fullInfo) Then
+      Set ResolveNameUsingHeuristics = fullInfo
+      Exit Function
+    End If
+
+    Set ResolveNameUsingHeuristics = ResolveNameFromDisplayName(trimmed)
+    Exit Function
+  End If
+
+  Dim givenInfo: Set givenInfo = ResolveNameFromGivenName(trimmed)
+  If ResolutionWasSuccessful(givenInfo) Then
+    Set ResolveNameUsingHeuristics = givenInfo
+    Exit Function
+  End If
+
+  Dim surnameInfo: Set surnameInfo = ResolveNameFromSurname(trimmed)
+  If ResolutionWasSuccessful(surnameInfo) Then
+    Set ResolveNameUsingHeuristics = surnameInfo
+    Exit Function
+  End If
+
+  Set ResolveNameUsingHeuristics = givenInfo
+End Function
+
+Function ResolveNameFromGivenName(givenName)
+  Dim info: Set info = CreateEmptyResolutionInfo()
+  Dim trimmed: trimmed = Trim(givenName)
+  If Len(trimmed) = 0 Then
+    Set ResolveNameFromGivenName = info
+    Exit Function
+  End If
+
+  On Error Resume Next
+  Dim olApp: Set olApp = GetOutlookApp()
+  If olApp Is Nothing Then
+    Set ResolveNameFromGivenName = info
+    Exit Function
+  End If
+  Dim ns: Set ns = olApp.GetNamespace("MAPI")
+  On Error GoTo 0
+  If ns Is Nothing Then
+    Set ResolveNameFromGivenName = info
+    Exit Function
+  End If
+
+  Call PopulateNameFromAddressListsByGivenName(ns, trimmed, info, "given name '" & trimmed & "'")
+
+  If Len(info("Full")) = 0 Then
+    info("Full") = Trim(info("First") & " " & info("Last"))
+  End If
+
+  Set ResolveNameFromGivenName = info
+End Function
+
+Function ResolveNameFromSurname(surname)
+  Dim info: Set info = CreateEmptyResolutionInfo()
+  Dim trimmed: trimmed = Trim(surname)
+  If Len(trimmed) = 0 Then
+    Set ResolveNameFromSurname = info
+    Exit Function
+  End If
+
+  On Error Resume Next
+  Dim olApp: Set olApp = GetOutlookApp()
+  If olApp Is Nothing Then
+    Set ResolveNameFromSurname = info
+    Exit Function
+  End If
+  Dim ns: Set ns = olApp.GetNamespace("MAPI")
+  On Error GoTo 0
+  If ns Is Nothing Then
+    Set ResolveNameFromSurname = info
+    Exit Function
+  End If
+
+  Call PopulateNameFromAddressListsBySurname(ns, trimmed, info, "surname '" & trimmed & "'")
+
+  If Len(info("Full")) = 0 Then
+    info("Full") = Trim(info("First") & " " & info("Last"))
+  End If
+
+  Set ResolveNameFromSurname = info
+End Function
+
+Function ResolveNameFromDisplayName(displayName)
+  Dim info: Set info = CreateEmptyResolutionInfo()
+  Dim trimmed: trimmed = Trim(displayName)
+  If Len(trimmed) = 0 Then
+    Set ResolveNameFromDisplayName = info
+    Exit Function
+  End If
+
+  On Error Resume Next
+  Dim olApp: Set olApp = GetOutlookApp()
+  If olApp Is Nothing Then
+    Set ResolveNameFromDisplayName = info
+    Exit Function
+  End If
+  Dim ns: Set ns = olApp.GetNamespace("MAPI")
+  On Error GoTo 0
+  If ns Is Nothing Then
+    Set ResolveNameFromDisplayName = info
+    Exit Function
+  End If
+
+  Call PopulateNameFromAddressListsByDisplayName(ns, trimmed, info, "name '" & trimmed & "'")
+
+  If Len(info("Full")) = 0 Then
+    info("Full") = Trim(info("First") & " " & info("Last"))
+  End If
+
+  Set ResolveNameFromDisplayName = info
+End Function
+
+Function ResolveNameFromFullName(fullName)
+  Dim info: Set info = CreateEmptyResolutionInfo()
+  Dim trimmed: trimmed = Trim(fullName)
+  If Len(trimmed) = 0 Then
+    Set ResolveNameFromFullName = info
+    Exit Function
+  End If
+
+  On Error Resume Next
+  Dim olApp: Set olApp = GetOutlookApp()
+  If olApp Is Nothing Then
+    Set ResolveNameFromFullName = info
+    Exit Function
+  End If
+  Dim ns: Set ns = olApp.GetNamespace("MAPI")
+  On Error GoTo 0
+  If ns Is Nothing Then
+    Set ResolveNameFromFullName = info
+    Exit Function
+  End If
+
+  Call PopulateNameFromAddressListsByFullName(ns, trimmed, info, "full name '" & trimmed & "'")
+
+  If Len(info("Full")) = 0 Then
+    info("Full") = Trim(info("First") & " " & info("Last"))
+  End If
+
+  If ResolutionWasSuccessful(info) Then
+    Set ResolveNameFromFullName = info
+    Exit Function
+  End If
+
+  Dim fallback: Set fallback = ResolveNameFromDisplayName(trimmed)
+  If ResolutionWasSuccessful(fallback) Then
+    Set ResolveNameFromFullName = fallback
+  Else
+    Set ResolveNameFromFullName = info
+  End If
+End Function
+
+Function ResolutionWasSuccessful(info)
+  ResolutionWasSuccessful = False
+  If info Is Nothing Then Exit Function
+  On Error Resume Next
+  If info.Exists("Found") Then
+    If CBool(info("Found")) Then ResolutionWasSuccessful = True
+  End If
+  On Error GoTo 0
 End Function
 
 Sub PopulateNameFromAddressLists(ns, emailAddress, info)
@@ -224,28 +427,7 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
       Set entry = Nothing
       Set exch = Nothing
 
-      On Error Resume Next
-      Dim query: query = EscapeRestrictionValue(trimmed)
-      Set entry = addressList.AddressEntries.Find("[Name] = '" & query & "'")
-      If Err.Number <> 0 Then
-        Err.Clear
-        Set entry = Nothing
-      End If
-      If entry Is Nothing Then
-        Set entry = addressList.AddressEntries.Find("[FirstName] = '" & query & "'")
-        If Err.Number <> 0 Then
-          Err.Clear
-          Set entry = Nothing
-        End If
-      End If
-      If entry Is Nothing Then
-        Set entry = addressList.AddressEntries.Find("[Alias] = '" & query & "'")
-        If Err.Number <> 0 Then
-          Err.Clear
-          Set entry = Nothing
-        End If
-      End If
-      On Error GoTo 0
+      Set entry = FindAddressEntryByFields(addressList, Array("Name", "FirstName", "Alias"), trimmed)
 
       If Not entry Is Nothing Then
         info("Found") = True
@@ -266,6 +448,312 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
           Call PopulateNameFromPropertyAccessor(exch, info, givenName, emailAddress)
         End If
         Call PopulateNameFromPropertyAccessor(entry, info, givenName, emailAddress)
+
+        Dim afterFirst: afterFirst = SafeText(info("First"))
+        Dim afterLast: afterLast = SafeText(info("Last"))
+        Dim afterFull: afterFull = SafeText(info("Full"))
+
+        Dim improved: improved = False
+        If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+        If Not improved Then
+          If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+        End If
+        If Not improved Then
+          If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+        End If
+
+        Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
+        If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
+          If Len(attempts) > 0 Then
+            attempts = attempts & ", " & listNames(i)
+          Else
+            attempts = listNames(i)
+          End If
+          info("DirectoryAttempted") = attempts
+        End If
+
+        If improved Then
+          info("DirectorySource") = listNames(i)
+          Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
+          Exit For
+        End If
+      End If
+    End If
+  Next
+End Sub
+
+Sub PopulateNameFromAddressListsBySurname(ns, surname, info, emailAddress)
+  If ns Is Nothing Then Exit Sub
+  If Len(surname) = 0 Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(surname)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
+  Dim i
+  For i = LBound(listNames) To UBound(listNames)
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listNames(i))
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not addressList Is Nothing Then
+      WScript.Echo "  Attempting surname lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Dim beforeFirst: beforeFirst = SafeText(info("First"))
+      Dim beforeLast: beforeLast = SafeText(info("Last"))
+      Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+      Dim entry, exch
+      Set entry = Nothing
+      Set exch = Nothing
+
+      Set entry = FindAddressEntryByFields(addressList, Array("LastName", "Surname", "Name"), trimmed)
+
+      If Not entry Is Nothing Then
+        info("Found") = True
+        If Len(info("Full")) = 0 Then info("Full") = entry.Name
+
+        On Error Resume Next
+        Set exch = entry.GetExchangeUser()
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set exch = Nothing
+        End If
+        On Error GoTo 0
+
+        If Not exch Is Nothing Then
+          Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
+          If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+          If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+          Call PopulateNameFromPropertyAccessor(exch, info, "", "")
+        End If
+        Call PopulateNameFromPropertyAccessor(entry, info, "", "")
+
+        Dim afterFirst: afterFirst = SafeText(info("First"))
+        Dim afterLast: afterLast = SafeText(info("Last"))
+        Dim afterFull: afterFull = SafeText(info("Full"))
+
+        Dim improved: improved = False
+        If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+        If Not improved Then
+          If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+        End If
+        If Not improved Then
+          If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+        End If
+
+        Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
+        If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
+          If Len(attempts) > 0 Then
+            attempts = attempts & ", " & listNames(i)
+          Else
+            attempts = listNames(i)
+          End If
+          info("DirectoryAttempted") = attempts
+        End If
+
+        If improved Then
+          info("DirectorySource") = listNames(i)
+          Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
+          Exit For
+        End If
+      End If
+    End If
+  Next
+End Sub
+
+Sub PopulateNameFromAddressListsByDisplayName(ns, displayName, info, emailAddress)
+  If ns Is Nothing Then Exit Sub
+  If Len(displayName) = 0 Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(displayName)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
+  Dim i
+  For i = LBound(listNames) To UBound(listNames)
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listNames(i))
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not addressList Is Nothing Then
+      WScript.Echo "  Attempting display-name lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Dim beforeFirst: beforeFirst = SafeText(info("First"))
+      Dim beforeLast: beforeLast = SafeText(info("Last"))
+      Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+      Dim entry, exch
+      Set entry = Nothing
+      Set exch = Nothing
+
+      Set entry = FindAddressEntryByFields(addressList, Array("Name", "DisplayName"), trimmed)
+
+      If Not entry Is Nothing Then
+        info("Found") = True
+        If Len(info("Full")) = 0 Then info("Full") = entry.Name
+
+        On Error Resume Next
+        Set exch = entry.GetExchangeUser()
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set exch = Nothing
+        End If
+        On Error GoTo 0
+
+        If Not exch Is Nothing Then
+          Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
+          If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+          If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+          Call PopulateNameFromPropertyAccessor(exch, info, "", "")
+        End If
+        Call PopulateNameFromPropertyAccessor(entry, info, "", "")
+
+        Dim afterFirst: afterFirst = SafeText(info("First"))
+        Dim afterLast: afterLast = SafeText(info("Last"))
+        Dim afterFull: afterFull = SafeText(info("Full"))
+
+        Dim improved: improved = False
+        If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+        If Not improved Then
+          If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+        End If
+        If Not improved Then
+          If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+        End If
+
+        Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
+        If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
+          If Len(attempts) > 0 Then
+            attempts = attempts & ", " & listNames(i)
+          Else
+            attempts = listNames(i)
+          End If
+          info("DirectoryAttempted") = attempts
+        End If
+
+        If improved Then
+          info("DirectorySource") = listNames(i)
+          Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
+          Exit For
+        End If
+      End If
+    End If
+  Next
+End Sub
+
+Sub PopulateNameFromAddressListsByFullName(ns, fullName, info, emailAddress)
+  If ns Is Nothing Then Exit Sub
+  If info Is Nothing Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(fullName)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim components: Set components = ParseFullNameComponents(trimmed)
+
+  Dim firstName: firstName = ""
+  Dim lastName: lastName = ""
+  Dim alternateFirst: alternateFirst = ""
+  Dim alternateLast: alternateLast = ""
+  Dim normalized: normalized = trimmed
+  Dim reverseDisplay: reverseDisplay = ""
+
+  If Not components Is Nothing Then
+    If components.Exists("First") Then firstName = SafeText(components("First"))
+    If components.Exists("Last") Then lastName = SafeText(components("Last"))
+    If components.Exists("AlternateFirst") Then alternateFirst = SafeText(components("AlternateFirst"))
+    If components.Exists("AlternateLast") Then alternateLast = SafeText(components("AlternateLast"))
+    If components.Exists("Normalized") Then
+      Dim normalizedCandidate: normalizedCandidate = SafeText(components("Normalized"))
+      If Len(normalizedCandidate) > 0 Then normalized = normalizedCandidate
+    End If
+    If components.Exists("ReverseDisplay") Then reverseDisplay = SafeText(components("ReverseDisplay"))
+  End If
+
+  If Len(reverseDisplay) = 0 Then
+    If Len(lastName) > 0 And Len(firstName) > 0 Then
+      reverseDisplay = Trim(lastName & ", " & firstName)
+    Else
+      reverseDisplay = trimmed
+    End If
+  End If
+
+  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
+  Dim i
+  For i = LBound(listNames) To UBound(listNames)
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listNames(i))
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not addressList Is Nothing Then
+      WScript.Echo "  Attempting full-name lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Dim beforeFirst: beforeFirst = SafeText(info("First"))
+      Dim beforeLast: beforeLast = SafeText(info("Last"))
+      Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+      Dim entry, exch
+      Set entry = Nothing
+      Set exch = Nothing
+
+      If Len(firstName) > 0 And Len(lastName) > 0 Then
+        Set entry = FindAddressEntryByFullName(addressList, firstName, lastName)
+      End If
+
+      If entry Is Nothing Then
+        If Len(alternateFirst) > 0 And Len(alternateLast) > 0 Then
+          Set entry = FindAddressEntryByFullName(addressList, alternateFirst, alternateLast)
+        End If
+      End If
+
+      If entry Is Nothing Then
+        Dim candidates: candidates = Array(normalized, trimmed, reverseDisplay)
+        Dim j
+        For j = LBound(candidates) To UBound(candidates)
+          Dim candidate: candidate = SafeText(candidates(j))
+          If Len(candidate) > 0 Then
+            If entry Is Nothing Then
+              Set entry = FindAddressEntryByFields(addressList, Array("Name", "DisplayName"), candidate)
+            End If
+          End If
+        Next
+      End If
+
+      If Not entry Is Nothing Then
+        info("Found") = True
+        If Len(info("Full")) = 0 Then info("Full") = entry.Name
+
+        On Error Resume Next
+        Set exch = entry.GetExchangeUser()
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set exch = Nothing
+        End If
+        On Error GoTo 0
+
+        If Not exch Is Nothing Then
+          Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
+          If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+          If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+          Call PopulateNameFromPropertyAccessor(exch, info, "", "")
+        End If
+
+        Call PopulateNameFromPropertyAccessor(entry, info, "", "")
 
         Dim afterFirst: afterFirst = SafeText(info("First"))
         Dim afterLast: afterLast = SafeText(info("Last"))
@@ -383,9 +871,187 @@ Sub AttemptAliasRecipientResolve(ns, aliasValue, info, emailAddress)
   End If
 End Sub
 
+Function CollectNameTokens(text)
+  Dim list: Set list = CreateObject("System.Collections.ArrayList")
+
+  If IsObject(text) Then
+    Set CollectNameTokens = list
+    Exit Function
+  End If
+
+  Dim raw: raw = ""
+  If Not IsNull(text) Then
+    If Not IsEmpty(text) Then raw = CStr(text)
+  End If
+
+  Dim trimmed: trimmed = Trim(raw)
+  If Len(trimmed) = 0 Then
+    Set CollectNameTokens = list
+    Exit Function
+  End If
+
+  Dim segments: segments = Split(trimmed, " ")
+  Dim i, token
+  For i = LBound(segments) To UBound(segments)
+    token = Trim(segments(i))
+    If Len(token) > 0 Then list.Add token
+  Next
+
+  Set CollectNameTokens = list
+End Function
+
+Function ParseFullNameComponents(fullName)
+  Dim result: Set result = CreateObject("Scripting.Dictionary")
+
+  Dim raw: raw = ""
+  If Not IsObject(fullName) Then
+    If Not IsNull(fullName) Then
+      If Not IsEmpty(fullName) Then raw = CStr(fullName)
+    End If
+  End If
+
+  Dim trimmed: trimmed = Trim(raw)
+  result("Display") = trimmed
+  result("First") = ""
+  result("Last") = ""
+  result("AlternateFirst") = ""
+  result("AlternateLast") = ""
+  result("Normalized") = trimmed
+  result("ReverseDisplay") = ""
+
+  If Len(trimmed) = 0 Then
+    Set ParseFullNameComponents = result
+    Exit Function
+  End If
+
+  Dim firstName: firstName = ""
+  Dim lastName: lastName = ""
+  Dim altFirst: altFirst = ""
+  Dim altLast: altLast = ""
+  Dim tokens: Set tokens = Nothing
+
+  If InStr(trimmed, ",") > 0 Then
+    Dim parts: parts = Split(trimmed, ",")
+    Dim leftPart: leftPart = Trim(parts(0))
+    Dim rightPart: rightPart = ""
+    If UBound(parts) >= 1 Then rightPart = Trim(parts(1))
+    Set tokens = CollectNameTokens(rightPart)
+    lastName = leftPart
+    If Not tokens Is Nothing Then
+      If tokens.Count > 0 Then firstName = tokens(0)
+    End If
+  Else
+    Set tokens = CollectNameTokens(trimmed)
+    If Not tokens Is Nothing Then
+      If tokens.Count = 1 Then
+        firstName = tokens(0)
+      ElseIf tokens.Count >= 2 Then
+        firstName = tokens(0)
+        lastName = tokens(tokens.Count - 1)
+        altFirst = tokens(tokens.Count - 1)
+        altLast = tokens(0)
+      End If
+    End If
+  End If
+
+  If Len(lastName) = 0 And Not tokens Is Nothing Then
+    If tokens.Count >= 2 Then lastName = tokens(tokens.Count - 1)
+  End If
+
+  If Len(firstName) = 0 And Not tokens Is Nothing Then
+    If tokens.Count > 0 Then firstName = tokens(0)
+  End If
+
+  result("First") = firstName
+  result("Last") = lastName
+  result("AlternateFirst") = altFirst
+  result("AlternateLast") = altLast
+
+  Dim normalized: normalized = Trim(firstName & " " & lastName)
+  If Len(normalized) > 0 Then
+    result("Normalized") = normalized
+  End If
+
+  If Len(lastName) > 0 And Len(firstName) > 0 Then
+    result("ReverseDisplay") = Trim(lastName & ", " & firstName)
+  Else
+    result("ReverseDisplay") = trimmed
+  End If
+
+  Set ParseFullNameComponents = result
+End Function
+
+Function FindAddressEntryByFullName(addressList, firstName, lastName)
+  Set FindAddressEntryByFullName = Nothing
+  If addressList Is Nothing Then Exit Function
+
+  Dim trimmedFirst: trimmedFirst = Trim(firstName)
+  Dim trimmedLast: trimmedLast = Trim(lastName)
+  If Len(trimmedFirst) = 0 Or Len(trimmedLast) = 0 Then Exit Function
+
+  Dim escapedFirst: escapedFirst = EscapeRestrictionValue(trimmedFirst)
+  Dim escapedLast: escapedLast = EscapeRestrictionValue(trimmedLast)
+
+  Dim filters: filters = Array( _
+    "[FirstName] = '" & escapedFirst & "' AND [LastName] = '" & escapedLast & "'", _
+    "[GivenName] = '" & escapedFirst & "' AND [Surname] = '" & escapedLast & "'", _
+    "[GivenName] = '" & escapedFirst & "' AND [LastName] = '" & escapedLast & "'", _
+    "[FirstName] = '" & escapedFirst & "' AND [Surname] = '" & escapedLast & "'" _
+  )
+
+  Dim i, filterText, entry
+  On Error Resume Next
+  For i = LBound(filters) To UBound(filters)
+    filterText = filters(i)
+    If Len(filterText) > 0 Then
+      Set entry = addressList.AddressEntries.Find(filterText)
+      If Err.Number = 0 Then
+        If Not entry Is Nothing Then
+          Set FindAddressEntryByFullName = entry
+          Exit For
+        End If
+      Else
+        Err.Clear
+      End If
+    End If
+    Set entry = Nothing
+  Next
+  On Error GoTo 0
+End Function
+
 Function EscapeRestrictionValue(value)
   Dim text: text = CStr(value)
   EscapeRestrictionValue = Replace(text, "'", "''")
+End Function
+
+Function FindAddressEntryByFields(addressList, fieldNames, searchValue)
+  Set FindAddressEntryByFields = Nothing
+  If addressList Is Nothing Then Exit Function
+  If Not IsArray(fieldNames) Then Exit Function
+
+  Dim trimmed: trimmed = Trim(searchValue)
+  If Len(trimmed) = 0 Then Exit Function
+
+  Dim query: query = EscapeRestrictionValue(trimmed)
+  Dim i, field, entry
+
+  On Error Resume Next
+  For i = LBound(fieldNames) To UBound(fieldNames)
+    field = Trim(CStr(fieldNames(i)))
+    If Len(field) > 0 Then
+      Set entry = addressList.AddressEntries.Find("[" & field & "] = '" & query & "'")
+      If Err.Number = 0 Then
+        If Not entry Is Nothing Then
+          Set FindAddressEntryByFields = entry
+          Exit For
+        End If
+      Else
+        Err.Clear
+      End If
+    End If
+    Set entry = Nothing
+  Next
+  On Error GoTo 0
 End Function
 
 Function ExtractEmailLocalPart(emailAddress)
