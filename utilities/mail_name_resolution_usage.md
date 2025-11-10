@@ -1,6 +1,6 @@
-# mail_name_resolution.vbs Usage Guide
+# mail_name_resolution Modules Usage Guide
 
-This module centralizes the directory lookups used by both **InductionMailer** and the stand-alone GAL utilities.  The most common entry point is `ResolveNameLookup`, which accepts the raw user input together with the requested search field.  Supported field labels include:
+The mail name resolution helpers are now split across three focused modules (`mail_name_resolution_text.vbs`, `mail_name_resolution_directory.vbs`, and `mail_name_resolution_core.vbs`).  Together they centralize the directory lookups used by both **InductionMailer** and the stand-alone GAL utilities.  The most common entry point is `ResolveNameLookup`, which accepts the raw user input together with the requested search field.  Supported field labels include:
 
 | Lookup prefix/value | Targeted field |
 | ------------------- | -------------- |
