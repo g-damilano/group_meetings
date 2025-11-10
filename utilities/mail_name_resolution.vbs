@@ -31,6 +31,51 @@ Function ResolveNameLookup(searchValue, searchField)
   End Select
 End Function
 
+Function IsValidEmail(email)
+  Dim candidate: candidate = ""
+
+  If IsObject(email) Then
+    IsValidEmail = False
+    Exit Function
+  End If
+
+  If Not IsNull(email) Then
+    If Not IsEmpty(email) Then candidate = CStr(email)
+  End If
+
+  candidate = Trim(candidate)
+  If Len(candidate) = 0 Then
+    IsValidEmail = False
+    Exit Function
+  End If
+
+  Dim regex: Set regex = Nothing
+  On Error Resume Next
+  Set regex = CreateObject("VBScript.RegExp")
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set regex = Nothing
+  End If
+  On Error GoTo 0
+
+  If regex Is Nothing Then
+    If InStr(candidate, "@") > 0 Then
+      Dim atPos: atPos = InStr(candidate, "@")
+      Dim dotPos: dotPos = InStrRev(candidate, ".")
+      IsValidEmail = (dotPos > atPos And dotPos < Len(candidate))
+    Else
+      IsValidEmail = False
+    End If
+    Exit Function
+  End If
+
+  regex.Pattern = "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$"
+  regex.IgnoreCase = True
+  regex.Global = False
+
+  IsValidEmail = regex.Test(candidate)
+End Function
+
 Function ResolveNameFromEmail(emailAddress)
   Dim info: Set info = CreateEmptyResolutionInfo()
 
@@ -111,25 +156,123 @@ Function ResolveNameUsingHeuristics(searchValue)
     Exit Function
   End If
 
-  If InStr(trimmed, "@") > 0 Then
+  If IsValidEmail(trimmed) Then
     Set ResolveNameUsingHeuristics = ResolveNameFromEmail(trimmed)
     Exit Function
   End If
 
-  If InStr(trimmed, " ") > 0 Or InStr(trimmed, ",") > 0 Then
-    Dim fullInfo: Set fullInfo = ResolveNameFromFullName(trimmed)
-    If ResolutionWasSuccessful(fullInfo) Then
-      Set ResolveNameUsingHeuristics = fullInfo
-      Exit Function
+  Dim components: Set components = ParseFullNameComponents(trimmed)
+  Dim tokens: Set tokens = CollectFlexibleNameTokens(trimmed)
+  Dim tokenCount: tokenCount = 0
+  If Not tokens Is Nothing Then tokenCount = tokens.Count
+
+  If tokenCount >= 2 Then
+    Dim candidateSet: Set candidateSet = CreateObject("Scripting.Dictionary")
+    On Error Resume Next
+    candidateSet.CompareMode = 1
+    On Error GoTo 0
+
+    Call AddCandidateValue(candidateSet, trimmed)
+
+    If Not components Is Nothing Then
+      Call AddCandidateValue(candidateSet, components("Display"))
+      Call AddCandidateValue(candidateSet, components("Normalized"))
+      Call AddCandidateValue(candidateSet, components("ReverseDisplay"))
+      Call AddCandidateValue(candidateSet, Trim(SafeText(components("First")) & " " & SafeText(components("Last"))))
+      Call AddCandidateValue(candidateSet, Trim(SafeText(components("Last")) & " " & SafeText(components("First"))))
+      Call AddCandidateValue(candidateSet, Trim(SafeText(components("AlternateFirst")) & " " & SafeText(components("AlternateLast"))))
     End If
 
-    Set ResolveNameUsingHeuristics = ResolveNameFromDisplayName(trimmed)
-    Exit Function
+    Dim normalizedTokens: normalizedTokens = JoinTokens(tokens, " ")
+    Call AddCandidateValue(candidateSet, normalizedTokens)
+
+    Dim reversedTokens: reversedTokens = BuildReversedTokenDisplay(tokens)
+    Call AddCandidateValue(candidateSet, reversedTokens)
+
+    Dim firstToken: firstToken = ""
+    Dim lastToken: lastToken = ""
+    If tokenCount > 0 Then firstToken = SafeText(tokens(0))
+    If tokenCount > 0 Then lastToken = SafeText(tokens(tokenCount - 1))
+
+    If Len(firstToken) > 0 And Len(lastToken) > 0 Then
+      Call AddCandidateValue(candidateSet, Trim(firstToken & " " & lastToken))
+      Call AddCandidateValue(candidateSet, Trim(lastToken & " " & firstToken))
+      Call AddCandidateValue(candidateSet, Trim(lastToken & ", " & firstToken))
+    End If
+
+    Dim key
+    For Each key In candidateSet.Keys
+      Dim candidateValue: candidateValue = Trim(SafeText(key))
+      If Len(candidateValue) > 0 Then
+        Dim resolved: Set resolved = ResolveNameFromFullName(candidateValue)
+        If ResolutionWasSuccessful(resolved) Then
+          Set ResolveNameUsingHeuristics = resolved
+          Exit Function
+        End If
+      End If
+    Next
+
+    For Each key In candidateSet.Keys
+      Dim candidateDisplay: candidateDisplay = Trim(SafeText(key))
+      If Len(candidateDisplay) > 0 Then
+        Dim displayInfo: Set displayInfo = ResolveNameFromDisplayName(candidateDisplay)
+        If ResolutionWasSuccessful(displayInfo) Then
+          Set ResolveNameUsingHeuristics = displayInfo
+          Exit Function
+        End If
+      End If
+    Next
+
+    If Len(SafeText(firstToken)) > 0 Then
+      Dim firstTokenInfo: Set firstTokenInfo = ResolveNameFromGivenName(firstToken)
+      If ResolutionWasSuccessful(firstTokenInfo) Then
+        Set ResolveNameUsingHeuristics = firstTokenInfo
+        Exit Function
+      End If
+    End If
+
+    If Len(SafeText(lastToken)) > 0 Then
+      Dim lastTokenInfo: Set lastTokenInfo = ResolveNameFromSurname(lastToken)
+      If ResolutionWasSuccessful(lastTokenInfo) Then
+        Set ResolveNameUsingHeuristics = lastTokenInfo
+        Exit Function
+      End If
+    End If
+
+    If Not components Is Nothing Then
+      Dim componentFirst: componentFirst = SafeText(components("First"))
+      Dim componentLast: componentLast = SafeText(components("Last"))
+
+      If Len(componentFirst) > 0 Then
+        Dim componentGiven: Set componentGiven = ResolveNameFromGivenName(componentFirst)
+        If ResolutionWasSuccessful(componentGiven) Then
+          Set ResolveNameUsingHeuristics = componentGiven
+          Exit Function
+        End If
+      End If
+
+      If Len(componentLast) > 0 Then
+        Dim componentSurname: Set componentSurname = ResolveNameFromSurname(componentLast)
+        If ResolutionWasSuccessful(componentSurname) Then
+          Set ResolveNameUsingHeuristics = componentSurname
+          Exit Function
+        End If
+      End If
+
+      Dim normalizedFull: normalizedFull = Trim(componentFirst & " " & componentLast)
+      If Len(normalizedFull) > 0 And SafeLower(normalizedFull) <> SafeLower(trimmed) Then
+        Dim normalizedInfo: Set normalizedInfo = ResolveNameFromFullName(normalizedFull)
+        If ResolutionWasSuccessful(normalizedInfo) Then
+          Set ResolveNameUsingHeuristics = normalizedInfo
+          Exit Function
+        End If
+      End If
+    End If
   End If
 
-  Dim givenInfo: Set givenInfo = ResolveNameFromGivenName(trimmed)
-  If ResolutionWasSuccessful(givenInfo) Then
-    Set ResolveNameUsingHeuristics = givenInfo
+  Dim fallbackInfo: Set fallbackInfo = ResolveNameFromGivenName(trimmed)
+  If ResolutionWasSuccessful(fallbackInfo) Then
+    Set ResolveNameUsingHeuristics = fallbackInfo
     Exit Function
   End If
 
@@ -139,7 +282,13 @@ Function ResolveNameUsingHeuristics(searchValue)
     Exit Function
   End If
 
-  Set ResolveNameUsingHeuristics = givenInfo
+  Dim displayFallback: Set displayFallback = ResolveNameFromDisplayName(trimmed)
+  If ResolutionWasSuccessful(displayFallback) Then
+    Set ResolveNameUsingHeuristics = displayFallback
+    Exit Function
+  End If
+
+  Set ResolveNameUsingHeuristics = fallbackInfo
 End Function
 
 Function ResolveNameFromGivenName(givenName)
@@ -225,6 +374,10 @@ Function ResolveNameFromDisplayName(displayName)
 
   Call PopulateNameFromAddressListsByDisplayName(ns, trimmed, info, "name '" & trimmed & "'")
 
+  If Not ResolutionWasSuccessful(info) Then
+    Call AttemptRecipientResolveForValue(ns, trimmed, info, "display name")
+  End If
+
   If Len(info("Full")) = 0 Then
     info("Full") = Trim(info("First") & " " & info("Last"))
   End If
@@ -255,6 +408,10 @@ Function ResolveNameFromFullName(fullName)
 
   Call PopulateNameFromAddressListsByFullName(ns, trimmed, info, "full name '" & trimmed & "'")
 
+  If Not ResolutionWasSuccessful(info) Then
+    Call AttemptRecipientResolveForValue(ns, trimmed, info, "full name")
+  End If
+
   If Len(info("Full")) = 0 Then
     info("Full") = Trim(info("First") & " " & info("Last"))
   End If
@@ -282,6 +439,46 @@ Function ResolutionWasSuccessful(info)
   On Error GoTo 0
 End Function
 
+Sub RecordDirectoryAttempt(info, label)
+  If info Is Nothing Then Exit Sub
+
+  Dim attemptLabel: attemptLabel = ""
+  If Not IsNull(label) Then
+    If Not IsEmpty(label) Then attemptLabel = CStr(label)
+  End If
+
+  attemptLabel = Trim(attemptLabel)
+  If Len(attemptLabel) = 0 Then Exit Sub
+
+  Dim existing: existing = ""
+  On Error Resume Next
+  If info.Exists("DirectoryAttempted") Then existing = CStr(info("DirectoryAttempted"))
+  On Error GoTo 0
+
+  Dim shouldAppend: shouldAppend = True
+  If Len(existing) > 0 Then
+    Dim parts: parts = Split(existing, ",")
+    Dim i, part
+    For i = LBound(parts) To UBound(parts)
+      part = Trim(parts(i))
+      If Len(part) > 0 Then
+        If SafeLower(part) = SafeLower(attemptLabel) Then
+          shouldAppend = False
+          Exit For
+        End If
+      End If
+    Next
+  End If
+
+  If shouldAppend Then
+    If Len(existing) = 0 Then
+      info("DirectoryAttempted") = attemptLabel
+    Else
+      info("DirectoryAttempted") = existing & ", " & attemptLabel
+    End If
+  End If
+End Sub
+
 Sub PopulateNameFromAddressLists(ns, emailAddress, info)
   If ns Is Nothing Then Exit Sub
 
@@ -289,7 +486,6 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
   listNames = BuildDirectorySearchList(ns)
 
   Dim i, addressList, entry, exch, contact
-  Dim attempts: attempts = ""
   On Error Resume Next
   For i = LBound(listNames) To UBound(listNames)
     Set addressList = Nothing
@@ -299,10 +495,7 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
       Set addressList = Nothing
     End If
     If Not addressList Is Nothing Then
-      If Len(attempts) > 0 Then
-        attempts = attempts & ", "
-      End If
-      attempts = attempts & listNames(i)
+      Call RecordDirectoryAttempt(info, listNames(i))
       Set entry = Nothing
       Set exch = Nothing
       Set contact = Nothing
@@ -324,7 +517,6 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
           info("Found") = True
           Call PopulateNameFromContactItem(contact, info)
           info("DirectorySource") = listNames(i)
-          info("DirectoryAttempted") = attempts
           ReportAddressListLookup emailAddress, listNames(i), entry, exch, info, contact
           Exit For
         End If
@@ -347,16 +539,12 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
         End If
         Call PopulateNameFromPropertyAccessor(entry, info, listAlias, emailAddress)
         info("DirectorySource") = listNames(i)
-        info("DirectoryAttempted") = attempts
         ReportAddressListLookup emailAddress, listNames(i), entry, exch, info, contact
         Exit For
       End If
     End If
   Next
-  If Len(info("DirectoryAttempted")) = 0 Then
-    info("DirectoryAttempted") = attempts
-  End If
-  If Len(info("DirectorySource")) = 0 And Len(attempts) > 0 Then
+  If Len(info("DirectorySource")) = 0 And Len(SafeText(info("DirectoryAttempted"))) > 0 Then
     info("DirectorySource") = "(not found)"
   End If
   On Error GoTo 0
@@ -419,6 +607,8 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
     If Not addressList Is Nothing Then
       WScript.Echo "  Attempting given-name lookup in " & listNames(i) & " for '" & trimmed & "'."
 
+      Call RecordDirectoryAttempt(info, listNames(i))
+
       Dim beforeFirst: beforeFirst = SafeText(info("First"))
       Dim beforeLast: beforeLast = SafeText(info("Last"))
       Dim beforeFull: beforeFull = SafeText(info("Full"))
@@ -442,12 +632,13 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
         On Error GoTo 0
 
         If Not exch Is Nothing Then
-          Call ApplyFirstNameCandidate(info, exch.FirstName, givenName, emailAddress)
+          Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
           If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
           If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
-          Call PopulateNameFromPropertyAccessor(exch, info, givenName, emailAddress)
+          Call PopulateNameFromPropertyAccessor(exch, info, "", "")
         End If
-        Call PopulateNameFromPropertyAccessor(entry, info, givenName, emailAddress)
+
+        Call PopulateNameFromPropertyAccessor(entry, info, "", "")
 
         Dim afterFirst: afterFirst = SafeText(info("First"))
         Dim afterLast: afterLast = SafeText(info("Last"))
@@ -460,16 +651,6 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
         End If
         If Not improved Then
           If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
-        End If
-
-        Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
-        If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
-          If Len(attempts) > 0 Then
-            attempts = attempts & ", " & listNames(i)
-          Else
-            attempts = listNames(i)
-          End If
-          info("DirectoryAttempted") = attempts
         End If
 
         If improved Then
@@ -503,6 +684,8 @@ Sub PopulateNameFromAddressListsBySurname(ns, surname, info, emailAddress)
 
     If Not addressList Is Nothing Then
       WScript.Echo "  Attempting surname lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Call RecordDirectoryAttempt(info, listNames(i))
 
       Dim beforeFirst: beforeFirst = SafeText(info("First"))
       Dim beforeLast: beforeLast = SafeText(info("Last"))
@@ -547,16 +730,6 @@ Sub PopulateNameFromAddressListsBySurname(ns, surname, info, emailAddress)
           If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
         End If
 
-        Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
-        If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
-          If Len(attempts) > 0 Then
-            attempts = attempts & ", " & listNames(i)
-          Else
-            attempts = listNames(i)
-          End If
-          info("DirectoryAttempted") = attempts
-        End If
-
         If improved Then
           info("DirectorySource") = listNames(i)
           Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
@@ -588,6 +761,8 @@ Sub PopulateNameFromAddressListsByDisplayName(ns, displayName, info, emailAddres
 
     If Not addressList Is Nothing Then
       WScript.Echo "  Attempting display-name lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Call RecordDirectoryAttempt(info, listNames(i))
 
       Dim beforeFirst: beforeFirst = SafeText(info("First"))
       Dim beforeLast: beforeLast = SafeText(info("Last"))
@@ -630,16 +805,6 @@ Sub PopulateNameFromAddressListsByDisplayName(ns, displayName, info, emailAddres
         End If
         If Not improved Then
           If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
-        End If
-
-        Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
-        If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
-          If Len(attempts) > 0 Then
-            attempts = attempts & ", " & listNames(i)
-          Else
-            attempts = listNames(i)
-          End If
-          info("DirectoryAttempted") = attempts
         End If
 
         If improved Then
@@ -702,6 +867,8 @@ Sub PopulateNameFromAddressListsByFullName(ns, fullName, info, emailAddress)
 
     If Not addressList Is Nothing Then
       WScript.Echo "  Attempting full-name lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Call RecordDirectoryAttempt(info, listNames(i))
 
       Dim beforeFirst: beforeFirst = SafeText(info("First"))
       Dim beforeLast: beforeLast = SafeText(info("Last"))
@@ -766,16 +933,6 @@ Sub PopulateNameFromAddressListsByFullName(ns, fullName, info, emailAddress)
         End If
         If Not improved Then
           If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
-        End If
-
-        Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
-        If InStr(1, attempts, listNames(i), vbTextCompare) = 0 Then
-          If Len(attempts) > 0 Then
-            attempts = attempts & ", " & listNames(i)
-          Else
-            attempts = listNames(i)
-          End If
-          info("DirectoryAttempted") = attempts
         End If
 
         If improved Then
@@ -855,19 +1012,90 @@ Sub AttemptAliasRecipientResolve(ns, aliasValue, info, emailAddress)
     If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
   End If
 
-  Dim attempts: attempts = SafeText(info("DirectoryAttempted"))
   Dim aliasLabel: aliasLabel = "Recipient resolve (alias '" & trimmedAlias & "')"
-  If Len(attempts) = 0 Then
-    attempts = aliasLabel
-  ElseIf InStr(1, attempts, aliasLabel, vbTextCompare) = 0 Then
-    attempts = attempts & ", " & aliasLabel
-  End If
-  info("DirectoryAttempted") = attempts
+  Call RecordDirectoryAttempt(info, aliasLabel)
 
   If improved Then
     info("DirectorySource") = aliasLabel
     WScript.Echo "  Alias recipient resolve succeeded for '" & trimmedAlias & "'."
     Call ReportAddressListLookup(emailAddress, aliasLabel, recipient.AddressEntry, exch, info, Nothing)
+  End If
+End Sub
+
+Sub AttemptRecipientResolveForValue(ns, rawValue, info, descriptor)
+  If ns Is Nothing Then Exit Sub
+  If info Is Nothing Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(rawValue)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim beforeFirst: beforeFirst = SafeText(info("First"))
+  Dim beforeLast: beforeLast = SafeText(info("Last"))
+  Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+  Dim label: label = "Recipient resolve (" & descriptor & " '" & trimmed & "')"
+  Call RecordDirectoryAttempt(info, label)
+
+  On Error Resume Next
+  Dim recipient: Set recipient = ns.CreateRecipient(trimmed)
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set recipient = Nothing
+  End If
+
+  Dim resolvedOk: resolvedOk = False
+  Dim exch: Set exch = Nothing
+
+  If Not recipient Is Nothing Then
+    recipient.Resolve
+    If Err.Number = 0 Then
+      resolvedOk = recipient.Resolved
+    Else
+      Err.Clear
+    End If
+  End If
+
+  If resolvedOk Then
+    Set exch = recipient.AddressEntry.GetExchangeUser()
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set exch = Nothing
+    End If
+  End If
+  On Error GoTo 0
+
+  If Not resolvedOk Then Exit Sub
+
+  info("Found") = True
+
+  If Len(SafeText(info("Full"))) = 0 Then info("Full") = recipient.Name
+
+  If Not exch Is Nothing Then
+    Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
+    If Len(SafeText(info("Last"))) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+    If Len(SafeText(info("Full"))) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+    Call PopulateNameFromPropertyAccessor(exch, info, "", "")
+  End If
+
+  Call PopulateNameFromPropertyAccessor(recipient.AddressEntry, info, "", "")
+
+  Dim afterFirst: afterFirst = SafeText(info("First"))
+  Dim afterLast: afterLast = SafeText(info("Last"))
+  Dim afterFull: afterFull = SafeText(info("Full"))
+
+  Dim improved: improved = False
+  If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+  If Not improved Then
+    If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+  End If
+  If Not improved Then
+    If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+  End If
+
+  If improved Then
+    info("DirectorySource") = label
+    WScript.Echo "  Recipient resolve succeeded for " & descriptor & " '" & trimmed & "'."
+    Call ReportAddressListLookup(trimmed, label, recipient.AddressEntry, exch, info, Nothing)
   End If
 End Sub
 
@@ -899,6 +1127,103 @@ Function CollectNameTokens(text)
 
   Set CollectNameTokens = list
 End Function
+
+Function CollectFlexibleNameTokens(text)
+  Dim raw: raw = ""
+
+  If IsObject(text) Then
+    Set CollectFlexibleNameTokens = CollectNameTokens("")
+    Exit Function
+  End If
+
+  If Not IsNull(text) Then
+    If Not IsEmpty(text) Then raw = CStr(text)
+  End If
+
+  Dim normalized: normalized = Trim(raw)
+  If Len(normalized) = 0 Then
+    Set CollectFlexibleNameTokens = CollectNameTokens(normalized)
+    Exit Function
+  End If
+
+  normalized = Replace(normalized, ",", " ")
+  normalized = Replace(normalized, ".", " ")
+  normalized = Replace(normalized, "_", " ")
+  normalized = Replace(normalized, "-", " ")
+  normalized = Replace(normalized, "/", " ")
+  normalized = Replace(normalized, "\", " ")
+  normalized = Replace(normalized, vbTab, " ")
+  normalized = Replace(normalized, Chr(160), " ")
+
+  Do While InStr(normalized, "  ") > 0
+    normalized = Replace(normalized, "  ", " ")
+  Loop
+
+  Set CollectFlexibleNameTokens = CollectNameTokens(normalized)
+End Function
+
+Function JoinTokens(list, delimiter)
+  Dim result: result = ""
+
+  If list Is Nothing Then
+    JoinTokens = ""
+    Exit Function
+  End If
+
+  Dim i, value
+  For i = 0 To list.Count - 1
+    value = Trim(SafeText(list(i)))
+    If Len(value) > 0 Then
+      If Len(result) = 0 Then
+        result = value
+      Else
+        result = result & delimiter & value
+      End If
+    End If
+  Next
+
+  JoinTokens = Trim(result)
+End Function
+
+Function BuildReversedTokenDisplay(list)
+  BuildReversedTokenDisplay = ""
+  If list Is Nothing Then Exit Function
+  If list.Count < 2 Then Exit Function
+
+  Dim lastPart: lastPart = Trim(SafeText(list(list.Count - 1)))
+  Dim firstPart: firstPart = Trim(SafeText(list(0)))
+  If Len(lastPart) = 0 Or Len(firstPart) = 0 Then Exit Function
+
+  Dim middle: middle = ""
+  If list.Count > 2 Then
+    Dim i, token
+    For i = 1 To list.Count - 2
+      token = Trim(SafeText(list(i)))
+      If Len(token) > 0 Then
+        If Len(middle) = 0 Then
+          middle = token
+        Else
+          middle = middle & " " & token
+        End If
+      End If
+    Next
+  End If
+
+  If Len(middle) > 0 Then
+    BuildReversedTokenDisplay = Trim(lastPart & ", " & firstPart & " " & middle)
+  Else
+    BuildReversedTokenDisplay = Trim(lastPart & ", " & firstPart)
+  End If
+End Function
+
+Sub AddCandidateValue(dict, value)
+  If dict Is Nothing Then Exit Sub
+  Dim text: text = Trim(SafeText(value))
+  If Len(text) = 0 Then Exit Sub
+  On Error Resume Next
+  If Not dict.Exists(text) Then dict.Add text, True
+  On Error GoTo 0
+End Sub
 
 Function ParseFullNameComponents(fullName)
   Dim result: Set result = CreateObject("Scripting.Dictionary")
