@@ -18,7 +18,7 @@ independently. They are loaded automatically at startup and each file covers a s
   list merging helpers.
 - `utilities/mail_delivery_utils.vbs` — attachment resolution and inline image rewriting.
 - `utilities/mail_input_validation.vbs` — reusable input validation helpers (email address detection, etc.).
-- `utilities/mail_name_resolution.vbs` — Global/Offline Address List lookups and name extraction
+- `utilities/mail_name_resolution_text.vbs`, `utilities/mail_name_resolution_directory.vbs`, `utilities/mail_name_resolution_core.vbs` — Global/Offline Address List lookups and name extraction helpers
   helpers for personalised deliveries.
 
 If any module is missing the loader prints a warning before continuing, making it easier to diagnose

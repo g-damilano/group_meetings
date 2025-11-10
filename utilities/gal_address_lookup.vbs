@@ -10,7 +10,9 @@ Sub Main()
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
 
   Dim count: count = WScript.Arguments.Count
   If count > 0 Then
