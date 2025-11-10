@@ -11,9 +11,16 @@ This module centralizes the directory lookups used by both **InductionMailer** a
 | `full`, `fullname` | Full name (first + surname) |
 | `auto` *(default)* | Automatic detection based on the input pattern |
 
+Every resolver returns a dictionary containing the following keys:
+
+- `Found` — Boolean flag indicating whether a directory entry produced authoritative data.
+- `First`, `Last`, `Full` — Resolved given name, surname, and display/full name.
+- `Email` — The best SMTP-style address surfaced from Exchange, contacts, or proxy attributes.
+- `DirectorySource`, `DirectoryAttempted` — Descriptive strings that capture where the winning result came from and which lists were queried.
+
 When the `auto` mode is used, `ResolveNameLookup` delegates to `ResolveNameUsingHeuristics`, which now performs the following steps:
 
-1. **Email recognition** – the helper `IsValidEmail` applies a practical regular-expression check so that true email addresses are always resolved via `ResolveNameFromEmail`.
+1. **Email recognition** – the helper `IsValidEmail` (now provided by the shared `mail_input_validation.vbs` module) applies a practical regular-expression check so that true email addresses are always resolved via `ResolveNameFromEmail`.
 2. **Name token analysis** – free-form values (with spaces, commas, dots, underscores, or hyphens) are tokenized and reshuffled into multiple candidate combinations for full-name and display-name searches.
 3. **Outlook recipient resolution** – when the direct address list queries cannot identify a candidate, the resolver now falls back to Outlook's built-in recipient resolution using the original name text so that reversed display names (for example, `Surname, Given`) are still matched.
 4. **Component fallbacks** – individual given-name and surname lookups are attempted using both the raw input and the inferred first/last name tokens.
@@ -24,6 +31,7 @@ For manual calls, prefer routing through `ResolveNameLookup(<input>, "auto")` un
 Additional helper routines worth noting:
 
 - `IsValidEmail(value)` – returns a Boolean indicating whether the supplied text resembles a SMTP address.
+- `ApplyEmailCandidate(info, value)` – updates the resolution dictionary with the strongest SMTP-style email surfaced by a lookup while preserving previously collected values when appropriate.
 - `CollectFlexibleNameTokens(text)` – extracts individual name tokens after normalizing common separators (spaces, commas, dots, underscores, hyphens, slashes, and tabs).
 - `AttemptRecipientResolveForValue(ns, rawValue, info, descriptor)` – reuses Outlook's native recipient resolution for arbitrary search strings and applies any additional directory metadata returned by the address entry.
 - `MaybeRefineNameUsingGivenName(emailAddress, info)` – supplements an email-derived lookup using the directory when the alias matches the resolved first name.

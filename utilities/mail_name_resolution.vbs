@@ -6,6 +6,7 @@ Function CreateEmptyResolutionInfo()
   info("First") = ""
   info("Last") = ""
   info("Full") = ""
+  info("Email") = ""
   info("DirectorySource") = ""
   info("DirectoryAttempted") = ""
   Set CreateEmptyResolutionInfo = info
@@ -31,53 +32,11 @@ Function ResolveNameLookup(searchValue, searchField)
   End Select
 End Function
 
-Function IsValidEmail(email)
-  Dim candidate: candidate = ""
-
-  If IsObject(email) Then
-    IsValidEmail = False
-    Exit Function
-  End If
-
-  If Not IsNull(email) Then
-    If Not IsEmpty(email) Then candidate = CStr(email)
-  End If
-
-  candidate = Trim(candidate)
-  If Len(candidate) = 0 Then
-    IsValidEmail = False
-    Exit Function
-  End If
-
-  Dim regex: Set regex = Nothing
-  On Error Resume Next
-  Set regex = CreateObject("VBScript.RegExp")
-  If Err.Number <> 0 Then
-    Err.Clear
-    Set regex = Nothing
-  End If
-  On Error GoTo 0
-
-  If regex Is Nothing Then
-    If InStr(candidate, "@") > 0 Then
-      Dim atPos: atPos = InStr(candidate, "@")
-      Dim dotPos: dotPos = InStrRev(candidate, ".")
-      IsValidEmail = (dotPos > atPos And dotPos < Len(candidate))
-    Else
-      IsValidEmail = False
-    End If
-    Exit Function
-  End If
-
-  regex.Pattern = "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$"
-  regex.IgnoreCase = True
-  regex.Global = False
-
-  IsValidEmail = regex.Test(candidate)
-End Function
-
 Function ResolveNameFromEmail(emailAddress)
   Dim info: Set info = CreateEmptyResolutionInfo()
+
+  Dim trimmedEmail: trimmedEmail = Trim(SafeText(emailAddress))
+  If Len(trimmedEmail) > 0 Then info("Email") = trimmedEmail
 
   On Error Resume Next
   Dim olApp: Set olApp = GetOutlookApp()
@@ -92,15 +51,30 @@ Function ResolveNameFromEmail(emailAddress)
     info("Found") = True
     info("Full") = recip.Name
     info("DirectorySource") = "Recipient resolve"
+    Call ApplyEmailCandidate(info, emailAddress)
     Dim exch: Set exch = recip.AddressEntry.GetExchangeUser()
     Dim primaryAlias: primaryAlias = ExtractEmailLocalPart(emailAddress)
     If Not exch Is Nothing Then
+      Dim primarySmtp
+      primarySmtp = ""
+      primarySmtp = SafeText(exch.PrimarySmtpAddress)
+      Call ApplyEmailCandidate(info, primarySmtp)
       Call ApplyFirstNameCandidate(info, exch.FirstName, primaryAlias, emailAddress)
       If Len(exch.LastName) > 0 And Len(info("Last")) = 0 Then info("Last") = exch.LastName
       If Len(info("Full")) = 0 Then info("Full") = exch.Name
       Call PopulateNameFromPropertyAccessor(exch, info, primaryAlias, emailAddress)
     End If
     Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info, primaryAlias, emailAddress)
+    Dim resolvedAddress: resolvedAddress
+    resolvedAddress = ""
+    On Error Resume Next
+    resolvedAddress = recip.Address
+    If Err.Number <> 0 Then
+      Err.Clear
+      resolvedAddress = ""
+    End If
+    On Error GoTo 0
+    Call ApplyEmailCandidate(info, resolvedAddress)
   End If
   On Error GoTo 0
 
@@ -532,6 +506,7 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
         End If
         Dim listAlias: listAlias = ExtractEmailLocalPart(emailAddress)
         If Not exch Is Nothing Then
+          Call ApplyEmailCandidate(info, SafeText(exch.PrimarySmtpAddress))
           Call ApplyFirstNameCandidate(info, exch.FirstName, listAlias, emailAddress)
           If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
           If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
@@ -631,7 +606,293 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
         End If
         On Error GoTo 0
 
+      If Not exch Is Nothing Then
+        Call ApplyEmailCandidate(info, SafeText(exch.PrimarySmtpAddress))
+        Call ApplyFirstNameCandidate(info, exch.FirstName, givenName, emailAddress)
+        If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+        If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+          Call PopulateNameFromPropertyAccessor(exch, info, givenName, emailAddress)
+        End If
+        Call PopulateNameFromPropertyAccessor(entry, info, givenName, emailAddress)
+
+        Dim afterFirst: afterFirst = SafeText(info("First"))
+        Dim afterLast: afterLast = SafeText(info("Last"))
+        Dim afterFull: afterFull = SafeText(info("Full"))
+
+        Dim improved: improved = False
+        If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+        If Not improved Then
+          If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+        End If
+        If Not improved Then
+          If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+        End If
+
+        If improved Then
+          info("DirectorySource") = listNames(i)
+          Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
+          Exit For
+        End If
+      End If
+    End If
+  Next
+End Sub
+
+Sub PopulateNameFromAddressListsBySurname(ns, surname, info, emailAddress)
+  If ns Is Nothing Then Exit Sub
+  If Len(surname) = 0 Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(surname)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
+  Dim i
+  For i = LBound(listNames) To UBound(listNames)
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listNames(i))
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not addressList Is Nothing Then
+      WScript.Echo "  Attempting surname lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Call RecordDirectoryAttempt(info, listNames(i))
+
+      Dim beforeFirst: beforeFirst = SafeText(info("First"))
+      Dim beforeLast: beforeLast = SafeText(info("Last"))
+      Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+      Dim entry, exch
+      Set entry = Nothing
+      Set exch = Nothing
+
+      Set entry = FindAddressEntryByFields(addressList, Array("LastName", "Surname", "Name"), trimmed)
+
+      If Not entry Is Nothing Then
+        info("Found") = True
+        If Len(info("Full")) = 0 Then info("Full") = entry.Name
+
+        On Error Resume Next
+        Set exch = entry.GetExchangeUser()
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set exch = Nothing
+        End If
+        On Error GoTo 0
+
+      If Not exch Is Nothing Then
+        Call ApplyEmailCandidate(info, SafeText(exch.PrimarySmtpAddress))
+        Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
+        If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+        If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+          Call PopulateNameFromPropertyAccessor(exch, info, "", "")
+        End If
+        Call PopulateNameFromPropertyAccessor(entry, info, "", "")
+
+        Dim afterFirst: afterFirst = SafeText(info("First"))
+        Dim afterLast: afterLast = SafeText(info("Last"))
+        Dim afterFull: afterFull = SafeText(info("Full"))
+
+        Dim improved: improved = False
+        If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+        If Not improved Then
+          If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+        End If
+        If Not improved Then
+          If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+        End If
+
+        If improved Then
+          info("DirectorySource") = listNames(i)
+          Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
+          Exit For
+        End If
+      End If
+    End If
+  Next
+End Sub
+
+Sub PopulateNameFromAddressListsByDisplayName(ns, displayName, info, emailAddress)
+  If ns Is Nothing Then Exit Sub
+  If Len(displayName) = 0 Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(displayName)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
+  Dim i
+  For i = LBound(listNames) To UBound(listNames)
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listNames(i))
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not addressList Is Nothing Then
+      WScript.Echo "  Attempting display-name lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Call RecordDirectoryAttempt(info, listNames(i))
+
+      Dim beforeFirst: beforeFirst = SafeText(info("First"))
+      Dim beforeLast: beforeLast = SafeText(info("Last"))
+      Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+      Dim entry, exch
+      Set entry = Nothing
+      Set exch = Nothing
+
+      Set entry = FindAddressEntryByFields(addressList, Array("Name", "DisplayName"), trimmed)
+
+      If Not entry Is Nothing Then
+        info("Found") = True
+        If Len(info("Full")) = 0 Then info("Full") = entry.Name
+
+        On Error Resume Next
+        Set exch = entry.GetExchangeUser()
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set exch = Nothing
+        End If
+        On Error GoTo 0
+
+      If Not exch Is Nothing Then
+        Call ApplyEmailCandidate(info, SafeText(exch.PrimarySmtpAddress))
+        Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
+        If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+        If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+          Call PopulateNameFromPropertyAccessor(exch, info, "", "")
+        End If
+        Call PopulateNameFromPropertyAccessor(entry, info, "", "")
+
+        Dim afterFirst: afterFirst = SafeText(info("First"))
+        Dim afterLast: afterLast = SafeText(info("Last"))
+        Dim afterFull: afterFull = SafeText(info("Full"))
+
+        Dim improved: improved = False
+        If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+        If Not improved Then
+          If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+        End If
+        If Not improved Then
+          If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+        End If
+
+        If improved Then
+          info("DirectorySource") = listNames(i)
+          Call ReportAddressListLookup(emailAddress, listNames(i), entry, exch, info, Nothing)
+          Exit For
+        End If
+      End If
+    End If
+  Next
+End Sub
+
+Sub PopulateNameFromAddressListsByFullName(ns, fullName, info, emailAddress)
+  If ns Is Nothing Then Exit Sub
+  If info Is Nothing Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(fullName)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim components: Set components = ParseFullNameComponents(trimmed)
+
+  Dim firstName: firstName = ""
+  Dim lastName: lastName = ""
+  Dim alternateFirst: alternateFirst = ""
+  Dim alternateLast: alternateLast = ""
+  Dim normalized: normalized = trimmed
+  Dim reverseDisplay: reverseDisplay = ""
+
+  If Not components Is Nothing Then
+    If components.Exists("First") Then firstName = SafeText(components("First"))
+    If components.Exists("Last") Then lastName = SafeText(components("Last"))
+    If components.Exists("AlternateFirst") Then alternateFirst = SafeText(components("AlternateFirst"))
+    If components.Exists("AlternateLast") Then alternateLast = SafeText(components("AlternateLast"))
+    If components.Exists("Normalized") Then
+      Dim normalizedCandidate: normalizedCandidate = SafeText(components("Normalized"))
+      If Len(normalizedCandidate) > 0 Then normalized = normalizedCandidate
+    End If
+    If components.Exists("ReverseDisplay") Then reverseDisplay = SafeText(components("ReverseDisplay"))
+  End If
+
+  If Len(reverseDisplay) = 0 Then
+    If Len(lastName) > 0 And Len(firstName) > 0 Then
+      reverseDisplay = Trim(lastName & ", " & firstName)
+    Else
+      reverseDisplay = trimmed
+    End If
+  End If
+
+  Dim listNames: listNames = Array("Global Address List", "Offline Global Address List")
+  Dim i
+  For i = LBound(listNames) To UBound(listNames)
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listNames(i))
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not addressList Is Nothing Then
+      WScript.Echo "  Attempting full-name lookup in " & listNames(i) & " for '" & trimmed & "'."
+
+      Call RecordDirectoryAttempt(info, listNames(i))
+
+      Call RecordDirectoryAttempt(info, listNames(i))
+
+      Dim beforeFirst: beforeFirst = SafeText(info("First"))
+      Dim beforeLast: beforeLast = SafeText(info("Last"))
+      Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+      Dim entry, exch
+      Set entry = Nothing
+      Set exch = Nothing
+      If Len(firstName) > 0 And Len(lastName) > 0 Then
+        Set entry = FindAddressEntryByFullName(addressList, firstName, lastName)
+      End If
+
+      If entry Is Nothing Then
+        If Len(alternateFirst) > 0 And Len(alternateLast) > 0 Then
+          Set entry = FindAddressEntryByFullName(addressList, alternateFirst, alternateLast)
+        End If
+      End If
+
+      If entry Is Nothing Then
+        Dim candidates: candidates = Array(normalized, trimmed, reverseDisplay)
+        Dim j
+        For j = LBound(candidates) To UBound(candidates)
+          Dim candidate: candidate = SafeText(candidates(j))
+          If Len(candidate) > 0 Then
+            If entry Is Nothing Then
+              Set entry = FindAddressEntryByFields(addressList, Array("Name", "DisplayName"), candidate)
+            End If
+          End If
+        Next
+      End If
+
+      If Not entry Is Nothing Then
+        info("Found") = True
+        If Len(info("Full")) = 0 Then info("Full") = entry.Name
+
+        On Error Resume Next
+        Set exch = entry.GetExchangeUser()
+        If Err.Number <> 0 Then
+          Err.Clear
+          Set exch = Nothing
+        End If
+        On Error GoTo 0
+
         If Not exch Is Nothing Then
+          Call ApplyEmailCandidate(info, SafeText(exch.PrimarySmtpAddress))
           Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
           If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
           If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
@@ -991,6 +1252,7 @@ Sub AttemptAliasRecipientResolve(ns, aliasValue, info, emailAddress)
   If Len(SafeText(info("Full"))) = 0 Then info("Full") = recipient.Name
 
   If Not exch Is Nothing Then
+    Call ApplyEmailCandidate(info, SafeText(exch.PrimarySmtpAddress))
     Call ApplyFirstNameCandidate(info, exch.FirstName, trimmedAlias, emailAddress)
     If Len(SafeText(info("Last"))) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
     If Len(SafeText(info("Full"))) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
@@ -1071,6 +1333,7 @@ Sub AttemptRecipientResolveForValue(ns, rawValue, info, descriptor)
   If Len(SafeText(info("Full"))) = 0 Then info("Full") = recipient.Name
 
   If Not exch Is Nothing Then
+    Call ApplyEmailCandidate(info, SafeText(exch.PrimarySmtpAddress))
     Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
     If Len(SafeText(info("Last"))) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
     If Len(SafeText(info("Full"))) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
@@ -1500,10 +1763,12 @@ Sub ReportAddressListLookup(emailAddress, listName, entry, exch, info, contact)
   resolvedFirst = ""
   resolvedLast = ""
   resolvedFull = ""
+  Dim resolvedEmail: resolvedEmail = ""
   If Not info Is Nothing Then
     If info.Exists("First") Then resolvedFirst = SafeText(info("First"))
     If info.Exists("Last") Then resolvedLast = SafeText(info("Last"))
     If info.Exists("Full") Then resolvedFull = SafeText(info("Full"))
+    If info.Exists("Email") Then resolvedEmail = SafeText(info("Email"))
   End If
 
   If Len(resolvedFirst) > 0 Then
@@ -1520,6 +1785,11 @@ Sub ReportAddressListLookup(emailAddress, listName, entry, exch, info, contact)
     WScript.Echo "    Resolved full name: " & resolvedFull
   Else
     WScript.Echo "    Resolved full name: (empty)"
+  End If
+  If Len(resolvedEmail) > 0 Then
+    WScript.Echo "    Resolved email: " & resolvedEmail
+  Else
+    WScript.Echo "    Resolved email: (empty)"
   End If
 End Sub
 
@@ -1610,6 +1880,51 @@ Function ContactMatchesEmail(contact, loweredTarget)
   Next
 End Function
 
+Sub ApplyEmailCandidate(info, candidate)
+  If info Is Nothing Then Exit Sub
+
+  Dim trimmed: trimmed = NormalizeEmailText(candidate)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim existing: existing = ""
+  If info.Exists("Email") Then existing = NormalizeEmailText(info("Email"))
+
+  If Len(existing) = 0 Then
+    If InStr(trimmed, "@") > 0 Then info("Email") = trimmed
+    Exit Sub
+  End If
+
+  If InStr(existing, "@") = 0 And InStr(trimmed, "@") > 0 Then
+    info("Email") = trimmed
+    Exit Sub
+  End If
+
+  If SafeLower(existing) = SafeLower(trimmed) Then Exit Sub
+
+  If IsValidEmail(trimmed) And Not IsValidEmail(existing) Then
+    info("Email") = trimmed
+  End If
+End Sub
+
+Function NormalizeEmailText(value)
+  Dim trimmed: trimmed = Trim(SafeText(value))
+  If Len(trimmed) = 0 Then
+    NormalizeEmailText = ""
+    Exit Function
+  End If
+
+  Dim lowered: lowered = SafeLower(trimmed)
+  If Left(lowered, 6) = "smtp:" Then
+    trimmed = Mid(trimmed, 6)
+  ElseIf Left(lowered, 7) = "mailto:" Then
+    trimmed = Mid(trimmed, 8)
+  ElseIf Left(lowered, 4) = "sip:" Then
+    trimmed = Mid(trimmed, 5)
+  End If
+
+  NormalizeEmailText = Trim(trimmed)
+End Function
+
 Sub ApplyFirstNameCandidate(info, candidate, aliasValue, emailAddress)
   If info Is Nothing Then Exit Sub
   Dim proposed: proposed = SafeText(candidate)
@@ -1687,6 +2002,13 @@ Sub PopulateNameFromContactItem(contact, info)
   If Len(info("Last")) = 0 And Len(lastName) > 0 Then info("Last") = lastName
   If Len(info("Full")) = 0 And Len(fullName) > 0 Then info("Full") = fullName
 
+  Dim emailSet
+  emailSet = Array(SafeText(contact.Email1Address), SafeText(contact.Email2Address), SafeText(contact.Email3Address))
+  Dim i
+  For i = LBound(emailSet) To UBound(emailSet)
+    Call ApplyEmailCandidate(info, emailSet(i))
+  Next
+
   Call PopulateNameFromPropertyAccessor(contact, info, "", "")
 End Sub
 
@@ -1743,6 +2065,34 @@ Sub PopulateNameFromPropertyAccessor(addressEntry, info, aliasValue, emailAddres
   If Len(info("Full")) = 0 And Len(display) > 0 Then
     info("Full") = display
     foundAny = True
+  End If
+
+  Dim emailValue
+  emailValue = GetAccessorString(accessor, Array( _
+    "http://schemas.microsoft.com/mapi/proptag/0x39FE001F", _
+    "http://schemas.microsoft.com/mapi/proptag/0x39FE001E", _
+    "http://schemas.microsoft.com/mapi/proptag/0x3003001F", _
+    "http://schemas.microsoft.com/mapi/proptag/0x3003001E"))
+  Call ApplyEmailCandidate(info, emailValue)
+
+  If Len(Trim(SafeText(info("Email")))) = 0 Then
+    Dim proxyValue
+    proxyValue = GetAccessorString(accessor, Array( _
+      "http://schemas.microsoft.com/mapi/proptag/0x39FF001F", _
+      "http://schemas.microsoft.com/mapi/proptag/0x39FF001E"))
+    Call ApplyEmailCandidate(info, proxyValue)
+  End If
+
+  If Len(Trim(SafeText(info("Email")))) = 0 Then
+    On Error Resume Next
+    Dim directAddress
+    directAddress = addressEntry.Address
+    If Err.Number <> 0 Then
+      Err.Clear
+      directAddress = ""
+    End If
+    On Error GoTo 0
+    Call ApplyEmailCandidate(info, directAddress)
   End If
 
   If foundAny Then info("Found") = True

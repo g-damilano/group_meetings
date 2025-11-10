@@ -9,6 +9,7 @@ Sub Main()
   Dim scriptFolder: scriptFolder = GetScriptFolder()
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
+  Call LoadModule(scriptFolder, "mail_input_validation.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution.vbs")
 
   Dim count: count = WScript.Arguments.Count
@@ -202,6 +203,7 @@ Sub DisplayResolution(rawInput)
   WScript.Echo "    Address lists checked: " & DescribeField(info, "DirectoryAttempted", "(none)")
   WScript.Echo "    First name: " & DescribeField(info, "First", "(empty)")
   WScript.Echo "    Surname: " & DescribeField(info, "Last", "(empty)")
+  WScript.Echo "    Email: " & DescribeField(info, "Email", "(empty)")
   WScript.Echo "    Display name: " & DescribeField(info, "Full", "(empty)")
 End Sub
 
