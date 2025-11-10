@@ -689,38 +689,6 @@ Sub PopulateNameFromAddressListsBySurname(ns, surname, info, emailAddress)
         If matches.Count > 0 Then Set selection = ChooseBestAddressEntry(matches, callerProfile)
       End If
 
-      Dim aggregate: Set aggregate = CreateObject("System.Collections.ArrayList")
-      Dim aggregateSeen: Set aggregateSeen = CreateObject("Scripting.Dictionary")
-      On Error Resume Next
-      aggregateSeen.CompareMode = 1
-      On Error GoTo 0
-
-      Dim matches
-      If Len(firstName) > 0 And Len(lastName) > 0 Then
-        Set matches = CollectAddressEntriesByFullName(addressList, firstName, lastName)
-        Call AppendAddressEntryResults(aggregate, matches, aggregateSeen)
-      End If
-
-      If Len(alternateFirst) > 0 And Len(alternateLast) > 0 Then
-        Set matches = CollectAddressEntriesByFullName(addressList, alternateFirst, alternateLast)
-        Call AppendAddressEntryResults(aggregate, matches, aggregateSeen)
-      End If
-
-      Dim candidates: candidates = Array(normalized, trimmed, reverseDisplay)
-      Dim j
-      For j = LBound(candidates) To UBound(candidates)
-        Dim candidate: candidate = SafeText(candidates(j))
-        If Len(candidate) > 0 Then
-          Set matches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName"), candidate)
-          Call AppendAddressEntryResults(aggregate, matches, aggregateSeen)
-        End If
-      Next
-
-      Dim selection: Set selection = Nothing
-      If Not aggregate Is Nothing Then
-        If aggregate.Count > 0 Then Set selection = ChooseBestAddressEntry(aggregate, callerProfile)
-      End If
-
       Dim entry, exch
       Set entry = Nothing
       Set exch = Nothing
