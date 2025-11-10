@@ -632,12 +632,13 @@ Sub PopulateNameFromAddressListsByGivenName(ns, givenName, info, emailAddress)
         On Error GoTo 0
 
         If Not exch Is Nothing Then
-          Call ApplyFirstNameCandidate(info, exch.FirstName, givenName, emailAddress)
+          Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
           If Len(info("Last")) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
           If Len(info("Full")) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
-          Call PopulateNameFromPropertyAccessor(exch, info, givenName, emailAddress)
+          Call PopulateNameFromPropertyAccessor(exch, info, "", "")
         End If
-        Call PopulateNameFromPropertyAccessor(entry, info, givenName, emailAddress)
+
+        Call PopulateNameFromPropertyAccessor(entry, info, "", "")
 
         Dim afterFirst: afterFirst = SafeText(info("First"))
         Dim afterLast: afterLast = SafeText(info("Last"))
