@@ -17,6 +17,7 @@ independently. They are loaded automatically at startup and each file covers a s
 - `utilities/mail_template_utils.vbs` — template parsing, placeholder resolution, and address
   list merging helpers.
 - `utilities/mail_delivery_utils.vbs` — attachment resolution and inline image rewriting.
+- `utilities/mail_input_validation.vbs` — reusable input validation helpers (email address detection, etc.).
 - `utilities/mail_name_resolution.vbs` — Global/Offline Address List lookups and name extraction
   helpers for personalised deliveries.
 

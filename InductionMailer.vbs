@@ -36,6 +36,7 @@ Sub LoadUtilityModules()
     "utilities\mail_collections.vbs", _
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
+    "utilities\mail_input_validation.vbs", _
     "utilities\mail_name_resolution.vbs")
   Dim i, modulePath, ts, contents
   For i = LBound(modules) To UBound(modules)
@@ -620,12 +621,16 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
     If Not context.Exists("DIRECTORY_SOURCE") Then context("DIRECTORY_SOURCE") = ""
     If Not context.Exists("DIRECTORY_ATTEMPTED") Then context("DIRECTORY_ATTEMPTED") = ""
 
-    Dim nameInfo: Set nameInfo = ResolveNameFromEmail(address)
-    Call MaybeRefineNameUsingGivenName(address, nameInfo)
+    Dim nameInfo: Set nameInfo = ResolveNameLookup(address, "auto")
+    If IsValidEmail(address) Then
+      Call MaybeRefineNameUsingGivenName(address, nameInfo)
+    End If
     If nameInfo("Found") Then
       Dim resolvedFirst: resolvedFirst = SafeText(nameInfo("First"))
       Dim resolvedLast: resolvedLast = SafeText(nameInfo("Last"))
       Dim resolvedFull: resolvedFull = SafeText(nameInfo("Full"))
+      Dim resolvedEmail: resolvedEmail = ""
+      If nameInfo.Exists("Email") Then resolvedEmail = SafeText(nameInfo("Email"))
 
       If Len(resolvedFirst) > 0 Then
         resolvedFirst = CapitalizeNamePart(resolvedFirst)
@@ -641,6 +646,9 @@ Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, 
 
       If Len(resolvedFull) > 0 Then
         context("FULL_NAME") = resolvedFull
+      End If
+      If Len(resolvedEmail) > 0 Then
+        context("EMAIL") = resolvedEmail
       End If
     End If
     If nameInfo.Exists("DirectorySource") Then context("DIRECTORY_SOURCE") = nameInfo("DirectorySource")
