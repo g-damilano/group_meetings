@@ -817,6 +817,59 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
   Dim trimmed: trimmed = Trim(displayName)
   If Len(trimmed) = 0 Then Exit Sub
 
+  Dim components: Set components = ParseFullNameComponents(trimmed)
+
+  Dim firstName: firstName = ""
+  Dim lastName: lastName = ""
+  Dim alternateFirst: alternateFirst = ""
+  Dim alternateLast: alternateLast = ""
+  Dim normalized: normalized = trimmed
+  Dim reverseDisplay: reverseDisplay = ""
+
+  If Not components Is Nothing Then
+    If components.Exists("First") Then firstName = SafeText(components("First"))
+    If components.Exists("Last") Then lastName = SafeText(components("Last"))
+    If components.Exists("AlternateFirst") Then alternateFirst = SafeText(components("AlternateFirst"))
+    If components.Exists("AlternateLast") Then alternateLast = SafeText(components("AlternateLast"))
+    If components.Exists("Normalized") Then
+      Dim normalizedCandidate: normalizedCandidate = SafeText(components("Normalized"))
+      If Len(normalizedCandidate) > 0 Then normalized = normalizedCandidate
+    End If
+    If components.Exists("ReverseDisplay") Then reverseDisplay = SafeText(components("ReverseDisplay"))
+  End If
+
+  If Len(reverseDisplay) = 0 Then
+    If Len(lastName) > 0 And Len(firstName) > 0 Then
+      reverseDisplay = Trim(lastName & ", " & firstName)
+    Else
+      reverseDisplay = trimmed
+    End If
+  End If
+
+  Dim candidateValues: Set candidateValues = CreateObject("Scripting.Dictionary")
+  If candidateValues Is Nothing Then Exit Sub
+  On Error Resume Next
+  candidateValues.CompareMode = 1
+  On Error GoTo 0
+
+  Call AddCandidateValue(candidateValues, trimmed)
+  Call AddCandidateValue(candidateValues, normalized)
+  Call AddCandidateValue(candidateValues, reverseDisplay)
+
+  If Len(firstName) > 0 And Len(lastName) > 0 Then
+    Call AddCandidateValue(candidateValues, Trim(firstName & " " & lastName))
+    Call AddCandidateValue(candidateValues, Trim(lastName & " " & firstName))
+    Call AddCandidateValue(candidateValues, Trim(lastName & ", " & firstName))
+    Call AddCandidateValue(candidateValues, Trim(lastName & "," & firstName))
+  End If
+
+  If Len(alternateFirst) > 0 And Len(alternateLast) > 0 Then
+    Call AddCandidateValue(candidateValues, Trim(alternateFirst & " " & alternateLast))
+    Call AddCandidateValue(candidateValues, Trim(alternateLast & " " & alternateFirst))
+    Call AddCandidateValue(candidateValues, Trim(alternateLast & ", " & alternateFirst))
+    Call AddCandidateValue(candidateValues, Trim(alternateLast & "," & alternateFirst))
+  End If
+
   Dim listNames: listNames = BuildDirectorySearchList(ns)
   If Not IsArray(listNames) Then Exit Sub
 
@@ -866,20 +919,23 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
     If Not addressList Is Nothing Then
       Call RecordDirectoryAttempt(info, listName)
 
-      Set matches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName"), trimmed)
-      If Not matches Is Nothing Then
-        For Each candidate In matches
-          Dim beforeCount: beforeCount = aggregate.Count
-          Call AddAddressEntryToCollection(aggregate, candidate, seen)
-          If aggregate.Count > beforeCount Then
-            Dim entryKey: entryKey = BuildAddressEntryTrackingKey(candidate)
-            If Len(entryKey) > 0 Then
-              On Error Resume Next
-              If Not sourceMap.Exists(entryKey) Then sourceMap.Add entryKey, listName
-              On Error GoTo 0
-            End If
-          End If
-        Next
+      Dim valueKey
+      For Each valueKey In candidateValues.Keys
+        Dim candidateValue: candidateValue = Trim(SafeText(valueKey))
+        If Len(candidateValue) > 0 Then
+          Set matches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName", "FileAs"), candidateValue)
+          Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
+        End If
+      Next
+
+      If Len(firstName) > 0 And Len(lastName) > 0 Then
+        Set matches = CollectAddressEntriesByFullName(addressList, firstName, lastName)
+        Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
+      End If
+
+      If Len(alternateFirst) > 0 And Len(alternateLast) > 0 Then
+        Set matches = CollectAddressEntriesByFullName(addressList, alternateFirst, alternateLast)
+        Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
       End If
     End If
   Next
@@ -1415,6 +1471,45 @@ Sub AddAddressEntryToCollection(targetList, entry, seen)
   End If
 
   targetList.Add entry
+End Sub
+
+Sub MergeAddressEntryMatches(targetList, matches, seen, sourceMap, listName)
+  If targetList Is Nothing Then Exit Sub
+  If sourceMap Is Nothing Then Exit Sub
+
+  Dim candidate
+  If matches Is Nothing Then Exit Sub
+
+  For Each candidate In matches
+    Dim beforeCount: beforeCount = 0
+    On Error Resume Next
+    beforeCount = targetList.Count
+    If Err.Number <> 0 Then
+      Err.Clear
+      beforeCount = 0
+    End If
+    On Error GoTo 0
+
+    Call AddAddressEntryToCollection(targetList, candidate, seen)
+
+    Dim afterCount: afterCount = beforeCount
+    On Error Resume Next
+    afterCount = targetList.Count
+    If Err.Number <> 0 Then
+      Err.Clear
+      afterCount = beforeCount
+    End If
+    On Error GoTo 0
+
+    If afterCount > beforeCount Then
+      Dim entryKey: entryKey = BuildAddressEntryTrackingKey(candidate)
+      If Len(entryKey) > 0 Then
+        On Error Resume Next
+        If Not sourceMap.Exists(entryKey) Then sourceMap.Add entryKey, listName
+        On Error GoTo 0
+      End If
+    End If
+  Next
 End Sub
 
 Function BuildAddressEntryTrackingKey(entry)
