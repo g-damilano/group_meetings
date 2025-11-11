@@ -350,6 +350,10 @@ Function ResolveNameFromDisplayName(displayName)
 
   If Not ResolutionWasSuccessful(info) Then
     Call AttemptRecipientResolveForValue(ns, trimmed, info, "display name")
+
+    If Not ResolutionWasSuccessful(info) Then
+      Call EnumerateDirectoryMatchesByDisplayName(ns, trimmed, info, "name '" & trimmed & "'")
+    End If
   End If
 
   If Len(info("Full")) = 0 Then

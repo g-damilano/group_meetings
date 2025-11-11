@@ -123,3 +123,11 @@ The script then:
 
 Activity is logged to `InductionMailer.log` in the repository root. Your default Outlook signature
 (including embedded graphics) is appended automatically.
+
+## Regression scenarios
+
+- **Duplicate GAL display names** — Create two address book entries that share the same display name
+  (differentiate them with unique SMTP addresses or aliases). Run
+  `cscript //nologo utilities\gal_address_lookup.vbs "name:Shared Display Name"`, substituting the
+  duplicated name, and confirm the tool reports `Resolution status: Found` with a populated
+  `Directory source` instead of `Resolution status: Not found`.
