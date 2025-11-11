@@ -820,7 +820,7 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
   Dim listNames: listNames = BuildDirectorySearchList(ns)
   If Not IsArray(listNames) Then Exit Sub
 
-  Dim listCount: listCount
+  Dim listCount
   listCount = 0
   On Error Resume Next
   listCount = UBound(listNames) - LBound(listNames) + 1
