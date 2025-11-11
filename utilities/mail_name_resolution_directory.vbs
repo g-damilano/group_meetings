@@ -810,6 +810,155 @@ Sub PopulateNameFromAddressListsByDisplayName(ns, displayName, info, emailAddres
   Next
 End Sub
 
+Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
+  If ns Is Nothing Then Exit Sub
+  If info Is Nothing Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(displayName)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  Dim listNames: listNames = BuildDirectorySearchList(ns)
+  If Not IsArray(listNames) Then Exit Sub
+
+  Dim listCount: listCount
+  listCount = 0
+  On Error Resume Next
+  listCount = UBound(listNames) - LBound(listNames) + 1
+  If Err.Number <> 0 Then
+    Err.Clear
+    listCount = 0
+  End If
+  On Error GoTo 0
+  If listCount = 0 Then Exit Sub
+
+  Dim beforeFirst: beforeFirst = SafeText(info("First"))
+  Dim beforeLast: beforeLast = SafeText(info("Last"))
+  Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+  Dim aggregate: Set aggregate = CreateObject("System.Collections.ArrayList")
+  Dim seen: Set seen = CreateObject("Scripting.Dictionary")
+  On Error Resume Next
+  seen.CompareMode = 1
+  On Error GoTo 0
+
+  Dim sourceMap: Set sourceMap = CreateObject("Scripting.Dictionary")
+  On Error Resume Next
+  sourceMap.CompareMode = 1
+  On Error GoTo 0
+
+  Dim callerProfile: Set callerProfile = GetCurrentUserProfileInfo()
+
+  Dim i, listName
+  Dim matches
+  Dim candidate
+  For i = LBound(listNames) To UBound(listNames)
+    listName = listNames(i)
+
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listName)
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not addressList Is Nothing Then
+      Call RecordDirectoryAttempt(info, listName)
+
+      Set matches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName"), trimmed)
+      If Not matches Is Nothing Then
+        For Each candidate In matches
+          Dim beforeCount: beforeCount = aggregate.Count
+          Call AddAddressEntryToCollection(aggregate, candidate, seen)
+          If aggregate.Count > beforeCount Then
+            Dim entryKey: entryKey = BuildAddressEntryTrackingKey(candidate)
+            If Len(entryKey) > 0 Then
+              On Error Resume Next
+              If Not sourceMap.Exists(entryKey) Then sourceMap.Add entryKey, listName
+              On Error GoTo 0
+            End If
+          End If
+        Next
+      End If
+    End If
+  Next
+
+  If aggregate.Count = 0 Then Exit Sub
+
+  Dim selection: Set selection = Nothing
+  Set selection = ChooseBestAddressEntry(aggregate, callerProfile)
+
+  Dim selectionSummary: Set selectionSummary = Nothing
+  If Not selection Is Nothing Then
+    Set selectionSummary = BuildSelectionSummary(selection)
+  End If
+
+  Dim entry: Set entry = Nothing
+  Dim exch: Set exch = Nothing
+
+  If Not selection Is Nothing Then
+    If selection.Exists("Entry") Then Set entry = selection("Entry")
+    If selection.Exists("Exchange") Then Set exch = selection("Exchange")
+  End If
+
+  If entry Is Nothing Then
+    Set entry = aggregate(0)
+  End If
+
+  If entry Is Nothing Then Exit Sub
+
+  info("Found") = True
+  If Len(SafeText(info("Full"))) = 0 Then info("Full") = entry.Name
+
+  On Error Resume Next
+  If exch Is Nothing Then Set exch = entry.GetExchangeUser()
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set exch = Nothing
+  End If
+  On Error GoTo 0
+
+  If Not exch Is Nothing Then
+    Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
+    If Len(SafeText(info("Last"))) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+    If Len(SafeText(info("Full"))) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+    Call PopulateNameFromPropertyAccessor(exch, info, "", "")
+  End If
+
+  Call PopulateNameFromPropertyAccessor(entry, info, "", "")
+
+  Dim afterFirst: afterFirst = SafeText(info("First"))
+  Dim afterLast: afterLast = SafeText(info("Last"))
+  Dim afterFull: afterFull = SafeText(info("Full"))
+
+  Dim improved: improved = False
+  If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+  If Not improved Then
+    If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+  End If
+  If Not improved Then
+    If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+  End If
+
+  Dim sourceLabel: sourceLabel = ""
+  Dim chosenKey: chosenKey = BuildAddressEntryTrackingKey(entry)
+  If Len(chosenKey) > 0 Then
+    On Error Resume Next
+    If sourceMap.Exists(chosenKey) Then sourceLabel = CStr(sourceMap(chosenKey))
+    On Error GoTo 0
+  End If
+  If Len(Trim(sourceLabel)) = 0 Then sourceLabel = "Display name enumeration"
+
+  Dim lookupLabel: lookupLabel = descriptor
+  If Len(Trim(lookupLabel)) = 0 Then lookupLabel = "display name '" & trimmed & "'"
+
+  If improved Then
+    info("DirectorySource") = sourceLabel
+    Call ReportAddressListLookup(lookupLabel, sourceLabel, entry, exch, info, Nothing, selectionSummary)
+  End If
+End Sub
+
 Sub PopulateNameFromAddressListsByFullName(ns, fullName, info, emailAddress)
   If ns Is Nothing Then Exit Sub
   If info Is Nothing Then Exit Sub
@@ -1254,19 +1403,7 @@ Sub AddAddressEntryToCollection(targetList, entry, seen)
   Dim key: key = ""
 
   If Not seen Is Nothing Then
-    On Error Resume Next
-    key = SafeLower(entry.ID)
-    If Err.Number <> 0 Then
-      Err.Clear
-      key = ""
-    End If
-    On Error GoTo 0
-
-    If Len(key) = 0 Then
-      Dim namePart: namePart = SafeLower(SafeText(entry.Name))
-      Dim addrPart: addrPart = SafeLower(SafeText(entry.Address))
-      key = Trim(namePart & "|" & addrPart)
-    End If
+    key = BuildAddressEntryTrackingKey(entry)
 
     If Len(key) > 0 Then
       If Not seen.Exists(key) Then
@@ -1279,6 +1416,29 @@ Sub AddAddressEntryToCollection(targetList, entry, seen)
 
   targetList.Add entry
 End Sub
+
+Function BuildAddressEntryTrackingKey(entry)
+  BuildAddressEntryTrackingKey = ""
+  If entry Is Nothing Then Exit Function
+
+  Dim key: key = ""
+
+  On Error Resume Next
+  key = SafeLower(entry.ID)
+  If Err.Number <> 0 Then
+    Err.Clear
+    key = ""
+  End If
+  On Error GoTo 0
+
+  If Len(key) = 0 Then
+    Dim namePart: namePart = SafeLower(SafeText(entry.Name))
+    Dim addrPart: addrPart = SafeLower(SafeText(entry.Address))
+    key = Trim(namePart & "|" & addrPart)
+  End If
+
+  BuildAddressEntryTrackingKey = key
+End Function
 
 Sub AppendAddressEntryResults(targetList, sourceList, seen)
   If targetList Is Nothing Then Exit Sub
