@@ -4,17 +4,15 @@ SetLocale 1033
 Call Main()
 
 Sub Main()
+  If Not EnsureConsoleHost() Then Exit Sub
+
   Dim scriptFolder: scriptFolder = GetScriptFolder()
-  Call LoadModule(scriptFolder, "common_console.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_console.vbs")
-
-  If Not EnsureConsoleHost() Then Exit Sub
 
   Dim target: target = "Haoran Qin"
   Dim baselineEmail: baselineEmail = "haoran.qin22@imperial.ac.uk"
@@ -75,9 +73,322 @@ Sub Main()
 
   Call RunRecipientResolveProbes(ns, target, components, tokens)
   Call RunGalDisplayEnumerationProbes(ns, target, components, tokens, baseline)
-  Call ScanGalAddressListsForExactMatches(ns, target, components, tokens)
+  Call ScanGalAddressListsForMatches(ns, target, components, tokens)
   Call SummarizeBaselineComparison(baseline)
   Call ScanContactFoldersForTokens(ns, tokens)
+End Sub
+
+Function BuildMatchTokenList(tokens)
+  Set BuildMatchTokenList = Nothing
+  If tokens Is Nothing Then Exit Function
+
+  Dim result: Set result = CreateArrayList()
+  Dim i
+  For i = 0 To tokens.Count - 1
+    Dim lowered: lowered = SafeLower(tokens(i))
+    If Len(lowered) > 0 Then result.Add lowered
+  Next
+
+  If result.Count = 0 Then Exit Function
+
+  Set BuildMatchTokenList = result
+End Function
+
+Function EnumeratePartialMatches(addressList, probes, tokens, aggregate, seen, reasonMap, listName)
+  Set EnumeratePartialMatches = Nothing
+  If addressList Is Nothing Then Exit Function
+
+  Dim entries
+  On Error Resume Next
+  Set entries = addressList.AddressEntries
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set entries = Nothing
+  End If
+  On Error GoTo 0
+  If entries Is Nothing Then Exit Function
+
+  Dim candidateMaps: Set candidateMaps = CreateTextDictionary()
+  Dim tokenEntryKeys: Set tokenEntryKeys = CreateTextDictionary()
+
+  Dim entry
+  For Each entry In entries
+    Dim blobLower: blobLower = BuildAddressEntrySearchBlob(entry)
+    If Len(blobLower) = 0 Then
+      ' Skip entries with no searchable text.
+    Else
+      Dim entryReasons: Set entryReasons = Nothing
+      Dim j
+      For j = 0 To probes.Count - 1
+        Dim probe: Set probe = probes(j)
+        Dim candidateLower: candidateLower = SafeText(probe("Lower"))
+        Dim candidateValue: candidateValue = SafeText(probe("Value"))
+        Dim candidateReason: candidateReason = SafeText(probe("Reason"))
+
+        If Len(candidateLower) > 0 Then
+          If InStr(blobLower, candidateLower) > 0 Then
+            Set entryReasons = EnsureArrayList(entryReasons)
+            Call AppendReasonIfMissing(entryReasons, "Partial match on '" & candidateValue & "' (" & candidateReason & ")")
+
+            Dim candidateBucket
+            If candidateMaps.Exists(candidateLower) Then
+              Set candidateBucket = candidateMaps(candidateLower)
+            Else
+              Set candidateBucket = CreateTextDictionary()
+              candidateMaps.Add candidateLower, candidateBucket
+            End If
+
+            Dim entryKey: entryKey = EnsureAddressEntryKey(entry)
+            If Len(entryKey) > 0 Then
+              If Not candidateBucket.Exists(entryKey) Then candidateBucket.Add entryKey, True
+            End If
+          End If
+        End If
+      Next
+
+      If Not tokens Is Nothing Then
+        If tokens.Count > 0 Then
+          If ContainsAllTokens(blobLower, tokens) Then
+            Set entryReasons = EnsureArrayList(entryReasons)
+            Call AppendReasonIfMissing(entryReasons, "Contains all lookup tokens")
+
+            Dim tokenKey: tokenKey = EnsureAddressEntryKey(entry)
+            If Len(tokenKey) > 0 Then
+              If Not tokenEntryKeys.Exists(tokenKey) Then tokenEntryKeys.Add tokenKey, True
+            End If
+          End If
+        End If
+      End If
+
+      If Not entryReasons Is Nothing Then
+        Call AddEntryWithReasonCollection(aggregate, seen, reasonMap, entry, listName, entryReasons)
+      End If
+    End If
+  Next
+
+  Dim stats: Set stats = CreateTextDictionary()
+  Dim candidateCounts: Set candidateCounts = CreateTextDictionary()
+
+  Dim candidateKey
+  For Each candidateKey In candidateMaps.Keys
+    Dim candidateBucket: Set candidateBucket = candidateMaps(candidateKey)
+    candidateCounts(candidateKey) = GetDictionaryCount(candidateBucket)
+  Next
+
+  stats("CandidateCounts") = candidateCounts
+  stats("TokenCount") = GetDictionaryCount(tokenEntryKeys)
+
+  Set EnumeratePartialMatches = stats
+End Function
+
+Function BuildAddressEntrySearchBlob(entry)
+  BuildAddressEntrySearchBlob = ""
+  If entry Is Nothing Then Exit Function
+
+  Dim parts: Set parts = CreateArrayList()
+  Dim value
+
+  value = SafeText(entry.Name)
+  If Len(value) > 0 Then parts.Add value
+
+  value = SafeText(entry.Address)
+  If Len(value) > 0 Then parts.Add value
+
+  On Error Resume Next
+  Dim exch, dist, contact
+  Set exch = entry.GetExchangeUser()
+  If Err.Number = 0 Then
+    value = SafeText(exch.Name)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(exch.FirstName)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(exch.LastName)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(exch.PrimarySmtpAddress)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(exch.Department)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(exch.CompanyName)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(exch.Alias)
+    If Len(value) > 0 Then parts.Add value
+  Else
+    Err.Clear
+  End If
+
+  Set dist = entry.GetExchangeDistributionList()
+  If Err.Number = 0 Then
+    value = SafeText(dist.Name)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(dist.PrimarySmtpAddress)
+    If Len(value) > 0 Then parts.Add value
+  Else
+    Err.Clear
+  End If
+
+  Set contact = entry.GetContact()
+  If Err.Number = 0 Then
+    value = SafeText(contact.FullName)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(contact.Email1Address)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(contact.Email2Address)
+    If Len(value) > 0 Then parts.Add value
+    value = SafeText(contact.Email3Address)
+    If Len(value) > 0 Then parts.Add value
+  Else
+    Err.Clear
+  End If
+  On Error GoTo 0
+
+  Dim combined: combined = ""
+  Dim i
+  For i = 0 To parts.Count - 1
+    value = SafeLower(parts(i))
+    If Len(value) > 0 Then
+      If Len(combined) > 0 Then combined = combined & " "
+      combined = combined & value
+    End If
+  Next
+
+  BuildAddressEntrySearchBlob = Trim(combined)
+End Function
+
+Function AddEntryWithReasonCollection(aggregate, seen, reasonMap, entry, listName, reasons)
+  AddEntryWithReasonCollection = 0
+  If aggregate Is Nothing Then Exit Function
+  If entry Is Nothing Then Exit Function
+  If reasons Is Nothing Then Exit Function
+
+  Dim beforeCount: beforeCount = GetCollectionCount(aggregate)
+  Call AddAddressEntryToCollection(aggregate, entry, seen)
+  Dim afterCount: afterCount = GetCollectionCount(aggregate)
+
+  Dim entryKey: entryKey = EnsureAddressEntryKey(entry)
+  Dim reasonList: Set reasonList = EnsureReasonList(reasonMap, entryKey)
+
+  If Not reasonList Is Nothing Then
+    Dim idx
+    For idx = 0 To reasons.Count - 1
+      Dim reasonText: reasonText = SafeText(reasons(idx))
+      If Len(reasonText) > 0 Then
+        If Len(listName) > 0 Then reasonText = "[" & listName & "] " & reasonText
+        Call AppendReasonIfMissing(reasonList, reasonText)
+      End If
+    Next
+  End If
+
+  AddEntryWithReasonCollection = afterCount - beforeCount
+End Function
+
+Function EnsureReasonList(reasonMap, entryKey)
+  Set EnsureReasonList = Nothing
+  If reasonMap Is Nothing Then Exit Function
+  If Len(entryKey) = 0 Then Exit Function
+
+  Dim bucket
+  If reasonMap.Exists(entryKey) Then
+    Set bucket = reasonMap(entryKey)
+  Else
+    Set bucket = CreateArrayList()
+    reasonMap.Add entryKey, bucket
+  End If
+
+  Set EnsureReasonList = bucket
+End Function
+
+Function EnsureAddressEntryKey(entry)
+  Dim key: key = BuildAddressEntryTrackingKey(entry)
+  If Len(key) = 0 Then key = SafeLower(DescribeAddressEntry(entry))
+  EnsureAddressEntryKey = key
+End Function
+
+Function GetCollectionCount(list)
+  GetCollectionCount = 0
+  If list Is Nothing Then Exit Function
+  On Error Resume Next
+  GetCollectionCount = list.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    GetCollectionCount = 0
+  End If
+  On Error GoTo 0
+End Function
+
+Function GetDictionaryCount(dict)
+  GetDictionaryCount = 0
+  If dict Is Nothing Then Exit Function
+  On Error Resume Next
+  GetDictionaryCount = dict.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    GetDictionaryCount = 0
+  End If
+  On Error GoTo 0
+End Function
+
+Function EnsureArrayList(list)
+  If list Is Nothing Then
+    Set list = CreateArrayList()
+  End If
+  Set EnsureArrayList = list
+End Function
+
+Function CreateArrayList()
+  Set CreateArrayList = CreateObject("System.Collections.ArrayList")
+End Function
+
+Function CreateTextDictionary()
+  Dim dict: Set dict = CreateObject("Scripting.Dictionary")
+  On Error Resume Next
+  dict.CompareMode = 1
+  On Error GoTo 0
+  Set CreateTextDictionary = dict
+End Function
+
+Sub AppendReasonIfMissing(reasonList, reasonText)
+  If reasonList Is Nothing Then Exit Sub
+  If Len(reasonText) = 0 Then Exit Sub
+
+  Dim i
+  For i = 0 To reasonList.Count - 1
+    If reasonList(i) = reasonText Then Exit Sub
+  Next
+
+  reasonList.Add reasonText
+End Sub
+
+Sub OutputMatchReasons(reasonMap, entry, indent)
+  If Len(indent) = 0 Then indent = ""
+  If reasonMap Is Nothing Then Exit Sub
+  If entry Is Nothing Then Exit Sub
+
+  Dim entryKey: entryKey = EnsureAddressEntryKey(entry)
+  If Len(entryKey) = 0 Then Exit Sub
+  If Not reasonMap.Exists(entryKey) Then Exit Sub
+
+  Dim reasons: Set reasons = reasonMap(entryKey)
+  If reasons Is Nothing Then Exit Sub
+  If reasons.Count = 0 Then Exit Sub
+
+  WScript.Echo indent & "Match reasons:"
+
+  Dim i
+  For i = 0 To reasons.Count - 1
+    WScript.Echo indent & "  - " & reasons(i)
+  Next
+End Sub
+
+Sub OutputSelectionSummary(summary, indent)
+  If summary Is Nothing Then Exit Sub
+  If Len(indent) = 0 Then indent = ""
+
+  If summary.Exists("Reason") Then WScript.Echo indent & "Reason: " & SafeText(summary("Reason"))
+  If summary.Exists("Score") Then WScript.Echo indent & "Score: " & SafeText(summary("Score"))
+  If summary.Exists("CandidateCount") Then WScript.Echo indent & "Candidate count: " & SafeText(summary("CandidateCount"))
+  If summary.Exists("Department") Then WScript.Echo indent & "Department preference: " & SafeText(summary("Department"))
+  If summary.Exists("Company") Then WScript.Echo indent & "Company preference: " & SafeText(summary("Company"))
+  If summary.Exists("UsedProfile") Then WScript.Echo indent & "Used caller profile: " & SafeText(summary("UsedProfile"))
 End Sub
 
 Sub OutputComponentSummary(components, tokens)
@@ -270,9 +581,9 @@ Sub RunGalDisplayEnumerationProbes(ns, target, components, tokens, baseline)
   Next
 End Sub
 
-Sub ScanGalAddressListsForExactMatches(ns, target, components, tokens)
+Sub ScanGalAddressListsForMatches(ns, target, components, tokens)
   WScript.Echo ""
-  WScript.Echo "Step 6 - GAL exact-match scans"
+  WScript.Echo "Step 6 - GAL match scans with disambiguation"
 
   If ns Is Nothing Then
     WScript.Echo "  (Namespace unavailable.)"
@@ -290,6 +601,9 @@ Sub ScanGalAddressListsForExactMatches(ns, target, components, tokens)
     WScript.Echo "  (No probes generated.)"
     Exit Sub
   End If
+
+  Dim normalizedTokens: Set normalizedTokens = BuildMatchTokenList(tokens)
+  Dim callerProfile: Set callerProfile = GetCurrentUserProfileInfo()
 
   Dim i
   For i = LBound(listNames) To UBound(listNames)
@@ -310,29 +624,96 @@ Sub ScanGalAddressListsForExactMatches(ns, target, components, tokens)
     Else
       WScript.Echo "  Address list: " & listName
 
-      Dim anyMatches: anyMatches = False
+      Dim aggregate: Set aggregate = CreateObject("System.Collections.ArrayList")
+      Dim seen: Set seen = CreateTextDictionary()
+      Dim reasonMap: Set reasonMap = CreateTextDictionary()
+
       Dim j
       For j = 0 To probes.Count - 1
         Dim probe: Set probe = probes(j)
         Dim candidate: candidate = SafeText(probe("Value"))
         Dim reason: reason = SafeText(probe("Reason"))
+        Dim exactMatches: Set exactMatches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName", "FileAs"), candidate)
 
-        Dim matches: Set matches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName", "FileAs"), candidate)
-        If Not matches Is Nothing Then
-          If matches.Count > 0 Then
-            anyMatches = True
-            WScript.Echo "    Candidate '" & candidate & "' (" & reason & ") produced " & matches.Count & " match(es):"
+        Dim matchCount: matchCount = GetCollectionCount(exactMatches)
+        Dim newUnique: newUnique = 0
 
-            Dim k
-            For k = 0 To matches.Count - 1
-              Call OutputAddressEntrySummary(matches(k), "      ")
-            Next
-          End If
+        If Not exactMatches Is Nothing Then
+          Dim entry
+          For Each entry In exactMatches
+            Dim exactReasons: Set exactReasons = CreateArrayList()
+            Call exactReasons.Add("Exact field match for '" & candidate & "' (" & reason & ")")
+            newUnique = newUnique + AddEntryWithReasonCollection(aggregate, seen, reasonMap, entry, listName, exactReasons)
+          Next
         End If
+
+        WScript.Echo "    Exact candidate '" & candidate & "' matched " & matchCount & " entr(ies) (" & newUnique & " new unique)."
       Next
 
-      If Not anyMatches Then
-        WScript.Echo "    No exact matches located for any probe candidates."
+      Dim partialStats: Set partialStats = EnumeratePartialMatches(addressList, probes, normalizedTokens, aggregate, seen, reasonMap, listName)
+
+      If Not partialStats Is Nothing Then
+        Dim candidateCounts
+        Set candidateCounts = Nothing
+        If partialStats.Exists("CandidateCounts") Then Set candidateCounts = partialStats("CandidateCounts")
+
+        For j = 0 To probes.Count - 1
+          Dim probePartial: Set probePartial = probes(j)
+          Dim partialCandidate: partialCandidate = SafeText(probePartial("Value"))
+          Dim candidateLower: candidateLower = SafeText(probePartial("Lower"))
+          Dim partialCount: partialCount = 0
+          If IsObject(candidateCounts) Then
+            If candidateCounts.Exists(candidateLower) Then partialCount = candidateCounts(candidateLower)
+          End If
+          WScript.Echo "    Partial candidate '" & partialCandidate & "' matched " & partialCount & " unique entr(ies)."
+        Next
+
+        Dim tokenSummary: tokenSummary = ""
+        If Not normalizedTokens Is Nothing Then tokenSummary = JoinTokens(normalizedTokens, ", ")
+        If Len(tokenSummary) = 0 Then tokenSummary = "(no tokens)"
+
+        Dim tokenCount: tokenCount = 0
+        If partialStats.Exists("TokenCount") Then tokenCount = partialStats("TokenCount")
+        WScript.Echo "    Token combination '" & tokenSummary & "' matched " & tokenCount & " unique entr(ies)."
+      End If
+
+      Dim aggregateCount: aggregateCount = GetCollectionCount(aggregate)
+      If aggregateCount = 0 Then
+        WScript.Echo "    No exact or partial matches located for any probe candidates."
+      Else
+        WScript.Echo "    Aggregated " & aggregateCount & " unique match(es) across exact and partial searches."
+
+        Dim idx
+        For idx = 0 To aggregateCount - 1
+          Dim currentEntry: Set currentEntry = aggregate(idx)
+          WScript.Echo "    Match " & (idx + 1) & ": " & DescribeAddressEntry(currentEntry)
+          Call OutputMatchReasons(reasonMap, currentEntry, "      ")
+        Next
+
+        Dim selection: Set selection = ChooseBestAddressEntry(aggregate, callerProfile)
+        Dim selectionEntry: Set selectionEntry = Nothing
+        Dim selectionSummary: Set selectionSummary = Nothing
+
+        If Not selection Is Nothing Then
+          If selection.Exists("Entry") Then Set selectionEntry = selection("Entry")
+          Set selectionSummary = BuildSelectionSummary(selection)
+        End If
+
+        If selectionEntry Is Nothing Then
+          If aggregateCount > 0 Then
+            Set selectionEntry = aggregate(0)
+            If selectionEntry Is Nothing Then
+              WScript.Echo "    Disambiguation did not return a candidate."
+            Else
+              WScript.Echo "    Disambiguation did not provide a scored candidate; defaulting to first match: " & DescribeAddressEntry(selectionEntry)
+            End If
+          Else
+            WScript.Echo "    Disambiguation did not return a candidate."
+          End If
+        Else
+          WScript.Echo "    Disambiguation selected: " & DescribeAddressEntry(selectionEntry)
+          Call OutputSelectionSummary(selectionSummary, "      ")
+        End If
       End If
     End If
   Next
@@ -763,9 +1144,38 @@ Sub AddProbe(list, seen, value, reason)
   Dim probe: Set probe = CreateObject("Scripting.Dictionary")
   probe("Value") = text
   probe("Reason") = reason
+  probe("Lower") = lowered
   list.Add probe
 End Sub
 
+Function DescribeBoolean(info, key)
+  Dim defaultText: defaultText = "Unknown"
+  If info Is Nothing Then
+    DescribeBoolean = defaultText
+    Exit Function
+  End If
+
+  If info.Exists(key) Then
+    If CBool(info(key)) Then
+      DescribeBoolean = "Found"
+    Else
+      DescribeBoolean = "Not found"
+    End If
+  Else
+    DescribeBoolean = defaultText
+  End If
+End Function
+
+Function DescribeField(info, key, placeholder)
+  Dim text: text = placeholder
+  If Not info Is Nothing Then
+    If info.Exists(key) Then
+      Dim candidate: candidate = SafeText(info(key))
+      If Len(candidate) > 0 Then text = candidate
+    End If
+  End If
+  DescribeField = text
+End Function
 
 Sub SummarizeBaselineComparison(baseline)
   WScript.Echo ""
@@ -932,6 +1342,16 @@ Function OpenAddressList(ns, listName)
     Set OpenAddressList = Nothing
   End If
   On Error GoTo 0
+End Function
+
+Function EnsureConsoleHost()
+  Dim host: host = LCase(WScript.FullName)
+  If InStr(host, "cscript.exe") = 0 Then
+    WScript.Echo "Please run this script with cscript.exe to use the console interface."
+    EnsureConsoleHost = False
+  Else
+    EnsureConsoleHost = True
+  End If
 End Function
 
 Function GetScriptFolder()
