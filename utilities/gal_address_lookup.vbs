@@ -4,15 +4,18 @@ SetLocale 1033
 Call Main()
 
 Sub Main()
-  If Not EnsureConsoleHost() Then Exit Sub
-
   Dim scriptFolder: scriptFolder = GetScriptFolder()
+  Call LoadModule(scriptFolder, "common_console.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_prompt.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_console.vbs")
+
+  If Not EnsureConsoleHost() Then Exit Sub
 
   Dim count: count = WScript.Arguments.Count
   If count > 0 Then
@@ -22,23 +25,13 @@ Sub Main()
     Next
   Else
     Do
-      Dim rawInput: rawInput = PromptLine("Enter a lookup value (prefix with name:/surname:/first:/last:/full:/email:, blank to quit): ")
+      Dim rawInput: rawInput = PromptNameResolutionLine("Enter a lookup value (prefix with name:/surname:/first:/last:/full:/email:, blank to quit): ")
       rawInput = Trim(rawInput)
       If Len(rawInput) = 0 Then Exit Do
       Call DisplayResolution(rawInput)
     Loop
   End If
 End Sub
-
-Function EnsureConsoleHost()
-  Dim host: host = LCase(WScript.FullName)
-  If InStr(host, "cscript.exe") = 0 Then
-    WScript.Echo "Please run this script with cscript.exe to use the console interface."
-    EnsureConsoleHost = False
-  Else
-    EnsureConsoleHost = True
-  End If
-End Function
 
 Function GetScriptFolder()
   Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
@@ -97,11 +90,6 @@ Function RemoveByteOrderMark(text)
   If codePoint = &HFEFF Or codePoint = &HFFFE Then
     RemoveByteOrderMark = Mid(text, 2)
   End If
-End Function
-
-Function PromptLine(prompt)
-  WScript.StdOut.Write prompt
-  PromptLine = WScript.StdIn.ReadLine()
 End Function
 
 Function ParseLookupExpression(text)
