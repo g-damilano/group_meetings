@@ -338,13 +338,14 @@ End Sub
 
 Sub MailDeliveryLog(logPath, message)
   Dim target: target = Trim(CStr(logPath))
+  Dim fso
   If Len(target) = 0 Then
-    Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+    Set fso = CreateObject("Scripting.FileSystemObject")
     target = MailDeliveryDefaultLogPath(fso)
   End If
 
   On Error Resume Next
-  Dim fso, f
+  Dim f
   Set fso = CreateObject("Scripting.FileSystemObject")
   Set f = fso.OpenTextFile(target, 8, True)
   f.WriteLine Now & "  " & message
