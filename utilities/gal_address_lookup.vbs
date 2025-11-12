@@ -4,9 +4,8 @@ SetLocale 1033
 Call Main()
 
 Sub Main()
-  If Not EnsureConsoleHost() Then Exit Sub
-
   Dim scriptFolder: scriptFolder = GetScriptFolder()
+  Call LoadModule(scriptFolder, "common_console.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
@@ -14,6 +13,9 @@ Sub Main()
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_console.vbs")
+
+  If Not EnsureConsoleHost() Then Exit Sub
 
   Dim count: count = WScript.Arguments.Count
   If count > 0 Then
@@ -30,16 +32,6 @@ Sub Main()
     Loop
   End If
 End Sub
-
-Function EnsureConsoleHost()
-  Dim host: host = LCase(WScript.FullName)
-  If InStr(host, "cscript.exe") = 0 Then
-    WScript.Echo "Please run this script with cscript.exe to use the console interface."
-    EnsureConsoleHost = False
-  Else
-    EnsureConsoleHost = True
-  End If
-End Function
 
 Function GetScriptFolder()
   Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")

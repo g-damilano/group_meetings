@@ -20,6 +20,11 @@ independently. They are loaded automatically at startup and each file covers a s
 - `utilities/mail_input_validation.vbs` — reusable input validation helpers (email address detection, etc.).
 - `utilities/mail_name_resolution_text.vbs`, `utilities/mail_name_resolution_directory.vbs`, `utilities/mail_name_resolution_core.vbs` — Global/Offline Address List lookups and name extraction helpers
   helpers for personalised deliveries.
+- `utilities/haoran_qin_directory_probe.vbs` — diagnostic harness that exercises the name resolution
+  pipeline for a supplied display name (defaulting to "Haoran Qin") and prints every probing step,
+  including recipient resolve attempts, **GAL-focused** enumeration, email baselines (defaults to
+  `haoran.qin22@imperial.ac.uk`), and contact-folder scans. Pass an optional email argument to override
+  the baseline address when exploring other identities.
 
 If any module is missing the loader prints a warning before continuing, making it easier to diagnose
 segmentation issues without digging through the main script.
