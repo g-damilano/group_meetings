@@ -760,7 +760,7 @@ Function EnsureCapitalizedNameText(text, context)
     If Len(normalized) > 0 Then
       Dim capitalized: capitalized = CapitalizeNamePart(normalized)
       If Len(capitalized) > 0 Then
-        result = Replace(result, normalized, capitalized, 1, -1, vbTextCompare)
+        result = ReplaceWholeWordCaseInsensitive(result, normalized, capitalized)
       End If
     End If
   Next
@@ -790,6 +790,64 @@ Function CapitalizeNamePart(value)
     Else
       CapitalizeNamePart = firstChar
     End If
+  End If
+End Function
+
+Function ReplaceWholeWordCaseInsensitive(text, findValue, replacement)
+  Dim source: source = SafeText(text)
+  Dim target: target = SafeText(findValue)
+
+  If Len(target) = 0 Then
+    ReplaceWholeWordCaseInsensitive = source
+    Exit Function
+  End If
+
+  Dim result: result = source
+  Dim startPos: startPos = 1
+  Dim targetLen: targetLen = Len(target)
+
+  Do While targetLen > 0
+    Dim pos: pos = InStr(startPos, result, target, vbTextCompare)
+    If pos = 0 Then Exit Do
+
+    Dim beforeChar: beforeChar = ""
+    Dim afterChar: afterChar = ""
+
+    If pos > 1 Then beforeChar = Mid(result, pos - 1, 1)
+    If pos + targetLen <= Len(result) Then afterChar = Mid(result, pos + targetLen, 1)
+
+    If IsWordBoundary(beforeChar, afterChar) Then
+      result = Left(result, pos - 1) & replacement & Mid(result, pos + targetLen)
+      startPos = pos + Len(replacement)
+    Else
+      startPos = pos + targetLen
+    End If
+  Loop
+
+  ReplaceWholeWordCaseInsensitive = result
+End Function
+
+Function IsWordBoundary(beforeChar, afterChar)
+  If Len(beforeChar) = 0 Or Not IsWordCharacter(beforeChar) Then
+    If Len(afterChar) = 0 Or Not IsWordCharacter(afterChar) Then
+      IsWordBoundary = True
+      Exit Function
+    End If
+  End If
+  IsWordBoundary = False
+End Function
+
+Function IsWordCharacter(ch)
+  If Len(ch) = 0 Then
+    IsWordCharacter = False
+  Else
+    Dim code: code = AscW(ch)
+    IsWordCharacter = _
+      (code >= 48 And code <= 57) _
+      Or (code >= 65 And code <= 90) _
+      Or (code >= 97 And code <= 122) _
+      Or (code >= &H00C0 And code <= &H02AF) _
+      Or (code >= &H0370 And code <= &H1FFF)
   End If
 End Function
 
