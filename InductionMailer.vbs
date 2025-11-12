@@ -33,6 +33,7 @@ Sub LoadUtilityModules()
   If Len(baseFolder) = 0 Then baseFolder = "."
   Dim modules
   modules = Array( _
+    "utilities\common_console.vbs", _
     "utilities\mail_collections.vbs", _
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
@@ -40,7 +41,8 @@ Sub LoadUtilityModules()
     "utilities\mail_name_resolution_prompt.vbs", _
     "utilities\mail_name_resolution_text.vbs", _
     "utilities\mail_name_resolution_directory.vbs", _
-    "utilities\mail_name_resolution_core.vbs")
+    "utilities\mail_name_resolution_core.vbs", _
+    "utilities\mail_name_resolution_console.vbs")
   Dim i, modulePath, ts, contents
   For i = LBound(modules) To UBound(modules)
     modulePath = loaderFso.BuildPath(baseFolder, modules(i))
@@ -116,19 +118,6 @@ Sub Main()
 
   WScript.Echo "All requested templates processed."
 End Sub
-
-'======================================================================
-' Console helpers
-'======================================================================
-Function EnsureConsoleHost()
-  Dim host: host = LCase(WScript.FullName)
-  If InStr(host, "cscript.exe") = 0 Then
-    WScript.Echo "Please run this script with cscript.exe to use the console interface."
-    EnsureConsoleHost = False
-  Else
-    EnsureConsoleHost = True
-  End If
-End Function
 
 Function PromptLine(prompt)
   WScript.StdOut.Write prompt
