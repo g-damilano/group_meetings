@@ -20,6 +20,9 @@ independently. They are loaded automatically at startup and each file covers a s
 - `utilities/mail_input_validation.vbs` — reusable input validation helpers (email address detection, etc.).
 - `utilities/mail_name_resolution_text.vbs`, `utilities/mail_name_resolution_directory.vbs`, `utilities/mail_name_resolution_core.vbs` — Global/Offline Address List lookups and name extraction helpers
   helpers for personalised deliveries.
+- `utilities/haoran_qin_directory_probe.vbs` — diagnostic harness that exercises the name resolution
+  pipeline for a supplied display name (defaulting to "Haoran Qin") and prints every probing step,
+  including recipient resolve attempts, directory enumeration, and contact-folder scans.
 
 If any module is missing the loader prints a warning before continuing, making it easier to diagnose
 segmentation issues without digging through the main script.
@@ -123,3 +126,11 @@ The script then:
 
 Activity is logged to `InductionMailer.log` in the repository root. Your default Outlook signature
 (including embedded graphics) is appended automatically.
+
+## Regression scenarios
+
+- **Duplicate GAL display names** — Create two address book entries that share the same display name
+  (differentiate them with unique SMTP addresses or aliases). Run
+  `cscript //nologo utilities\gal_address_lookup.vbs "name:Shared Display Name"`, substituting the
+  duplicated name, and confirm the tool reports `Resolution status: Found` with a populated
+  `Directory source` instead of `Resolution status: Not found`.
