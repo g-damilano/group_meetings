@@ -288,8 +288,12 @@ Function ApplyLinkMap(htmlBody, mapPath)
 End Function
 
 Function LoadHtmlFromSource(src)
+  Dim lowerSrc: lowerSrc = LCase(Trim(src))
   Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-  If fso.FileExists(src) Then
+
+  If Left(lowerSrc, 7) = "http://" Or Left(lowerSrc, 8) = "https://" Then
+    LoadHtmlFromSource = HttpGetUtf8(src)
+  ElseIf fso.FileExists(src) Then
     LoadHtmlFromSource = ReadUTF8File(src)
   Else
     LoadHtmlFromSource = src
@@ -304,6 +308,26 @@ Function ReadUTF8File(filePath)
   stream.LoadFromFile filePath
   ReadUTF8File = stream.ReadText
   stream.Close
+End Function
+
+Function HttpGetUtf8(url)
+  Dim xhr: Set xhr = CreateObject("MSXML2.XMLHTTP")
+  xhr.Open "GET", url, False
+  xhr.Send
+
+  If xhr.Status = 200 Then
+    Dim stream: Set stream = CreateObject("ADODB.Stream")
+    stream.Type = 1
+    stream.Open
+    stream.Write xhr.responseBody
+    stream.Position = 0
+    stream.Type = 2
+    stream.Charset = "utf-8"
+    HttpGetUtf8 = stream.ReadText
+    stream.Close
+  Else
+    HttpGetUtf8 = "<p>Failed to load template. HTTP " & xhr.Status & "</p>"
+  End If
 End Function
 
 Function GetOutlookApp()

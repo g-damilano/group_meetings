@@ -6,57 +6,50 @@ SetLocale 1033
 
 Function CreateMail(toAddr, ccAddr, bccAddr, subjectText, htmlBody, attachPaths, _
                     action, savePath, templateSource, inlineImgFolder, deferMinutes, logPath)
-  On Error Resume Next
-  If Len(Trim(logPath)) = 0 Then logPath = DefaultLogPath()
-  LogAction logPath, "Mailer (dynamic links) active."
+  Dim fallbackLogPath: fallbackLogPath = MailUtilsResolveLogPath(logPath)
 
-  If Not EnsureMailComposerLoaded() Then
-    LogAction logPath, "ERROR: Shared mail composer module could not be loaded."
+  If Not EnsureMailDeliveryCoreLoaded() Then
+    MailUtilsFallbackLog fallbackLogPath, "ERROR: mail_delivery_core.vbs could not be loaded."
     CreateMail = False
     Exit Function
   End If
 
-  Dim fso, scriptFolder, bodyHtml, mapPath, options
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(scriptFolder) = 0 Then scriptFolder = "."
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim config: Set config = CreateObject("Scripting.Dictionary")
 
-  If Len(Trim(templateSource)) > 0 Then
-    bodyHtml = LoadHtmlFromSource(templateSource)
-  Else
-    bodyHtml = htmlBody
-  End If
+  config("To") = toAddr
+  config("Cc") = ccAddr
+  config("Bcc") = bccAddr
+  config("Subject") = subjectText
+  config("BodyHtml") = htmlBody
+  config("Action") = action
+  config("SavePath") = savePath
+  config("DeferMinutes") = deferMinutes
+  config("LogPath") = logPath
 
-  mapPath = fso.BuildPath(scriptFolder, "links_map.txt")
-  bodyHtml = ApplyLinkMap(bodyHtml, mapPath)
+  If Len(Trim(templateSource)) > 0 Then config("TemplateSource") = templateSource
+  If Len(Trim(inlineImgFolder)) > 0 Then config("InlineImageFolder") = inlineImgFolder
+  If Not IsEmpty(attachPaths) Then config("Attachments") = attachPaths
 
-  Set options = CreateObject("Scripting.Dictionary")
-  options("To") = toAddr
-  options("Cc") = ccAddr
-  options("Bcc") = bccAddr
-  options("Subject") = subjectText
-  options("BodyHtml") = bodyHtml
-  options("InlineImageFolder") = inlineImgFolder
-  options("Action") = action
-  options("SavePath") = savePath
-  options("DeferMinutes") = deferMinutes
-  options("LogPath") = logPath
-  If Not IsEmpty(attachPaths) Then options("Attachments") = attachPaths
-  Set options("LogHandler") = GetRef("LogAction")
+  Dim scriptFolder: scriptFolder = MailDeliveryScriptFolder(fso)
+  Dim linkMapPath: linkMapPath = fso.BuildPath(scriptFolder, "links_map.txt")
+  If fso.FileExists(linkMapPath) Then config("LinkMapPath") = linkMapPath
 
-  Dim ok: ok = ComposeAndSendMail(options)
+  Dim resolvedLogPath: resolvedLogPath = MailDeliveryResolveLogPath(config, fso)
+  config("LogPath") = resolvedLogPath
 
-  If Not ok Then LogAction logPath, "CreateMail reported failure for subject: " & subjectText
+  MailDeliveryLog resolvedLogPath, "Mailer (dynamic links) active."
+
+  Dim ok: ok = MailDeliveryExecute(config)
   CreateMail = ok
-  On Error GoTo 0
 End Function
 
-Function EnsureMailComposerLoaded()
+Function EnsureMailDeliveryCoreLoaded()
   On Error Resume Next
   Dim existing
-  Set existing = GetRef("ComposeAndSendMail")
+  Set existing = GetRef("MailDeliveryExecute")
   If Err.Number = 0 Then
-    EnsureMailComposerLoaded = True
+    EnsureMailDeliveryCoreLoaded = True
     Set existing = Nothing
     On Error GoTo 0
     Exit Function
@@ -72,14 +65,14 @@ Function EnsureMailComposerLoaded()
   If Len(parentFolder) > 0 Then grandParent = fso.GetParentFolderName(parentFolder)
 
   Dim candidates(2)
-  candidates(0) = fso.BuildPath(scriptFolder, "utilities\mail_composer.vbs")
+  candidates(0) = fso.BuildPath(scriptFolder, "utilities\mail_delivery_core.vbs")
   If Len(parentFolder) > 0 Then
-    candidates(1) = fso.BuildPath(parentFolder, "utilities\mail_composer.vbs")
+    candidates(1) = fso.BuildPath(parentFolder, "utilities\mail_delivery_core.vbs")
   Else
     candidates(1) = ""
   End If
   If Len(grandParent) > 0 Then
-    candidates(2) = fso.BuildPath(grandParent, "utilities\mail_composer.vbs")
+    candidates(2) = fso.BuildPath(grandParent, "utilities\mail_delivery_core.vbs")
   Else
     candidates(2) = ""
   End If
@@ -93,27 +86,30 @@ Function EnsureMailComposerLoaded()
         contents = ts.ReadAll
         ts.Close
         ExecuteGlobal contents
-        EnsureMailComposerLoaded = True
+        EnsureMailDeliveryCoreLoaded = True
         Exit Function
       End If
     End If
   Next
 
-  EnsureMailComposerLoaded = False
+  EnsureMailDeliveryCoreLoaded = False
 End Function
 
-Function DefaultLogPath()
-  Dim fso, scriptFolder
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(scriptFolder) = 0 Then scriptFolder = "."
-  DefaultLogPath = scriptFolder & "\mail_util.log"
+Function MailUtilsResolveLogPath(candidate)
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(folder) = 0 Then folder = "."
+  If Len(Trim(candidate)) = 0 Then
+    MailUtilsResolveLogPath = fso.BuildPath(folder, "mail_util.log")
+  Else
+    MailUtilsResolveLogPath = candidate
+  End If
 End Function
 
-Sub LogAction(logPath, message)
+Sub MailUtilsFallbackLog(logPath, message)
   On Error Resume Next
-  Dim fso, f: Set fso = CreateObject("Scripting.FileSystemObject")
-  Dim ts: Set f = fso.OpenTextFile(logPath, 8, True)
-  f.WriteLine Now & "  " & message
-  f.Close
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim stream: Set stream = fso.OpenTextFile(logPath, 8, True)
+  stream.WriteLine Now & "  " & message
+  stream.Close
 End Sub

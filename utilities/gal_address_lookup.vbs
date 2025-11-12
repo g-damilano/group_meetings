@@ -71,6 +71,23 @@ Sub Main()
   End If
 End Sub
 
+Sub RequireBootstrapModules(modulePaths)
+  Dim loadError: loadError = ""
+
+  On Error Resume Next
+  Execute "Call LoadBootstrapModules(modulePaths)"
+  If Err.Number <> 0 Then
+    loadError = Err.Description
+    Err.Clear
+  End If
+  On Error GoTo 0
+
+  If Len(loadError) > 0 Then
+    WScript.Echo "Fatal: unable to invoke LoadBootstrapModules: " & loadError
+    WScript.Quit 1
+  End If
+End Sub
+
 Function ParseLookupExpression(text)
   Dim result: Set result = CreateObject("Scripting.Dictionary")
   result("Field") = "auto"

@@ -6,51 +6,47 @@ SetLocale 1033
 
 Function CreateMail(toAddr, ccAddr, bccAddr, subjectText, htmlBody, attachPaths, _
                     action, savePath, templateSource, inlineImgFolder, deferMinutes, logPath)
-  On Error Resume Next
-  If Len(Trim(logPath)) = 0 Then logPath = DefaultLogPath()
-  LogAction logPath, "Mailer (fixsig) active."
+  Dim fallbackLogPath: fallbackLogPath = MailerResolveLogPath(logPath)
 
-  If Not EnsureMailComposerLoaded() Then
-    LogAction logPath, "ERROR: Shared mail composer module could not be loaded."
+  If Not EnsureMailDeliveryCoreLoaded() Then
+    MailerFallbackLog fallbackLogPath, "ERROR: mail_delivery_core.vbs could not be loaded."
     CreateMail = False
     Exit Function
   End If
 
-  Dim bodyHtml
-  If Len(Trim(templateSource)) > 0 Then
-    bodyHtml = LoadHtmlFromSource(templateSource)
-  Else
-    bodyHtml = htmlBody
-  End If
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim config: Set config = CreateObject("Scripting.Dictionary")
 
-  Dim options: Set options = CreateObject("Scripting.Dictionary")
-  options("To") = toAddr
-  options("Cc") = ccAddr
-  options("Bcc") = bccAddr
-  options("Subject") = subjectText
-  options("BodyHtml") = bodyHtml
-  options("InlineImageFolder") = inlineImgFolder
-  options("Action") = action
-  options("SavePath") = savePath
-  options("DeferMinutes") = deferMinutes
-  options("LogPath") = logPath
-  Set options("LogHandler") = GetRef("LogAction")
-  Set options("SignatureProvider") = GetRef("LoadSignatureWithImages_AutoCharset")
-  If Not IsEmpty(attachPaths) Then options("Attachments") = attachPaths
+  config("To") = toAddr
+  config("Cc") = ccAddr
+  config("Bcc") = bccAddr
+  config("Subject") = subjectText
+  config("BodyHtml") = htmlBody
+  config("Action") = action
+  config("SavePath") = savePath
+  config("DeferMinutes") = deferMinutes
+  config("LogPath") = logPath
+  Set config("SignatureProvider") = GetRef("MailDeliveryLoadSignatureAutoCharset")
 
-  Dim ok: ok = ComposeAndSendMail(options)
+  If Len(Trim(templateSource)) > 0 Then config("TemplateSource") = templateSource
+  If Len(Trim(inlineImgFolder)) > 0 Then config("InlineImageFolder") = inlineImgFolder
+  If Not IsEmpty(attachPaths) Then config("Attachments") = attachPaths
 
-  If Not ok Then LogAction logPath, "CreateMail reported failure for subject: " & subjectText
+  Dim resolvedLogPath: resolvedLogPath = MailDeliveryResolveLogPath(config, fso)
+  config("LogPath") = resolvedLogPath
+
+  MailDeliveryLog resolvedLogPath, "Mailer (fixsig) active."
+
+  Dim ok: ok = MailDeliveryExecute(config)
   CreateMail = ok
-  On Error GoTo 0
 End Function
 
-Function EnsureMailComposerLoaded()
+Function EnsureMailDeliveryCoreLoaded()
   On Error Resume Next
   Dim existing
-  Set existing = GetRef("ComposeAndSendMail")
+  Set existing = GetRef("MailDeliveryExecute")
   If Err.Number = 0 Then
-    EnsureMailComposerLoaded = True
+    EnsureMailDeliveryCoreLoaded = True
     Set existing = Nothing
     On Error GoTo 0
     Exit Function
@@ -66,14 +62,14 @@ Function EnsureMailComposerLoaded()
   If Len(parentFolder) > 0 Then grandParent = fso.GetParentFolderName(parentFolder)
 
   Dim candidates(2)
-  candidates(0) = fso.BuildPath(scriptFolder, "utilities\mail_composer.vbs")
+  candidates(0) = fso.BuildPath(scriptFolder, "utilities\mail_delivery_core.vbs")
   If Len(parentFolder) > 0 Then
-    candidates(1) = fso.BuildPath(parentFolder, "utilities\mail_composer.vbs")
+    candidates(1) = fso.BuildPath(parentFolder, "utilities\mail_delivery_core.vbs")
   Else
     candidates(1) = ""
   End If
   If Len(grandParent) > 0 Then
-    candidates(2) = fso.BuildPath(grandParent, "utilities\mail_composer.vbs")
+    candidates(2) = fso.BuildPath(grandParent, "utilities\mail_delivery_core.vbs")
   Else
     candidates(2) = ""
   End If
@@ -87,131 +83,30 @@ Function EnsureMailComposerLoaded()
         contents = ts.ReadAll
         ts.Close
         ExecuteGlobal contents
-        EnsureMailComposerLoaded = True
+        EnsureMailDeliveryCoreLoaded = True
         Exit Function
       End If
     End If
   Next
 
-  EnsureMailComposerLoaded = False
+  EnsureMailDeliveryCoreLoaded = False
 End Function
 
-Function LoadSignatureWithImages_AutoCharset(olMail)
-  Dim fso, shell, sigPath, folder, file, sigHTML, sigFile, baseName, imgFolder, imgFile, att, imgName, cid
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  Set shell = CreateObject("WScript.Shell")
-  sigPath = shell.ExpandEnvironmentStrings("%APPDATA%") & "\Microsoft\Signatures\"
-  sigHTML = ""
-
-  If fso.FolderExists(sigPath) Then
-    Set folder = fso.GetFolder(sigPath)
-    Dim found: found = False
-    For Each file In folder.Files
-      If LCase(fso.GetExtensionName(file.Name)) = "htm" Then
-        sigFile = file.Path
-        baseName = fso.GetBaseName(file.Name)
-        sigHTML = ReadHtmlAuto(sigFile) ' << auto-detect charset here
-        found = True
-        Exit For
-      End If
-    Next
-    If Not found Then Exit Function
+Function MailerResolveLogPath(candidate)
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(folder) = 0 Then folder = "."
+  If Len(Trim(candidate)) = 0 Then
+    MailerResolveLogPath = fso.BuildPath(folder, "mail_util.log")
   Else
-    Exit Function
+    MailerResolveLogPath = candidate
   End If
-
-  imgFolder = sigPath & baseName & ".files"
-  If fso.FolderExists(imgFolder) Then
-    For Each imgFile In fso.GetFolder(imgFolder).Files
-      imgName = fso.GetFileName(imgFile.Name)
-      cid = Replace(imgName, " ", "_")
-      Set att = olMail.Attachments.Add(imgFile.Path)
-      att.PropertyAccessor.SetProperty PR_ATTACH_CONTENT_ID, cid
-      sigHTML = Replace(sigHTML, baseName & ".files/" & imgName, "cid:" & cid)
-      sigHTML = Replace(sigHTML, baseName & ".files\" & imgName, "cid:" & cid)
-    Next
-  End If
-
-  LoadSignatureWithImages_AutoCharset = sigHTML
 End Function
 
-Function DetectHtmlCharset(filePath)
+Sub MailerFallbackLog(logPath, message)
   On Error Resume Next
-  Dim s : Set s = CreateObject("ADODB.Stream")
-  s.Type = 2 : s.Charset = "windows-1252" : s.Open : s.LoadFromFile filePath
-  Dim header : header = LCase(Left(s.ReadText, 1024))
-  s.Close
-  Dim charset : charset = ""
-
-  Dim re: Set re = CreateObject("VBScript.RegExp")
-  re.Global = False : re.IgnoreCase = True
-  re.Pattern = "charset\s*=\s*([a-z0-9\-\_]+)"
-  Dim m: Set m = re.Execute(header)
-  If m.Count > 0 Then
-    charset = LCase(m(0).SubMatches(0))
-  End If
-
-  If charset = "" Then
-    ' Heuristic: many Outlook signatures are ANSI (1252)
-    DetectHtmlCharset = "windows-1252"
-  ElseIf charset = "utf8" Then
-    DetectHtmlCharset = "utf-8"
-  Else
-    DetectHtmlCharset = charset
-  End If
-End Function
-
-Function ReadHtmlAuto(filePath)
-  On Error Resume Next
-  Dim cs: cs = DetectHtmlCharset(filePath)
-  Dim s : Set s = CreateObject("ADODB.Stream")
-  s.Type = 2 : s.Charset = cs : s.Open : s.LoadFromFile filePath
-  Dim txt : txt = s.ReadText : s.Close
-
-  ' Fallback heuristic: if mojibake markers present and we used 1252, try UTF-8
-  If cs = "windows-1252" Then
-    If (InStr(txt, "Ã")>0) Or (InStr(txt, "â€”")>0) Or (InStr(txt, "â€œ")>0) Or (InStr(txt, "â€™")>0) Then
-      Dim s2: Set s2 = CreateObject("ADODB.Stream")
-      s2.Type = 2 : s2.Charset = "utf-8" : s2.Open : s2.LoadFromFile filePath
-      Dim t2: t2 = s2.ReadText : s2.Close
-      ' choose whichever has fewer markers
-      If MarkerCount(t2) < MarkerCount(txt) Then txt = t2
-    End If
-  End If
-  ReadHtmlAuto = txt
-End Function
-
-Function MarkerCount(s)
-  Dim c: c = 0
-  c = c + CountOf(s, "Ã")
-  c = c + CountOf(s, "Â")
-  c = c + CountOf(s, "â€”") + CountOf(s, "â€“") + CountOf(s, "â€œ") + CountOf(s, "â€�") + CountOf(s, "â€˜") + CountOf(s, "â€™") + CountOf(s, "â€¦")
-  MarkerCount = c
-End Function
-
-Function CountOf(s, token)
-  Dim p, n: p = 1: n = 0
-  Do
-    p = InStr(p, s, token)
-    If p = 0 Then Exit Do
-    n = n + 1
-    p = p + Len(token)
-  Loop
-  CountOf = n
-End Function
-
-Function DefaultLogPath()
-  Dim fso, scriptFolder
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(scriptFolder) = 0 Then scriptFolder = "."
-  DefaultLogPath = scriptFolder & "\mail_util.log"
-End Function
-
-Sub LogAction(logPath, message)
-  On Error Resume Next
-  Dim fso, f: Set fso = CreateObject("Scripting.FileSystemObject")
-  Dim ts: Set f = fso.OpenTextFile(logPath, 8, True)
-  f.WriteLine Now & "  " & message
-  f.Close
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim stream: Set stream = fso.OpenTextFile(logPath, 8, True)
+  stream.WriteLine Now & "  " & message
+  stream.Close
 End Sub
