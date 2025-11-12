@@ -43,17 +43,15 @@ ExecuteGlobal bootstrapContents
 Call Main()
 
 Sub Main()
-  Call LoadBootstrapModules(Array( _
-    "common_console.vbs", _
-    "mail_collections.vbs", _
-    "mail_template_utils.vbs", _
-    "common_outlook.vbs", _
-    "mail_input_validation.vbs", _
-    "mail_name_resolution_prompt.vbs", _
-    "mail_name_resolution_text.vbs", _
-    "mail_name_resolution_directory.vbs", _
-    "mail_name_resolution_core.vbs", _
-    "mail_name_resolution_console.vbs"))
+  Dim scriptFolder: scriptFolder = GetScriptFolder()
+  Call LoadModule(scriptFolder, "common_bootstrap.vbs")
+  Call LoadModule(scriptFolder, "common_console.vbs")
+  Call LoadModule(scriptFolder, "mail_collections.vbs")
+  Call LoadModule(scriptFolder, "mail_template_utils.vbs")
+  Call LoadModule(scriptFolder, "common_outlook.vbs")
+  Call LoadModule(scriptFolder, "mail_input_validation.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_loader.vbs")
+  Call LoadNameResolutionModules(scriptFolder)
 
   If Not EnsureConsoleHost() Then Exit Sub
 
