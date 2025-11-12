@@ -51,14 +51,9 @@ Sub Main()
     "mail_input_validation.vbs", _
     "mail_name_resolution_loader.vbs"))
 
-  Dim scriptFolder: scriptFolder = GetScriptFolder()
-  Call LoadModule(scriptFolder, "common_bootstrap.vbs")
-  Call LoadModule(scriptFolder, "mail_collections.vbs")
-  Call LoadModule(scriptFolder, "mail_template_utils.vbs")
-  Call LoadModule(scriptFolder, "common_outlook.vbs")
-  Call LoadModule(scriptFolder, "mail_input_validation.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_loader.vbs")
-  Call LoadNameResolutionModules(scriptFolder)
+  Call LoadNameResolutionModules("")
+
+  If Not EnsureConsoleHost() Then Exit Sub
 
   Dim target: target = "Haoran Qin"
   Dim baselineEmail: baselineEmail = "haoran.qin22@imperial.ac.uk"
