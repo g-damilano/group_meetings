@@ -48,6 +48,7 @@ Function ResolveNameFromEmail(emailAddress)
   Dim recip: Set recip = ns.CreateRecipient(emailAddress)
   recip.Resolve
   If recip.Resolved Then
+    Call RecordRecipientResolutionResponse("Email recipient resolve ('" & trimmedEmail & "')", recip)
     info("Found") = True
     Call ApplyFullNameCandidate(info, recip.Name, emailAddress)
     info("DirectorySource") = "Recipient resolve"

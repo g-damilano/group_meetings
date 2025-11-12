@@ -1,5 +1,87 @@
 ' Directory lookup utilities for mail name resolution
 
+Dim gLookupResponseRecorder
+
+Sub SetLookupResponseRecorder(recorder)
+  Set gLookupResponseRecorder = Nothing
+  If IsObject(recorder) Then
+    Set gLookupResponseRecorder = recorder
+  End If
+End Sub
+
+Sub ClearLookupResponseRecorder()
+  Set gLookupResponseRecorder = Nothing
+End Sub
+
+Sub RecordLookupResponse(listName, fieldName, entry)
+  If Not IsObject(gLookupResponseRecorder) Then Exit Sub
+
+  Dim summary: summary = BuildLookupResponseSummary(listName, fieldName, entry)
+
+  On Error Resume Next
+  gLookupResponseRecorder.Add summary
+  On Error GoTo 0
+End Sub
+
+Sub RecordRecipientResolutionResponse(label, recipient)
+  If Not IsObject(gLookupResponseRecorder) Then Exit Sub
+
+  Dim entry: Set entry = Nothing
+  Dim entrySummary: entrySummary = "(no address entry)"
+
+  If Not recipient Is Nothing Then
+    On Error Resume Next
+    Set entry = recipient.AddressEntry
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set entry = Nothing
+    End If
+    On Error GoTo 0
+  End If
+
+  If Not entry Is Nothing Then entrySummary = DescribeAddressEntry(entry)
+
+  Dim resolvedName: resolvedName = ""
+  Dim resolvedAddress: resolvedAddress = ""
+
+  If Not recipient Is Nothing Then
+    On Error Resume Next
+    resolvedName = SafeText(recipient.Name)
+    If Err.Number <> 0 Then
+      Err.Clear
+      resolvedName = ""
+    End If
+    resolvedAddress = SafeText(recipient.Address)
+    If Err.Number <> 0 Then
+      Err.Clear
+      resolvedAddress = ""
+    End If
+    On Error GoTo 0
+  End If
+
+  Dim detail: detail = Trim(label)
+  If Len(resolvedName) > 0 Then detail = detail & " -> Name: " & resolvedName
+  If Len(resolvedAddress) > 0 Then detail = detail & ", Address: " & resolvedAddress
+  detail = detail & " (" & entrySummary & ")"
+
+  On Error Resume Next
+  gLookupResponseRecorder.Add detail
+  On Error GoTo 0
+End Sub
+
+Function BuildLookupResponseSummary(listName, fieldName, entry)
+  Dim effectiveList: effectiveList = Trim(SafeText(listName))
+  If Len(effectiveList) = 0 Then effectiveList = "(unknown list)"
+
+  Dim effectiveField: effectiveField = Trim(SafeText(fieldName))
+  If Len(effectiveField) = 0 Then effectiveField = "(unknown field)"
+
+  Dim entrySummary: entrySummary = DescribeAddressEntry(entry)
+  If Len(entrySummary) = 0 Then entrySummary = "(no entry information)"
+
+  BuildLookupResponseSummary = "List '" & effectiveList & "' field '" & effectiveField & "' => " & entrySummary
+End Function
+
 Sub RecordDirectoryAttempt(info, label)
   If info Is Nothing Then Exit Sub
 
@@ -609,13 +691,17 @@ Sub PopulateNameFromAddressLists(ns, emailAddress, info)
       Set exch = Nothing
       Set contact = Nothing
       Set entry = addressList.AddressEntries.Find("[SMTPAddress] = '" & emailAddress & "'")
-      If Err.Number <> 0 Then
+      If Err.Number = 0 Then
+        If Not entry Is Nothing Then Call RecordLookupResponse(listNames(i), "SMTPAddress", entry)
+      Else
         Err.Clear
         Set entry = Nothing
       End If
       If entry Is Nothing Then
         Set entry = addressList.AddressEntries.Find("[EmailAddress] = '" & emailAddress & "'")
-        If Err.Number <> 0 Then
+        If Err.Number = 0 Then
+          If Not entry Is Nothing Then Call RecordLookupResponse(listNames(i), "EmailAddress", entry)
+        Else
           Err.Clear
           Set entry = Nothing
         End If
@@ -1032,6 +1118,7 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
   Dim beforeFull: beforeFull = SafeText(info("Full"))
 
   Dim aggregate: Set aggregate = CreateObject("System.Collections.ArrayList")
+
   Dim seen: Set seen = CreateObject("Scripting.Dictionary")
   On Error Resume Next
   seen.CompareMode = 1
@@ -1448,6 +1535,8 @@ Sub AttemptAliasRecipientResolve(ns, aliasValue, info, emailAddress)
 
   If Not recipient.Resolved Then Exit Sub
 
+  Call RecordRecipientResolutionResponse("Alias recipient resolve ('" & trimmedAlias & "')", recipient)
+
   info("Found") = True
 
   Dim exch: Set exch = Nothing
@@ -1528,6 +1617,7 @@ Sub AttemptRecipientResolveForValue(ns, rawValue, info, descriptor)
   End If
 
   If resolvedOk Then
+    Call RecordRecipientResolutionResponse(label, recipient)
     Set exch = recipient.AddressEntry.GetExchangeUser()
     If Err.Number <> 0 Then
       Err.Clear
@@ -1614,6 +1704,15 @@ Function CollectAddressEntriesByFilters(addressList, filters)
   If addressList Is Nothing Then Exit Function
   If Not IsArray(filters) Then Exit Function
 
+  Dim listLabel: listLabel = ""
+  On Error Resume Next
+  listLabel = SafeText(addressList.Name)
+  If Err.Number <> 0 Then
+    Err.Clear
+    listLabel = ""
+  End If
+  On Error GoTo 0
+
   Dim seen: Set seen = CreateObject("Scripting.Dictionary")
   On Error Resume Next
   seen.CompareMode = 1
@@ -1627,6 +1726,7 @@ Function CollectAddressEntriesByFilters(addressList, filters)
       Set entry = addressList.AddressEntries.Find(filterText)
       If Err.Number = 0 Then
         Do While Not entry Is Nothing
+          Call RecordLookupResponse(listLabel, filterText, entry)
           Call AddAddressEntryToCollection(results, entry, seen)
           Set entry = addressList.AddressEntries.FindNext()
           If Err.Number <> 0 Then
@@ -1655,6 +1755,15 @@ Function CollectAddressEntriesByFields(addressList, fieldNames, searchValue)
 
   Dim query: query = EscapeRestrictionValue(trimmed)
 
+  Dim listLabel: listLabel = ""
+  On Error Resume Next
+  listLabel = SafeText(addressList.Name)
+  If Err.Number <> 0 Then
+    Err.Clear
+    listLabel = ""
+  End If
+  On Error GoTo 0
+
   Dim seen: Set seen = CreateObject("Scripting.Dictionary")
   On Error Resume Next
   seen.CompareMode = 1
@@ -1668,6 +1777,7 @@ Function CollectAddressEntriesByFields(addressList, fieldNames, searchValue)
       Set entry = addressList.AddressEntries.Find("[" & field & "] = '" & query & "'")
       If Err.Number = 0 Then
         Do While Not entry Is Nothing
+          Call RecordLookupResponse(listLabel, field, entry)
           Call AddAddressEntryToCollection(results, entry, seen)
           Set entry = addressList.AddressEntries.FindNext()
           If Err.Number <> 0 Then
