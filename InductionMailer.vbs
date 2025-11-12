@@ -4,31 +4,39 @@ SetLocale 1033
 '======================================================================
 ' Bootstrap shared utilities
 '======================================================================
-Dim bootstrapFso: Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
-Dim bootstrapModulePath: bootstrapModulePath = LocateBootstrapModule(bootstrapFso, WScript.ScriptFullName)
+Call BootstrapSharedUtilities()
 
-If Len(bootstrapModulePath) = 0 Then
-  WScript.Echo "Fatal: unable to locate utilities\\common_bootstrap.vbs"
-  WScript.Quit 1
-End If
+Sub BootstrapSharedUtilities()
+  Dim loaderFso: Set loaderFso = CreateObject("Scripting.FileSystemObject")
+  Dim loaderPath: loaderPath = BootstrapLocateNearest(loaderFso, WScript.ScriptFullName, _
+    Array("utilities\\bootstrap_loader.vbs", "bootstrap_loader.vbs"))
 
-ExecuteGlobal ReadAllText(bootstrapFso, bootstrapModulePath)
+  If Len(loaderPath) = 0 Then
+    WScript.Echo "Fatal: unable to locate utilities\\bootstrap_loader.vbs"
+    WScript.Quit 1
+  End If
 
-Set bootstrapFso = Nothing
+  ExecuteGlobal BootstrapReadAllText(loaderFso, loaderPath)
+  Call EnsureCommonBootstrapLoaded(loaderFso)
+  Set loaderFso = Nothing
+End Sub
 
-Function LocateBootstrapModule(fso, scriptPath)
+Function BootstrapLocateNearest(fso, scriptPath, relativeTargets)
+  BootstrapLocateNearest = ""
+  If fso Is Nothing Then Exit Function
+
   Dim startFolder: startFolder = fso.GetParentFolderName(scriptPath)
   If Len(startFolder) = 0 Then startFolder = "."
 
-  Dim searchTargets: searchTargets = Array("utilities\\common_bootstrap.vbs", "common_bootstrap.vbs")
-  Dim currentFolder: currentFolder = startFolder
+  If Not IsArray(relativeTargets) Then Exit Function
 
+  Dim currentFolder: currentFolder = startFolder
   Do While Len(currentFolder) > 0
-    Dim i
-    For i = LBound(searchTargets) To UBound(searchTargets)
-      Dim candidate: candidate = fso.BuildPath(currentFolder, searchTargets(i))
+    Dim idx
+    For idx = LBound(relativeTargets) To UBound(relativeTargets)
+      Dim candidate: candidate = fso.BuildPath(currentFolder, relativeTargets(idx))
       If fso.FileExists(candidate) Then
-        LocateBootstrapModule = candidate
+        BootstrapLocateNearest = candidate
         Exit Function
       End If
     Next
@@ -37,13 +45,11 @@ Function LocateBootstrapModule(fso, scriptPath)
     If StrComp(parentFolder, currentFolder, vbTextCompare) = 0 Then Exit Do
     currentFolder = parentFolder
   Loop
-
-  LocateBootstrapModule = ""
 End Function
 
-Function ReadAllText(fso, filePath)
+Function BootstrapReadAllText(fso, filePath)
   Dim stream: Set stream = fso.OpenTextFile(filePath, 1)
-  ReadAllText = stream.ReadAll
+  BootstrapReadAllText = stream.ReadAll
   stream.Close
 End Function
 
