@@ -748,13 +748,25 @@ Sub RecordBaselineEntry(baseline, bucket, entry)
   Dim summary: summary = DescribeAddressEntry(entry)
   Dim list
   If baseline.Exists(key) Then
-    Set list = baseline(key)
-  Else
-    Set list = CreateObject("System.Collections.ArrayList")
-    baseline.Add key, list
+    If IsObject(baseline(key)) Then
+      Set list = baseline(key)
+    Else
+      Set list = Nothing
+    End If
   End If
 
-  If list.IndexOf(summary) = -1 Then list.Add summary
+  If list Is Nothing Then
+    Set list = CreateObject("System.Collections.ArrayList")
+    If baseline.Exists(key) Then
+      Set baseline(key) = list
+    Else
+      baseline.Add key, list
+    End If
+  End If
+
+  If TypeName(list) = "ArrayList" Then
+    If Not ContainsInArrayList(list, summary) Then list.Add summary
+  End If
 End Sub
 
 Sub AppendAddressEntries(targetList, sourceList, seen)
