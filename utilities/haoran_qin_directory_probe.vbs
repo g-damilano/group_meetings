@@ -1260,35 +1260,6 @@ Sub AddProbe(list, seen, value, reason)
   list.Add probe
 End Sub
 
-Function DescribeBoolean(info, key)
-  Dim defaultText: defaultText = "Unknown"
-  If info Is Nothing Then
-    DescribeBoolean = defaultText
-    Exit Function
-  End If
-
-  If info.Exists(key) Then
-    If CBool(info(key)) Then
-      DescribeBoolean = "Found"
-    Else
-      DescribeBoolean = "Not found"
-    End If
-  Else
-    DescribeBoolean = defaultText
-  End If
-End Function
-
-Function DescribeField(info, key, placeholder)
-  Dim text: text = placeholder
-  If Not info Is Nothing Then
-    If info.Exists(key) Then
-      Dim candidate: candidate = SafeText(info(key))
-      If Len(candidate) > 0 Then text = candidate
-    End If
-  End If
-  DescribeField = text
-End Function
-
 Sub SummarizeBaselineComparison(baseline)
   WScript.Echo ""
   WScript.Echo "Baseline summary and comparison"
