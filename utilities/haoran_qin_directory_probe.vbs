@@ -7,7 +7,6 @@ Sub Main()
   If Not EnsureConsoleHost() Then Exit Sub
 
   Dim scriptFolder: scriptFolder = GetScriptFolder()
-  Call LoadModule(scriptFolder, "mail_utils.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
@@ -16,14 +15,20 @@ Sub Main()
   Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
 
   Dim target: target = "Haoran Qin"
+  Dim baselineEmail: baselineEmail = "haoran.qin22@imperial.ac.uk"
   Dim argCount: argCount = WScript.Arguments.Count
   If argCount > 0 Then
     Dim firstArg: firstArg = Trim(WScript.Arguments(0))
     If Len(firstArg) > 0 Then target = firstArg
+    If argCount > 1 Then
+      Dim secondArg: secondArg = Trim(WScript.Arguments(1))
+      If Len(secondArg) > 0 Then baselineEmail = secondArg
+    End If
   End If
 
   WScript.Echo "=== Haoran Qin Directory Diagnostic ==="
   WScript.Echo "Target lookup value: '" & target & "'"
+  WScript.Echo "Baseline email value: '" & baselineEmail & "'"
   WScript.Echo "Timestamp: " & Now
 
   Dim olApp: Set olApp = GetOutlookApp()
@@ -50,6 +55,13 @@ Sub Main()
 
   Call OutputComponentSummary(components, tokens)
 
+  Dim baseline: Set baseline = CreateObject("Scripting.Dictionary")
+  On Error Resume Next
+  baseline.CompareMode = 1
+  On Error GoTo 0
+
+  Call RunEmailBaselineCheck(ns, baselineEmail, baseline)
+
   Dim autoInfo: Set autoInfo = ResolveNameLookup(target, "auto")
   Call DumpResolutionBlock("Step 1 - ResolveNameLookup (auto)", autoInfo, "    ")
 
@@ -60,8 +72,9 @@ Sub Main()
   Call DumpResolutionBlock("Step 3 - ResolveNameFromFullName", fullInfo, "    ")
 
   Call RunRecipientResolveProbes(ns, target, components, tokens)
-  Call RunDisplayEnumerationProbes(ns, target, components, tokens)
-  Call ScanAddressListsForExactMatches(ns, target, components, tokens)
+  Call RunGalDisplayEnumerationProbes(ns, target, components, tokens, baseline)
+  Call ScanGalAddressListsForExactMatches(ns, target, components, tokens)
+  Call SummarizeBaselineComparison(baseline)
   Call ScanContactFoldersForTokens(ns, tokens)
 End Sub
 
@@ -100,6 +113,85 @@ Sub OutputComponentSummary(components, tokens)
   End If
 End Sub
 
+Sub RunEmailBaselineCheck(ns, emailAddress, baseline)
+  WScript.Echo ""
+  WScript.Echo "Step 0 - Email baseline verification"
+
+  If Len(Trim(emailAddress)) = 0 Then
+    WScript.Echo "  (No baseline email supplied.)"
+    Exit Sub
+  End If
+
+  WScript.Echo "  Target email: " & emailAddress
+
+  Dim emailInfo: Set emailInfo = ResolveNameFromEmail(emailAddress)
+  Call DumpResolutionBlock("  Email resolution via ResolveNameFromEmail", emailInfo, "    ")
+
+  If Not baseline Is Nothing Then
+    On Error Resume Next
+    baseline.Add "EmailResolutionFull", DescribeField(emailInfo, "Full", "")
+    baseline.Add "EmailResolutionFirst", DescribeField(emailInfo, "First", "")
+    baseline.Add "EmailResolutionLast", DescribeField(emailInfo, "Last", "")
+    baseline.Add "EmailResolutionEmail", DescribeField(emailInfo, "Email", "")
+    On Error GoTo 0
+  End If
+
+  If ns Is Nothing Then
+    WScript.Echo "  (Namespace unavailable; skipping recipient baseline probes.)"
+    Exit Sub
+  End If
+
+  Dim recipient: Set recipient = ns.CreateRecipient(emailAddress)
+  If recipient Is Nothing Then
+    WScript.Echo "  (Failed to create recipient for baseline email.)"
+  Else
+    If recipient.Resolve Then
+      WScript.Echo "  Recipient.Resolve succeeded for baseline email."
+      Call OutputAddressEntrySummary(recipient.AddressEntry, "    ")
+      If Not baseline Is Nothing Then
+        Call RecordBaselineEntry(baseline, "Recipient", recipient.AddressEntry)
+      End If
+    Else
+      WScript.Echo "  Recipient.Resolve FAILED for baseline email."
+    End If
+  End If
+
+  Dim listNames: listNames = GetGalListNames()
+  Dim i
+  For i = LBound(listNames) To UBound(listNames)
+    Dim listName: listName = listNames(i)
+    Dim addressList: Set addressList = OpenAddressList(ns, listName)
+    If addressList Is Nothing Then
+      WScript.Echo "  Address list '" & listName & "' unavailable for email cross-check."
+    Else
+      WScript.Echo "  Address list email lookup: " & listName
+      Dim combined: Set combined = CreateObject("System.Collections.ArrayList")
+      Dim seen: Set seen = CreateObject("Scripting.Dictionary")
+      On Error Resume Next
+      seen.CompareMode = 1
+      On Error GoTo 0
+
+      Call AppendAddressEntries(combined, CollectAddressEntriesByProperty(addressList, "SMTPAddress", emailAddress), seen)
+      Call AppendAddressEntries(combined, CollectAddressEntriesByProperty(addressList, "EmailAddress", emailAddress), seen)
+      Call AppendAddressEntries(combined, CollectAddressEntriesByProperty(addressList, "Address", emailAddress), seen)
+
+      If combined Is Nothing Then
+        WScript.Echo "    (Lookup helper returned Nothing.)"
+      ElseIf combined.Count = 0 Then
+        WScript.Echo "    No entries matched the email address."
+      Else
+        Dim entry
+        For Each entry In combined
+          Call OutputAddressEntrySummary(entry, "    ")
+          If Not baseline Is Nothing Then
+            Call RecordBaselineEntry(baseline, listName, entry)
+          End If
+        Next
+      End If
+    End If
+  Next
+End Sub
+
 Sub RunRecipientResolveProbes(ns, target, components, tokens)
   WScript.Echo ""
   WScript.Echo "Step 4 - Recipient resolution probes"
@@ -129,9 +221,9 @@ Sub RunRecipientResolveProbes(ns, target, components, tokens)
   Next
 End Sub
 
-Sub RunDisplayEnumerationProbes(ns, target, components, tokens)
+Sub RunGalDisplayEnumerationProbes(ns, target, components, tokens, baseline)
   WScript.Echo ""
-  WScript.Echo "Step 5 - Display-name enumeration probes"
+  WScript.Echo "Step 5 - GAL display-name enumeration probes"
 
   Dim probes: Set probes = BuildCandidateProbeList(target, components, tokens)
   If probes Is Nothing Then
@@ -150,24 +242,44 @@ Sub RunDisplayEnumerationProbes(ns, target, components, tokens)
     Dim reason: reason = SafeText(probe("Reason"))
 
     WScript.Echo "  Enumerating address lists for '" & candidate & "' (" & reason & ")"
-    Dim info: Set info = CreateEmptyResolutionInfo()
-    Call EnumerateDirectoryMatchesByDisplayName(ns, candidate, info, reason)
-    Call DumpResolutionDetails(info, "    ")
+    Dim listNames: listNames = GetGalListNames()
+    Dim listIndex
+    For listIndex = LBound(listNames) To UBound(listNames)
+      Dim listName: listName = listNames(listIndex)
+      Dim addressList: Set addressList = OpenAddressList(ns, listName)
+      If addressList Is Nothing Then
+        WScript.Echo "    [" & listName & "] list unavailable."
+      Else
+        Dim matches: Set matches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName", "FileAs", "Alias"), candidate)
+        If matches Is Nothing Then
+          WScript.Echo "    [" & listName & "] helper returned Nothing."
+        ElseIf matches.Count = 0 Then
+          WScript.Echo "    [" & listName & "] no matches."
+        Else
+          WScript.Echo "    [" & listName & "] matches: " & matches.Count
+          Dim entry
+          For Each entry In matches
+            Call OutputAddressEntrySummary(entry, "      ")
+            If Not baseline Is Nothing Then Call RecordBaselineEntry(baseline, listName & " display probe", entry)
+          Next
+        End If
+      End If
+    Next
   Next
 End Sub
 
-Sub ScanAddressListsForExactMatches(ns, target, components, tokens)
+Sub ScanGalAddressListsForExactMatches(ns, target, components, tokens)
   WScript.Echo ""
-  WScript.Echo "Step 6 - Address list exact-match scans"
+  WScript.Echo "Step 6 - GAL exact-match scans"
 
   If ns Is Nothing Then
     WScript.Echo "  (Namespace unavailable.)"
     Exit Sub
   End If
 
-  Dim listNames: listNames = BuildDirectorySearchList(ns)
+  Dim listNames: listNames = GetGalListNames()
   If Not IsArray(listNames) Then
-    WScript.Echo "  (No address lists available for scanning.)"
+    WScript.Echo "  (No GAL lists available for scanning.)"
     Exit Sub
   End If
 
@@ -566,6 +678,160 @@ Function DescribeField(info, key, placeholder)
   DescribeField = text
 End Function
 
+Sub SummarizeBaselineComparison(baseline)
+  WScript.Echo ""
+  WScript.Echo "Baseline summary and comparison"
+
+  If baseline Is Nothing Then
+    WScript.Echo "  (No baseline information recorded.)"
+    Exit Sub
+  End If
+
+  Dim fullName: fullName = SafeText(baselineLookup(baseline, "EmailResolutionFull"))
+  Dim firstName: firstName = SafeText(baselineLookup(baseline, "EmailResolutionFirst"))
+  Dim lastName: lastName = SafeText(baselineLookup(baseline, "EmailResolutionLast"))
+  Dim emailValue: emailValue = SafeText(baselineLookup(baseline, "EmailResolutionEmail"))
+
+  If Len(fullName) > 0 Or Len(emailValue) > 0 Then
+    WScript.Echo "  ResolveNameFromEmail produced:"
+    WScript.Echo "    Display name: " & SafeText(fullName)
+    WScript.Echo "    First name: " & SafeText(firstName)
+    WScript.Echo "    Surname: " & SafeText(lastName)
+    WScript.Echo "    Email: " & SafeText(emailValue)
+  Else
+    WScript.Echo "  (Email baseline resolution returned no fields.)"
+  End If
+
+  Dim key
+  For Each key In baseline.Keys
+    If StrComp(key, "EmailResolutionFull", vbTextCompare) = 0 Then
+      ' already reported
+    ElseIf StrComp(key, "EmailResolutionFirst", vbTextCompare) = 0 Then
+      ' already reported
+    ElseIf StrComp(key, "EmailResolutionLast", vbTextCompare) = 0 Then
+      ' already reported
+    ElseIf StrComp(key, "EmailResolutionEmail", vbTextCompare) = 0 Then
+      ' already reported
+    Else
+      If IsObject(baseline(key)) Then
+        Dim list: Set list = baseline(key)
+        If TypeName(list) = "ArrayList" Then
+          If list.Count > 0 Then
+            WScript.Echo "  Entries recorded from " & key & ":"
+            Dim idx
+            For idx = 0 To list.Count - 1
+              WScript.Echo "    " & list(idx)
+            Next
+          Else
+            WScript.Echo "  Entries recorded from " & key & ": (none)"
+          End If
+        End If
+      End If
+    End If
+  Next
+End Sub
+
+Function baselineLookup(store, key)
+  baselineLookup = ""
+  If store Is Nothing Then Exit Function
+  Dim safeKey: safeKey = Trim(CStr(key))
+  If Len(safeKey) = 0 Then Exit Function
+  If store.Exists(safeKey) Then baselineLookup = store(safeKey)
+End Function
+
+Sub RecordBaselineEntry(baseline, bucket, entry)
+  If baseline Is Nothing Then Exit Sub
+  Dim key: key = Trim(CStr(bucket))
+  If Len(key) = 0 Then key = "(unspecified)"
+  If entry Is Nothing Then Exit Sub
+
+  Dim summary: summary = DescribeAddressEntry(entry)
+  Dim list
+  If baseline.Exists(key) Then
+    Set list = baseline(key)
+  Else
+    Set list = CreateObject("System.Collections.ArrayList")
+    baseline.Add key, list
+  End If
+
+  If list.IndexOf(summary) = -1 Then list.Add summary
+End Sub
+
+Sub AppendAddressEntries(targetList, sourceList, seen)
+  If targetList Is Nothing Then Exit Sub
+  If sourceList Is Nothing Then Exit Sub
+
+  Dim entry
+  For Each entry In sourceList
+    If entry Is Nothing Then
+      ' skip
+    ElseIf seen Is Nothing Then
+      targetList.Add entry
+    Else
+      Dim key: key = BuildAddressEntryTrackingKey(entry)
+      If Len(key) = 0 Then
+        targetList.Add entry
+      ElseIf Not seen.Exists(key) Then
+        seen.Add key, True
+        targetList.Add entry
+      End If
+    End If
+  Next
+End Sub
+
+Function CollectAddressEntriesByProperty(addressList, propertyName, propertyValue)
+  Dim results: Set results = CreateObject("System.Collections.ArrayList")
+  Set CollectAddressEntriesByProperty = results
+
+  If addressList Is Nothing Then Exit Function
+
+  Dim trimmed: trimmed = Trim(propertyValue)
+  If Len(trimmed) = 0 Then Exit Function
+
+  Dim field: field = Trim(propertyName)
+  If Len(field) = 0 Then Exit Function
+
+  Dim query: query = EscapeRestrictionValue(trimmed)
+
+  Dim entry
+  On Error Resume Next
+  Set entry = addressList.AddressEntries.Find("[" & field & "] = '" & query & "'")
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set entry = Nothing
+  End If
+
+  Do While Not entry Is Nothing
+    Call results.Add(entry)
+    Set entry = addressList.AddressEntries.FindNext()
+    If Err.Number <> 0 Then
+      Err.Clear
+      Exit Do
+    End If
+  Loop
+  On Error GoTo 0
+End Function
+
+Function GetGalListNames()
+  GetGalListNames = Array("Global Address List", "Offline Global Address List")
+End Function
+
+Function OpenAddressList(ns, listName)
+  Set OpenAddressList = Nothing
+  If ns Is Nothing Then Exit Function
+
+  Dim trimmed: trimmed = Trim(CStr(listName))
+  If Len(trimmed) = 0 Then Exit Function
+
+  On Error Resume Next
+  Set OpenAddressList = ns.AddressLists(trimmed)
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set OpenAddressList = Nothing
+  End If
+  On Error GoTo 0
+End Function
+
 Function EnsureConsoleHost()
   Dim host: host = LCase(WScript.FullName)
   If InStr(host, "cscript.exe") = 0 Then
@@ -581,6 +847,18 @@ Function GetScriptFolder()
   Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
   If Len(folder) = 0 Then folder = "."
   GetScriptFolder = folder
+End Function
+
+Function GetOutlookApp()
+  Dim app
+  On Error Resume Next
+  Set app = GetObject(, "Outlook.Application")
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set app = CreateObject("Outlook.Application")
+  End If
+  On Error GoTo 0
+  Set GetOutlookApp = app
 End Function
 
 Sub LoadModule(baseFolder, relativePath)
