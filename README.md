@@ -129,22 +129,6 @@ The script then:
 Activity is logged to `InductionMailer.log` in the repository root. Your default Outlook signature
 (including embedded graphics) is appended automatically.
 
-## Diagnostics checklist
-
-Run `python run_diagnostics.py` after any modification to confirm the repository structure and
-template metadata still satisfy the mailer expectations. The script evaluates a checklist that
-currently covers:
-
-- Presence of the VBScript entry point and supporting utility modules.
-- Valid metadata headers inside each template file.
-- Availability and parseability of `links_map.txt`.
-- Coverage of every `LINK_*` placeholder referenced by the templates.
-
-Each run emits a POSIX-timestamped JSON report under `diagnostics_results/`. The most recent report
-is compared with the preceding run to highlight any status changes or newly introduced issues so
-regressions can be spotted immediately. The directory is ignored by Git, meaning local diagnostic
-history is preserved without polluting commits.
-
 ## Regression scenarios
 
 - **Duplicate GAL display names** — Create two address book entries that share the same display name

@@ -747,6 +747,7 @@ Sub RecordBaselineEntry(baseline, bucket, entry)
 
   Dim summary: summary = DescribeAddressEntry(entry)
   Dim list
+  Set list = Nothing
   If baseline.Exists(key) Then
     If IsObject(baseline(key)) Then
       Set list = baseline(key)
