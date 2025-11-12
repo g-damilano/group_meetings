@@ -37,6 +37,7 @@ Sub LoadUtilityModules()
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
     "utilities\mail_input_validation.vbs", _
+    "utilities\mail_name_resolution_prompt.vbs", _
     "utilities\mail_name_resolution_text.vbs", _
     "utilities\mail_name_resolution_directory.vbs", _
     "utilities\mail_name_resolution_core.vbs")
@@ -82,8 +83,8 @@ Sub Main()
     Exit Sub
   End If
 
-  Dim targets: targets = PromptTargetEmails()
-  If UBound(targets) < 0 Then
+  Dim targets: targets = PromptRecipientLookupValues()
+  If Not HasRecipientLookupValues(targets) Then
     WScript.Echo "No valid target email addresses supplied."
     Exit Sub
   End If
@@ -132,38 +133,6 @@ End Function
 Function PromptLine(prompt)
   WScript.StdOut.Write prompt
   PromptLine = Trim(WScript.StdIn.ReadLine())
-End Function
-
-Function PromptTargetEmails()
-  Dim responses: responses = Array()
-  Do
-    Dim input: input = PromptLine("Enter target email addresses (use ';' to separate multiple addresses): ")
-    input = Replace(input, ",", ";")
-    Dim parts: parts = Split(input, ";")
-    Dim list: Set list = CreateObject("System.Collections.ArrayList")
-    Dim seen: Set seen = CreateObject("Scripting.Dictionary")
-    On Error Resume Next
-    seen.CompareMode = 1
-    On Error GoTo 0
-    Dim i, item, trimmed
-    For i = 0 To UBound(parts)
-      item = parts(i)
-      trimmed = Trim(item)
-      If Len(trimmed) > 0 Then
-        If Not seen.Exists(LCase(trimmed)) Then
-          seen.Add LCase(trimmed), True
-          list.Add trimmed
-        End If
-      End If
-    Next
-    If list.Count > 0 Then
-      responses = ArrayFromArrayList(list)
-      Exit Do
-    Else
-      WScript.Echo "At least one email address is required."
-    End If
-  Loop
-  PromptTargetEmails = responses
 End Function
 
 Function PromptOperationMode()

@@ -1,6 +1,6 @@
 # mail_name_resolution Modules Usage Guide
 
-The mail name resolution helpers are now split across three focused modules (`mail_name_resolution_text.vbs`, `mail_name_resolution_directory.vbs`, and `mail_name_resolution_core.vbs`).  Together they centralize the directory lookups used by both **InductionMailer** and the stand-alone GAL utilities.  The most common entry point is `ResolveNameLookup`, which accepts the raw user input together with the requested search field.  Supported field labels include:
+The mail name resolution helpers are now split across four focused modules (`mail_name_resolution_prompt.vbs`, `mail_name_resolution_text.vbs`, `mail_name_resolution_directory.vbs`, and `mail_name_resolution_core.vbs`).  Together they centralize the directory lookups used by both **InductionMailer** and the stand-alone GAL utilities.  The most common entry point is `ResolveNameLookup`, which accepts the raw user input together with the requested search field.  Supported field labels include:
 
 | Lookup prefix/value | Targeted field |
 | ------------------- | -------------- |
@@ -30,6 +30,10 @@ When the `auto` mode is used, `ResolveNameLookup` delegates to `ResolveNameUsing
 For manual calls, prefer routing through `ResolveNameLookup(<input>, "auto")` unless you are explicitly constraining the directory property to inspect.
 
 Additional helper routines worth noting:
+
+- `PromptRecipientLookupValues()` / `PromptRecipientLookupValuesWithOptions(prompt, allowEmpty, warning)` – prompts the console user for one or more semicolon-delimited lookup strings, normalizes commas/newlines, deduplicates repeated entries, and returns a VBScript array ready to be iterated by caller scripts.  `HasRecipientLookupValues(values)` provides a quick way to check whether the returned array contains at least one entry without worrying about `UBound` edge cases.
+- `PromptNameResolutionLine(prompt)` – central console reader that trims the standard input result before returning it to the caller; useful when a script just needs a single raw lookup expression (for example, `name:Jane Doe`).
+- `ParseRecipientLookupList(text)` – tokenizes raw recipient strings (including those sourced from files) into a deduplicated array using the same normalisation as the interactive prompt helper.
 
 - `IsValidEmail(value)` – returns a Boolean indicating whether the supplied text resembles a SMTP address.
 - `ApplyEmailCandidate(info, value)` – updates the resolution dictionary with the strongest SMTP-style email surfaced by a lookup while preserving previously collected values when appropriate.
