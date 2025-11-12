@@ -321,21 +321,40 @@ Function HasRecipientLookupValues(values)
 End Function
 
 Function ArrayFromList(list)
-  Dim result()
   If list Is Nothing Then
     ArrayFromList = Array()
     Exit Function
   End If
 
-  If list.Count = 0 Then
+  On Error Resume Next
+  Dim converted: converted = list.ToArray()
+  If Err.Number = 0 Then
+    ArrayFromList = converted
+    On Error GoTo 0
+    Exit Function
+  End If
+
+  Err.Clear
+  Dim count: count = 0
+  count = CLng(list.Count)
+  If Err.Number <> 0 Then
+    Err.Clear
+    On Error GoTo 0
     ArrayFromList = Array()
     Exit Function
   End If
 
-  ReDim result(list.Count - 1)
+  If count = 0 Then
+    On Error GoTo 0
+    ArrayFromList = Array()
+    Exit Function
+  End If
+
+  Dim result()
+  ReDim result(count - 1)
 
   Dim i, value
-  For i = 0 To list.Count - 1
+  For i = 0 To count - 1
     value = list(i)
     If IsObject(value) Then
       Set result(i) = value
@@ -344,5 +363,6 @@ Function ArrayFromList(list)
     End If
   Next
 
+  On Error GoTo 0
   ArrayFromList = result
 End Function
