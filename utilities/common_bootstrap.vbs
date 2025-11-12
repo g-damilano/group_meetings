@@ -1,25 +1,5 @@
 ' Common bootstrap helpers shared across console scripts
 
-Dim loadedModuleRegistry
-Dim loadedModuleRegistryInitialized
-
-Sub EnsureLoadedModuleRegistry()
-  If IsEmpty(loadedModuleRegistryInitialized) Then loadedModuleRegistryInitialized = False
-  If loadedModuleRegistryInitialized Then Exit Sub
-
-  On Error Resume Next
-  Set loadedModuleRegistry = CreateObject("Scripting.Dictionary")
-  If Err.Number <> 0 Then
-    Err.Clear
-    Set loadedModuleRegistry = Nothing
-  Else
-    loadedModuleRegistry.CompareMode = 1
-  End If
-  On Error GoTo 0
-
-  loadedModuleRegistryInitialized = True
-End Sub
-
 Function GetScriptFolder()
   Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
   Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
@@ -61,24 +41,6 @@ Sub LoadModule(baseFolder, relativePath)
     Exit Sub
   End If
 
-  Call EnsureLoadedModuleRegistry()
-
-  Dim canonicalPath: canonicalPath = modulePath
-  If Not fso Is Nothing Then
-    On Error Resume Next
-    canonicalPath = fso.GetAbsolutePathName(modulePath)
-    If Err.Number <> 0 Then
-      Err.Clear
-      canonicalPath = modulePath
-    End If
-    On Error GoTo 0
-  End If
-
-  Dim registryKey: registryKey = LCase(CStr(canonicalPath))
-  If Not loadedModuleRegistry Is Nothing Then
-    If loadedModuleRegistry.Exists(registryKey) Then Exit Sub
-  End If
-
   Dim ts: Set ts = fso.OpenTextFile(modulePath, 1)
   Dim contents: contents = ts.ReadAll
   ts.Close
@@ -90,11 +52,6 @@ Sub LoadModule(baseFolder, relativePath)
   If Err.Number <> 0 Then
     WScript.Echo "Warning: failed to load module '" & relativePath & "': " & Err.Description
     Err.Clear
-  ElseIf Not loadedModuleRegistry Is Nothing Then
-    On Error Resume Next
-    loadedModuleRegistry.Add registryKey, True
-    If Err.Number <> 0 Then Err.Clear
-    On Error GoTo 0
   End If
   On Error GoTo 0
 End Sub
