@@ -51,6 +51,8 @@ Sub Main()
     "mail_input_validation.vbs", _
     "mail_name_resolution_loader.vbs"))
 
+  Call LoadNameResolutionModules("")
+
   If Not EnsureConsoleHost() Then Exit Sub
 
   Dim target: target = "Haoran Qin"
