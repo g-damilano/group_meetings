@@ -112,6 +112,7 @@ Function EnumeratePartialMatches(addressList, probes, tokens, aggregate, seen, r
   Dim tokenEntryKeys: Set tokenEntryKeys = CreateTextDictionary()
 
   Dim entry
+  Dim candidateBucket
   For Each entry In entries
     Dim blobLower: blobLower = BuildAddressEntrySearchBlob(entry)
     If Len(blobLower) = 0 Then
@@ -130,7 +131,6 @@ Function EnumeratePartialMatches(addressList, probes, tokens, aggregate, seen, r
             Set entryReasons = EnsureArrayList(entryReasons)
             Call AppendReasonIfMissing(entryReasons, "Partial match on '" & candidateValue & "' (" & candidateReason & ")")
 
-            Dim candidateBucket
             If candidateMaps.Exists(candidateLower) Then
               Set candidateBucket = candidateMaps(candidateLower)
             Else
@@ -171,7 +171,7 @@ Function EnumeratePartialMatches(addressList, probes, tokens, aggregate, seen, r
 
   Dim candidateKey
   For Each candidateKey In candidateMaps.Keys
-    Dim candidateBucket: Set candidateBucket = candidateMaps(candidateKey)
+    Set candidateBucket = candidateMaps(candidateKey)
     candidateCounts(candidateKey) = GetDictionaryCount(candidateBucket)
   Next
 
