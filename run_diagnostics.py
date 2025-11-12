@@ -41,9 +41,9 @@ def check_required_structure(base_dir: Path) -> CheckResult:
         ("utilities/mail_template_utils.vbs", "file"),
         ("utilities/mail_delivery_utils.vbs", "file"),
         ("utilities/mail_input_validation.vbs", "file"),
-        ("utilities/mail_name_resolution_text.vbs", "file"),
-        ("utilities/mail_name_resolution_directory.vbs", "file"),
-        ("utilities/mail_name_resolution_core.vbs", "file"),
+        ("utilities/name_resolution/MNS_text.vbs", "file"),
+        ("utilities/name_resolution/MNS_directory.vbs", "file"),
+        ("utilities/name_resolution/MNS_core.vbs", "file"),
         ("templates", "directory"),
         (
             "mail_utils_utf8_plus_dynamiclinks_ext/mail_utils_mailer_dynamiclinks.vbs",

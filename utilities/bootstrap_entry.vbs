@@ -13,7 +13,7 @@ Sub BootstrapEnsureLoaded()
   Dim loaderPath: loaderPath = ""
   Dim currentFolder: currentFolder = scriptFolder
   Do While Len(currentFolder) > 0
-    Dim candidate: candidate
+    Dim candidate
 
     candidate = entryFso.BuildPath(currentFolder, "utilities\\bootstrap_loader.vbs")
     If entryFso.FileExists(candidate) Then

@@ -145,7 +145,7 @@ Function MailDeliveryPrepareInlineSupport(htmlBody, templatePath, fso, logPath)
 
   Dim baseFolder: baseFolder = fso.GetParentFolderName(templatePath)
   Dim baseName: baseName = fso.GetBaseName(templatePath)
-  Dim inlineFolder: inlineFolder
+  Dim inlineFolder
   inlineFolder = fso.BuildPath(baseFolder, baseName & ".files")
 
   If Not fso.FolderExists(inlineFolder) Then
@@ -221,7 +221,7 @@ Function MailDeliveryResolveAttachmentList(rawValue, baseFolder, fso, logPath)
     Exit Function
   End If
 
-  Dim folderBase: folderBase
+  Dim folderBase
   folderBase = Trim(CStr(baseFolder))
   If Len(folderBase) = 0 Then folderBase = MailDeliveryScriptFolder(fso)
 

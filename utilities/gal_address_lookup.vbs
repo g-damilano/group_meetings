@@ -8,7 +8,7 @@ Sub BootstrapIncludeEntry()
   Dim scriptFolder: scriptFolder = entryFso.GetParentFolderName(WScript.ScriptFullName)
   If Len(scriptFolder) = 0 Then scriptFolder = "."
 
-  Dim entryPath: entryPath
+  Dim entryPath
   entryPath = entryFso.BuildPath(scriptFolder, "utilities\\bootstrap_entry.vbs")
   If Not entryFso.FileExists(entryPath) Then
     entryPath = entryFso.BuildPath(scriptFolder, "bootstrap_entry.vbs")
@@ -48,7 +48,7 @@ Sub Main()
     "mail_template_utils.vbs", _
     "common_outlook.vbs", _
     "mail_input_validation.vbs", _
-    "mail_name_resolution_loader.vbs"))
+    "MNS_loader.vbs"))
   Call LoadNameResolutionModules(scriptFolder)
 
   If Not EnsureConsoleHost() Then Exit Sub
