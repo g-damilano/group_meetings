@@ -50,11 +50,8 @@ Sub Main()
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "common_outlook.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_prompt.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_console.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_loader.vbs")
+  Call LoadNameResolutionModules(scriptFolder)
 
   If Not EnsureConsoleHost() Then Exit Sub
 

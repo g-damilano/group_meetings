@@ -51,9 +51,8 @@ Sub Main()
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "common_outlook.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_loader.vbs")
+  Call LoadNameResolutionModules(scriptFolder)
 
   Dim target: target = "Haoran Qin"
   Dim baselineEmail: baselineEmail = "haoran.qin22@imperial.ac.uk"
