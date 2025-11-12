@@ -4,15 +4,17 @@ SetLocale 1033
 Call Main()
 
 Sub Main()
-  If Not EnsureConsoleHost() Then Exit Sub
+  Call LoadBootstrapModules(Array( _
+    "common_console.vbs", _
+    "mail_collections.vbs", _
+    "mail_template_utils.vbs", _
+    "common_outlook.vbs", _
+    "mail_input_validation.vbs", _
+    "mail_name_resolution_text.vbs", _
+    "mail_name_resolution_directory.vbs", _
+    "mail_name_resolution_core.vbs"))
 
-  Dim scriptFolder: scriptFolder = GetScriptFolder()
-  Call LoadModule(scriptFolder, "mail_collections.vbs")
-  Call LoadModule(scriptFolder, "mail_template_utils.vbs")
-  Call LoadModule(scriptFolder, "mail_input_validation.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
+  If Not EnsureConsoleHost() Then Exit Sub
 
   Dim target: target = "Haoran Qin"
   Dim baselineEmail: baselineEmail = "haoran.qin22@imperial.ac.uk"
@@ -112,6 +114,7 @@ Function EnumeratePartialMatches(addressList, probes, tokens, aggregate, seen, r
   Dim tokenEntryKeys: Set tokenEntryKeys = CreateTextDictionary()
 
   Dim entry
+  Dim candidateBucket
   For Each entry In entries
     Dim blobLower: blobLower = BuildAddressEntrySearchBlob(entry)
     If Len(blobLower) = 0 Then
@@ -130,7 +133,6 @@ Function EnumeratePartialMatches(addressList, probes, tokens, aggregate, seen, r
             Set entryReasons = EnsureArrayList(entryReasons)
             Call AppendReasonIfMissing(entryReasons, "Partial match on '" & candidateValue & "' (" & candidateReason & ")")
 
-            Dim candidateBucket
             If candidateMaps.Exists(candidateLower) Then
               Set candidateBucket = candidateMaps(candidateLower)
             Else
@@ -171,11 +173,11 @@ Function EnumeratePartialMatches(addressList, probes, tokens, aggregate, seen, r
 
   Dim candidateKey
   For Each candidateKey In candidateMaps.Keys
-    Dim candidateBucket: Set candidateBucket = candidateMaps(candidateKey)
+    Set candidateBucket = candidateMaps(candidateKey)
     candidateCounts(candidateKey) = GetDictionaryCount(candidateBucket)
   Next
 
-  stats("CandidateCounts") = candidateCounts
+  Set stats("CandidateCounts") = candidateCounts
   stats("TokenCount") = GetDictionaryCount(tokenEntryKeys)
 
   Set EnumeratePartialMatches = stats
@@ -1344,104 +1346,3 @@ Function OpenAddressList(ns, listName)
   On Error GoTo 0
 End Function
 
-Function EnsureConsoleHost()
-  Dim host: host = LCase(WScript.FullName)
-  If InStr(host, "cscript.exe") = 0 Then
-    WScript.Echo "Please run this script with cscript.exe to use the console interface."
-    EnsureConsoleHost = False
-  Else
-    EnsureConsoleHost = True
-  End If
-End Function
-
-Function GetScriptFolder()
-  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-  Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(folder) = 0 Then folder = "."
-  GetScriptFolder = folder
-End Function
-
-Function GetOutlookApp()
-  Dim app
-  On Error Resume Next
-  Set app = GetObject(, "Outlook.Application")
-  If Err.Number <> 0 Then
-    Err.Clear
-    Set app = CreateObject("Outlook.Application")
-  End If
-  On Error GoTo 0
-  Set GetOutlookApp = app
-End Function
-
-Sub LoadModule(baseFolder, relativePath)
-  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-  Dim modulePath: modulePath = ResolveModulePath(fso, baseFolder, relativePath)
-  If Len(modulePath) = 0 Then
-    WScript.Echo "Warning: utility module not found: " & relativePath
-    Exit Sub
-  End If
-
-  Dim ts: Set ts = fso.OpenTextFile(modulePath, 1)
-  Dim contents: contents = ts.ReadAll
-  ts.Close
-
-  contents = RemoveByteOrderMark(contents)
-
-  On Error Resume Next
-  ExecuteGlobal contents
-  If Err.Number <> 0 Then
-    WScript.Echo "Warning: failed to load module '" & relativePath & "': " & Err.Description
-    Err.Clear
-  End If
-  On Error GoTo 0
-End Sub
-
-Function ResolveModulePath(fso, baseFolder, relativePath)
-  Dim modulePath: modulePath = ""
-
-  If Not fso Is Nothing Then
-    Dim currentFolder: currentFolder = baseFolder
-    Do While Len(currentFolder) > 0
-      Dim candidate: candidate = fso.BuildPath(currentFolder, relativePath)
-      If fso.FileExists(candidate) Then
-        modulePath = candidate
-        Exit Do
-      End If
-
-      Dim parentFolder: parentFolder = fso.GetParentFolderName(currentFolder)
-      If StrComp(parentFolder, currentFolder, vbTextCompare) = 0 Then Exit Do
-      currentFolder = parentFolder
-    Loop
-  End If
-
-  ResolveModulePath = modulePath
-End Function
-
-Function RemoveByteOrderMark(text)
-  RemoveByteOrderMark = text
-  If Len(text) = 0 Then Exit Function
-
-  If Len(text) >= 3 Then
-    Dim leading: leading = Mid(text, 1, 3)
-    If StrComp(leading, Chr(239) & Chr(187) & Chr(191), vbBinaryCompare) = 0 Then
-      RemoveByteOrderMark = Mid(text, 4)
-      Exit Function
-    End If
-  End If
-
-  Dim firstChar: firstChar = Mid(text, 1, 1)
-  If Len(firstChar) = 0 Then Exit Function
-
-  On Error Resume Next
-  Dim codePoint: codePoint = AscW(firstChar)
-  If Err.Number <> 0 Then
-    Err.Clear
-    On Error GoTo 0
-    Exit Function
-  End If
-  On Error GoTo 0
-
-  If codePoint = &HFEFF Or codePoint = &HFFFE Then
-    RemoveByteOrderMark = Mid(text, 2)
-  End If
-End Function
