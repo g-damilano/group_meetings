@@ -652,34 +652,75 @@ Sub DumpRecordedOutlookResponses(responses, indent, label)
   Next
 End Sub
 
-Function DescribeBoolean(info, key)
-  Dim defaultText: defaultText = "Unknown"
-  If info Is Nothing Then
-    DescribeBoolean = defaultText
-    Exit Function
+Function BuildCandidateProbeList(target, components, tokens)
+  Dim results: Set results = CreateObject("System.Collections.ArrayList")
+  Dim seen: Set seen = CreateObject("Scripting.Dictionary")
+  On Error Resume Next
+  seen.CompareMode = 1
+  On Error GoTo 0
+
+  Call AddProbe(results, seen, target, "Original display name")
+
+  If Not components Is Nothing Then
+    Call AddProbe(results, seen, SafeText(components("Normalized")), "Normalized components")
+    Call AddProbe(results, seen, SafeText(components("ReverseDisplay")), "Reverse display")
+
+    Dim firstName: firstName = SafeText(components("First"))
+    Dim lastName: lastName = SafeText(components("Last"))
+    If Len(firstName) > 0 Then Call AddProbe(results, seen, firstName, "Parsed first name only")
+    If Len(lastName) > 0 Then Call AddProbe(results, seen, lastName, "Parsed surname only")
+
+    If Len(firstName) > 0 And Len(lastName) > 0 Then
+      Call AddProbe(results, seen, Trim(firstName & " " & lastName), "First name + surname")
+      Call AddProbe(results, seen, Trim(lastName & " " & firstName), "Surname + first name")
+      Call AddProbe(results, seen, Trim(lastName & ", " & firstName), "Surname, first name")
+      Call AddProbe(results, seen, Trim(lastName & "," & firstName), "Surname,first name (no space)")
+    End If
+
+    Dim altFirst: altFirst = SafeText(components("AlternateFirst"))
+    Dim altLast: altLast = SafeText(components("AlternateLast"))
+    If Len(altFirst) > 0 And Len(altLast) > 0 Then
+      Call AddProbe(results, seen, Trim(altFirst & " " & altLast), "Alternate token order")
+      Call AddProbe(results, seen, Trim(altLast & " " & altFirst), "Alternate reversed order")
+      Call AddProbe(results, seen, Trim(altLast & ", " & altFirst), "Alternate surname, first")
+      Call AddProbe(results, seen, Trim(altLast & "," & altFirst), "Alternate surname,first (no space)")
+    End If
   End If
 
-  If info.Exists(key) Then
-    If CBool(info(key)) Then
-      DescribeBoolean = "Found"
-    Else
-      DescribeBoolean = "Not found"
-    End If
-  Else
-    DescribeBoolean = defaultText
+  If Not tokens Is Nothing Then
+    Dim tokenString: tokenString = JoinTokens(tokens, " ")
+    Call AddProbe(results, seen, tokenString, "Normalized tokens")
+
+    Dim reversedTokens: reversedTokens = BuildReversedTokenDisplay(tokens)
+    Call AddProbe(results, seen, reversedTokens, "Reversed token display")
   End If
+
+  Set BuildCandidateProbeList = results
 End Function
 
-Function DescribeField(info, key, placeholder)
-  Dim text: text = placeholder
-  If Not info Is Nothing Then
-    If info.Exists(key) Then
-      Dim candidate: candidate = SafeText(info(key))
-      If Len(candidate) > 0 Then text = candidate
+Sub AddProbe(list, seen, value, reason)
+  Dim text: text = Trim(SafeText(value))
+  If Len(text) = 0 Then Exit Sub
+  Dim lowered: lowered = SafeLower(text)
+  If Len(lowered) = 0 Then Exit Sub
+
+  If Not seen Is Nothing Then
+    If seen.Exists(lowered) Then Exit Sub
+    On Error Resume Next
+    seen.Add lowered, True
+    If Err.Number <> 0 Then
+      Err.Clear
+      Exit Sub
     End If
+    On Error GoTo 0
   End If
-  DescribeField = text
-End Function
+
+  Dim probe: Set probe = CreateObject("Scripting.Dictionary")
+  probe("Value") = text
+  probe("Reason") = reason
+  probe("Lower") = lowered
+  list.Add probe
+End Sub
 
 Sub SummarizeBaselineComparison(baseline)
   WScript.Echo ""
