@@ -37,20 +37,11 @@ Sub BootstrapEnsureLoaded()
     WScript.Quit 1
   End If
 
-  Dim loaderStream
-  On Error Resume Next
-  Set loaderStream = entryFso.OpenTextFile(loaderPath, 1)
-  If Err.Number <> 0 Then
-    Dim loadError: loadError = Err.Description
-    Err.Clear
-    On Error GoTo 0
-    WScript.Echo "Fatal: unable to read bootstrap loader: " & loadError
+  Dim loaderContents: loaderContents = BootstrapReadAllText(entryFso, loaderPath)
+  If Len(loaderContents) = 0 Then
+    WScript.Echo "Fatal: unable to read bootstrap loader: " & loaderPath
     WScript.Quit 1
   End If
-  On Error GoTo 0
-
-  Dim loaderContents: loaderContents = loaderStream.ReadAll
-  loaderStream.Close
 
   ExecuteGlobal loaderContents
   Call EnsureCommonBootstrapLoaded(entryFso)
@@ -60,3 +51,68 @@ Sub BootstrapEnsureLoaded()
 End Sub
 
 Call BootstrapEnsureLoaded()
+
+Function BootstrapReadAllText(fso, filePath)
+  Dim text: text = ""
+
+  If Not fso Is Nothing Then
+    Dim stream
+    On Error Resume Next
+    Set stream = fso.OpenTextFile(filePath, 1, False, -2)
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set stream = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not stream Is Nothing Then
+      text = stream.ReadAll
+      stream.Close
+      Set stream = Nothing
+      BootstrapReadAllText = text
+      Exit Function
+    End If
+
+    On Error Resume Next
+    Set stream = fso.OpenTextFile(filePath, 1)
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set stream = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not stream Is Nothing Then
+      text = stream.ReadAll
+      stream.Close
+      Set stream = Nothing
+      BootstrapReadAllText = text
+      Exit Function
+    End If
+  End If
+
+  On Error Resume Next
+  Dim ado: Set ado = CreateObject("ADODB.Stream")
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set ado = Nothing
+  End If
+  On Error GoTo 0
+
+  If ado Is Nothing Then
+    BootstrapReadAllText = text
+    Exit Function
+  End If
+
+  On Error Resume Next
+  ado.Type = 2 ' adTypeText
+  ado.Mode = 3 ' adModeReadWrite
+  ado.Charset = "utf-8"
+  ado.Open
+  ado.LoadFromFile filePath
+  If Err.Number = 0 Then text = ado.ReadText
+  ado.Close
+  Set ado = Nothing
+  On Error GoTo 0
+
+  BootstrapReadAllText = text
+End Function
