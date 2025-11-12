@@ -10,6 +10,7 @@ Sub Main()
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_prompt.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
@@ -22,7 +23,7 @@ Sub Main()
     Next
   Else
     Do
-      Dim rawInput: rawInput = PromptLine("Enter a lookup value (prefix with name:/surname:/first:/last:/full:/email:, blank to quit): ")
+      Dim rawInput: rawInput = PromptNameResolutionLine("Enter a lookup value (prefix with name:/surname:/first:/last:/full:/email:, blank to quit): ")
       rawInput = Trim(rawInput)
       If Len(rawInput) = 0 Then Exit Do
       Call DisplayResolution(rawInput)
@@ -97,11 +98,6 @@ Function RemoveByteOrderMark(text)
   If codePoint = &HFEFF Or codePoint = &HFFFE Then
     RemoveByteOrderMark = Mid(text, 2)
   End If
-End Function
-
-Function PromptLine(prompt)
-  WScript.StdOut.Write prompt
-  PromptLine = WScript.StdIn.ReadLine()
 End Function
 
 Function ParseLookupExpression(text)
