@@ -4,44 +4,48 @@ SetLocale 1033
 '======================================================================
 ' Bootstrap shared utilities
 '======================================================================
-Dim bootstrapFso, bootstrapBaseFolder, bootstrapModulePath
-Dim bootstrapCurrentFolder, bootstrapCandidate, bootstrapParentFolder
-Dim bootstrapStream, bootstrapContents
+Dim bootstrapFso: Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
+Dim bootstrapModulePath: bootstrapModulePath = LocateBootstrapModule(bootstrapFso, WScript.ScriptFullName)
 
-Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
-bootstrapBaseFolder = bootstrapFso.GetParentFolderName(WScript.ScriptFullName)
-If Len(bootstrapBaseFolder) = 0 Then bootstrapBaseFolder = "."
-
-bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "utilities\\common_bootstrap.vbs")
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
-  bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "common_bootstrap.vbs")
-End If
-
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
-  bootstrapModulePath = ""
-  bootstrapCurrentFolder = bootstrapBaseFolder
-  Do While Len(bootstrapCurrentFolder) > 0
-    bootstrapCandidate = bootstrapFso.BuildPath(bootstrapCurrentFolder, "utilities\\common_bootstrap.vbs")
-    If bootstrapFso.FileExists(bootstrapCandidate) Then
-      bootstrapModulePath = bootstrapCandidate
-      Exit Do
-    End If
-
-    bootstrapParentFolder = bootstrapFso.GetParentFolderName(bootstrapCurrentFolder)
-    If StrComp(bootstrapParentFolder, bootstrapCurrentFolder, vbTextCompare) = 0 Then Exit Do
-    bootstrapCurrentFolder = bootstrapParentFolder
-  Loop
-End If
-
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+If Len(bootstrapModulePath) = 0 Then
   WScript.Echo "Fatal: unable to locate utilities\\common_bootstrap.vbs"
   WScript.Quit 1
 End If
 
-Set bootstrapStream = bootstrapFso.OpenTextFile(bootstrapModulePath, 1)
-bootstrapContents = bootstrapStream.ReadAll
-bootstrapStream.Close
-ExecuteGlobal bootstrapContents
+ExecuteGlobal ReadAllText(bootstrapFso, bootstrapModulePath)
+
+Set bootstrapFso = Nothing
+
+Function LocateBootstrapModule(fso, scriptPath)
+  Dim startFolder: startFolder = fso.GetParentFolderName(scriptPath)
+  If Len(startFolder) = 0 Then startFolder = "."
+
+  Dim searchTargets: searchTargets = Array("utilities\\common_bootstrap.vbs", "common_bootstrap.vbs")
+  Dim currentFolder: currentFolder = startFolder
+
+  Do While Len(currentFolder) > 0
+    Dim i
+    For i = LBound(searchTargets) To UBound(searchTargets)
+      Dim candidate: candidate = fso.BuildPath(currentFolder, searchTargets(i))
+      If fso.FileExists(candidate) Then
+        LocateBootstrapModule = candidate
+        Exit Function
+      End If
+    Next
+
+    Dim parentFolder: parentFolder = fso.GetParentFolderName(currentFolder)
+    If StrComp(parentFolder, currentFolder, vbTextCompare) = 0 Then Exit Do
+    currentFolder = parentFolder
+  Loop
+
+  LocateBootstrapModule = ""
+End Function
+
+Function ReadAllText(fso, filePath)
+  Dim stream: Set stream = fso.OpenTextFile(filePath, 1)
+  ReadAllText = stream.ReadAll
+  stream.Close
+End Function
 
 '======================================================================
 ' InductionMailer.vbs — Console workflow for staged induction templates
@@ -70,38 +74,32 @@ Call Main()
 ' Support module bootstrap
 '======================================================================
 Sub LoadUtilityModules()
-  Dim baseFolder
-  baseFolder = GetScriptFolder()
-
   Dim modules
   modules = Array( _
-    "utilities\common_bootstrap.vbs", _
     "utilities\common_console.vbs", _
     "utilities\mail_collections.vbs", _
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
     "utilities\mail_input_validation.vbs", _
-    "utilities\mail_name_resolution_loader.vbs"))
+    "utilities\mail_name_resolution_loader.vbs")
+
+  Dim baseFolder: baseFolder = GetScriptFolder()
 
   On Error Resume Next
-  Call LoadNameResolutionModules(GetScriptFolder())
+  Call LoadBootstrapModules(modules)
+  If Err.Number <> 0 Then
+    WScript.Echo "Fatal: unable to load utility modules: " & Err.Description
+    Err.Clear
+    WScript.Quit 1
+  End If
+
+  Call LoadNameResolutionModules(baseFolder)
   If Err.Number <> 0 Then
     WScript.Echo "Fatal: unable to load name resolution modules: " & Err.Description
     Err.Clear
     WScript.Quit 1
   End If
   On Error GoTo 0
-End Sub
-
-Sub RequireBootstrapModules(modulePaths)
-  Dim loadError: loadError = ""
-
-  Dim i
-  For i = LBound(modules) To UBound(modules)
-    Call LoadModule(baseFolder, modules(i))
-  Next
-
-  Call LoadNameResolutionModules(baseFolder)
 End Sub
 
 '======================================================================
