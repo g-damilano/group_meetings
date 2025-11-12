@@ -70,30 +70,25 @@ Call Main()
 ' Support module bootstrap
 '======================================================================
 Sub LoadUtilityModules()
-  Call RequireBootstrapModules(Array( _
+  Dim baseFolder
+  baseFolder = GetScriptFolder()
+
+  Dim modules
+  modules = Array( _
+    "utilities\common_bootstrap.vbs", _
     "utilities\common_console.vbs", _
     "utilities\mail_collections.vbs", _
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
     "utilities\mail_input_validation.vbs", _
     "utilities\mail_name_resolution_loader.vbs")
-End Sub
 
-Sub RequireBootstrapModules(modulePaths)
-  Dim loadError: loadError = ""
+  Dim i
+  For i = LBound(modules) To UBound(modules)
+    Call LoadModule(baseFolder, modules(i))
+  Next
 
-  On Error Resume Next
-  Execute "Call LoadBootstrapModules(modulePaths)"
-  If Err.Number <> 0 Then
-    loadError = Err.Description
-    Err.Clear
-  End If
-  On Error GoTo 0
-
-  If Len(loadError) > 0 Then
-    WScript.Echo "Fatal: unable to invoke LoadBootstrapModules: " & loadError
-    WScript.Quit 1
-  End If
+  Call LoadNameResolutionModules(baseFolder)
 End Sub
 
 '======================================================================
