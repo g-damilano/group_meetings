@@ -326,9 +326,9 @@ Sub ApplyFullNameCandidate(info, candidate, emailAddress)
     Exit Sub
   End If
 
-  Dim existingHasNameSeparators: existingHasNameSeparators
+  Dim existingHasNameSeparators
   existingHasNameSeparators = (InStr(existing, " ") > 0) Or (InStr(existing, ",") > 0)
-  Dim proposedHasNameSeparators: proposedHasNameSeparators
+  Dim proposedHasNameSeparators
   proposedHasNameSeparators = (InStr(proposed, " ") > 0) Or (InStr(proposed, ",") > 0)
 
   If Not existingHasNameSeparators And proposedHasNameSeparators Then
