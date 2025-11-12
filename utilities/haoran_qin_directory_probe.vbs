@@ -413,9 +413,14 @@ Sub ScanContactFoldersForTokens(ns, tokens)
         Else
           Dim matches: Set matches = CreateObject("System.Collections.ArrayList")
           Dim contact
+          Dim skippedNonContacts: skippedNonContacts = 0
           For Each contact In items
-            If ContactItemMatchesTokens(contact, normalizedTokens) Then
-              matches.Add contact
+            If IsContactLikeItem(contact) Then
+              If ContactItemMatchesTokens(contact, normalizedTokens) Then
+                matches.Add contact
+              End If
+            Else
+              skippedNonContacts = skippedNonContacts + 1
             End If
           Next
 
@@ -428,6 +433,10 @@ Sub ScanContactFoldersForTokens(ns, tokens)
               Call OutputContactSummary(matches(m), "      ")
             Next
           End If
+
+          If skippedNonContacts > 0 Then
+            WScript.Echo "    Skipped " & skippedNonContacts & " non-contact item(s) during scanning."
+          End If
         End If
       End If
     End If
@@ -439,17 +448,18 @@ Function ContactItemMatchesTokens(contact, tokens)
   If contact Is Nothing Then Exit Function
   If tokens Is Nothing Then Exit Function
   If tokens.Count = 0 Then Exit Function
+  If Not IsContactLikeItem(contact) Then Exit Function
 
   Dim fields: fields = Array( _
-    SafeLower(SafeText(contact.FullName)), _
-    SafeLower(SafeText(contact.FileAs)), _
-    SafeLower(SafeText(contact.FirstName)), _
-    SafeLower(SafeText(contact.LastName)), _
-    SafeLower(SafeText(contact.Email1Address)), _
-    SafeLower(SafeText(contact.Email2Address)), _
-    SafeLower(SafeText(contact.Email3Address)), _
-    SafeLower(SafeText(contact.CompanyName)), _
-    SafeLower(SafeText(contact.Department)) _
+    SafeLower(ContactFieldValue(contact, "FullName")), _
+    SafeLower(ContactFieldValue(contact, "FileAs")), _
+    SafeLower(ContactFieldValue(contact, "FirstName")), _
+    SafeLower(ContactFieldValue(contact, "LastName")), _
+    SafeLower(ContactFieldValue(contact, "Email1Address")), _
+    SafeLower(ContactFieldValue(contact, "Email2Address")), _
+    SafeLower(ContactFieldValue(contact, "Email3Address")), _
+    SafeLower(ContactFieldValue(contact, "CompanyName")), _
+    SafeLower(ContactFieldValue(contact, "Department")) _
   )
 
   Dim i
@@ -460,8 +470,8 @@ Function ContactItemMatchesTokens(contact, tokens)
     End If
   Next
 
-  Dim firstLower: firstLower = SafeLower(SafeText(contact.FirstName))
-  Dim lastLower: lastLower = SafeLower(SafeText(contact.LastName))
+  Dim firstLower: firstLower = SafeLower(ContactFieldValue(contact, "FirstName"))
+  Dim lastLower: lastLower = SafeLower(ContactFieldValue(contact, "LastName"))
 
   If tokens.Count = 2 Then
     Dim t0: t0 = SafeLower(tokens(0))
@@ -508,16 +518,121 @@ Sub OutputContactSummary(contact, indent)
     Exit Sub
   End If
 
-  WScript.Echo indent & "Contact: " & SafeText(contact.FullName)
-  WScript.Echo indent & "  FileAs: " & SafeText(contact.FileAs)
-  WScript.Echo indent & "  First name: " & SafeText(contact.FirstName)
-  WScript.Echo indent & "  Surname: " & SafeText(contact.LastName)
-  WScript.Echo indent & "  Primary email: " & SafeText(contact.Email1Address)
-  WScript.Echo indent & "  Secondary email: " & SafeText(contact.Email2Address)
-  WScript.Echo indent & "  Tertiary email: " & SafeText(contact.Email3Address)
-  WScript.Echo indent & "  Company: " & SafeText(contact.CompanyName)
-  WScript.Echo indent & "  Department: " & SafeText(contact.Department)
+  If Not IsContactLikeItem(contact) Then
+    WScript.Echo indent & "(Item is not a contact: " & DescribeItemClass(contact) & ")"
+    Exit Sub
+  End If
+
+  WScript.Echo indent & "Contact: " & SafeText(ContactFieldValue(contact, "FullName"))
+  WScript.Echo indent & "  FileAs: " & SafeText(ContactFieldValue(contact, "FileAs"))
+  WScript.Echo indent & "  First name: " & SafeText(ContactFieldValue(contact, "FirstName"))
+  WScript.Echo indent & "  Surname: " & SafeText(ContactFieldValue(contact, "LastName"))
+  WScript.Echo indent & "  Primary email: " & SafeText(ContactFieldValue(contact, "Email1Address"))
+  WScript.Echo indent & "  Secondary email: " & SafeText(ContactFieldValue(contact, "Email2Address"))
+  WScript.Echo indent & "  Tertiary email: " & SafeText(ContactFieldValue(contact, "Email3Address"))
+  WScript.Echo indent & "  Company: " & SafeText(ContactFieldValue(contact, "CompanyName"))
+  WScript.Echo indent & "  Department: " & SafeText(ContactFieldValue(contact, "Department"))
 End Sub
+
+Function IsContactLikeItem(item)
+  IsContactLikeItem = False
+  If item Is Nothing Then Exit Function
+
+  Dim classValue: classValue = -1
+  On Error Resume Next
+  classValue = item.Class
+  If Err.Number <> 0 Then
+    Err.Clear
+    classValue = -1
+  End If
+
+  Dim messageClass: messageClass = ""
+  messageClass = item.MessageClass
+  If Err.Number <> 0 Then
+    Err.Clear
+    messageClass = ""
+  End If
+  On Error GoTo 0
+
+  If classValue = 40 Or classValue = 69 Then
+    IsContactLikeItem = True
+    Exit Function
+  End If
+
+  Dim lowered: lowered = LCase(messageClass)
+  If Len(lowered) = 0 Then Exit Function
+  If Left(lowered, 11) = "ipm.contact" Then
+    IsContactLikeItem = True
+  ElseIf lowered = "ipm.distlist" Then
+    IsContactLikeItem = True
+  End If
+End Function
+
+Function ContactFieldValue(contact, fieldName)
+  Dim value: value = ""
+  If contact Is Nothing Then
+    ContactFieldValue = ""
+    Exit Function
+  End If
+
+  On Error Resume Next
+  Select Case LCase(fieldName)
+    Case "fullname"
+      value = contact.FullName
+    Case "fileas"
+      value = contact.FileAs
+    Case "firstname"
+      value = contact.FirstName
+    Case "lastname"
+      value = contact.LastName
+    Case "email1address"
+      value = contact.Email1Address
+    Case "email2address"
+      value = contact.Email2Address
+    Case "email3address"
+      value = contact.Email3Address
+    Case "companyname"
+      value = contact.CompanyName
+    Case "department"
+      value = contact.Department
+    Case Else
+      value = ""
+  End Select
+  If Err.Number <> 0 Then
+    Err.Clear
+    value = ""
+  End If
+  On Error GoTo 0
+
+  ContactFieldValue = SafeText(value)
+End Function
+
+Function DescribeItemClass(item)
+  DescribeItemClass = "unknown"
+  If item Is Nothing Then Exit Function
+
+  Dim classValue: classValue = "?"
+  Dim messageClass: messageClass = ""
+
+  On Error Resume Next
+  classValue = item.Class
+  If Err.Number <> 0 Then
+    Err.Clear
+    classValue = "?"
+  End If
+  messageClass = item.MessageClass
+  If Err.Number <> 0 Then
+    Err.Clear
+    messageClass = ""
+  End If
+  On Error GoTo 0
+
+  If Len(messageClass) > 0 Then
+    DescribeItemClass = "Class=" & classValue & ", MessageClass='" & messageClass & "'"
+  Else
+    DescribeItemClass = "Class=" & classValue
+  End If
+End Function
 
 Sub OutputAddressEntrySummary(entry, indent)
   If Len(indent) = 0 Then indent = ""
