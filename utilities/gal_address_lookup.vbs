@@ -43,18 +43,17 @@ ExecuteGlobal bootstrapContents
 Call Main()
 
 Sub Main()
-  Dim scriptFolder: scriptFolder = GetScriptFolder()
-  Call LoadModule(scriptFolder, "common_bootstrap.vbs")
-  Call LoadModule(scriptFolder, "common_console.vbs")
-  Call LoadModule(scriptFolder, "mail_collections.vbs")
-  Call LoadModule(scriptFolder, "mail_template_utils.vbs")
-  Call LoadModule(scriptFolder, "common_outlook.vbs")
-  Call LoadModule(scriptFolder, "mail_input_validation.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_prompt.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_console.vbs")
+  Call RequireBootstrapModules(Array( _
+    "common_console.vbs", _
+    "mail_collections.vbs", _
+    "mail_template_utils.vbs", _
+    "common_outlook.vbs", _
+    "mail_input_validation.vbs", _
+    "mail_name_resolution_prompt.vbs", _
+    "mail_name_resolution_text.vbs", _
+    "mail_name_resolution_directory.vbs", _
+    "mail_name_resolution_core.vbs", _
+    "mail_name_resolution_console.vbs"))
 
   If Not EnsureConsoleHost() Then Exit Sub
 
@@ -71,6 +70,23 @@ Sub Main()
       If Len(rawInput) = 0 Then Exit Do
       Call DisplayResolution(rawInput)
     Loop
+  End If
+End Sub
+
+Sub RequireBootstrapModules(modulePaths)
+  Dim loadError: loadError = ""
+
+  On Error Resume Next
+  Execute "Call LoadBootstrapModules(modulePaths)"
+  If Err.Number <> 0 Then
+    loadError = Err.Description
+    Err.Clear
+  End If
+  On Error GoTo 0
+
+  If Len(loadError) > 0 Then
+    WScript.Echo "Fatal: unable to invoke LoadBootstrapModules: " & loadError
+    WScript.Quit 1
   End If
 End Sub
 
