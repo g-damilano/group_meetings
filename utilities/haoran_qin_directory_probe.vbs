@@ -7,6 +7,7 @@ Sub Main()
   If Not EnsureConsoleHost() Then Exit Sub
 
   Dim scriptFolder: scriptFolder = GetScriptFolder()
+  Call LoadModule(scriptFolder, "mail_utils.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
