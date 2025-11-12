@@ -453,8 +453,21 @@ Function ChooseBestAddressEntry(entries, profile)
   End If
   result("Reason") = reason
 
-  If bestCandidate.Exists("Entry") Then Set result("Entry") = bestCandidate("Entry")
-  If bestCandidate.Exists("Exchange") Then Set result("Exchange") = bestCandidate("Exchange")
+  If bestCandidate.Exists("Entry") Then
+    If IsObject(bestCandidate("Entry")) Then
+      Set result("Entry") = bestCandidate("Entry")
+    Else
+      result("Entry") = bestCandidate("Entry")
+    End If
+  End If
+
+  If bestCandidate.Exists("Exchange") Then
+    If IsObject(bestCandidate("Exchange")) Then
+      Set result("Exchange") = bestCandidate("Exchange")
+    Else
+      result("Exchange") = bestCandidate("Exchange")
+    End If
+  End If
 
   Set ChooseBestAddressEntry = result
 End Function
