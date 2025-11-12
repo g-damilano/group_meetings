@@ -4,124 +4,98 @@
 Option Explicit
 SetLocale 1033
 
-Const olMailItem = 0
-Const olFormatHTML = 2
-Const olMSG = 3
-Const PR_ATTACH_CONTENT_ID = "http://schemas.microsoft.com/mapi/proptag/0x3712001F"
-
-Call IncludeCommonOutlook()
-
-Sub IncludeCommonOutlook()
-  Dim loaderFso: Set loaderFso = CreateObject("Scripting.FileSystemObject")
-  Dim baseFolder: baseFolder = loaderFso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(baseFolder) = 0 Then baseFolder = "."
-
-  Dim candidates()
-  ReDim candidates(1)
-  candidates(0) = loaderFso.BuildPath(baseFolder, "common_outlook.vbs")
-  candidates(1) = loaderFso.BuildPath(baseFolder, "utilities\common_outlook.vbs")
-
-  Dim parentFolder: parentFolder = loaderFso.GetParentFolderName(baseFolder)
-  If Len(parentFolder) > 0 Then
-    ReDim Preserve candidates(UBound(candidates) + 1)
-    candidates(UBound(candidates)) = loaderFso.BuildPath(parentFolder, "utilities\common_outlook.vbs")
-  End If
-
-  Dim grandParent: grandParent = loaderFso.GetParentFolderName(parentFolder)
-  If Len(grandParent) > 0 Then
-    ReDim Preserve candidates(UBound(candidates) + 1)
-    candidates(UBound(candidates)) = loaderFso.BuildPath(grandParent, "utilities\common_outlook.vbs")
-  End If
-
-  Dim i, candidatePath, loaded: loaded = False
-  For i = LBound(candidates) To UBound(candidates)
-    candidatePath = candidates(i)
-    If Len(candidatePath) > 0 Then
-      If loaderFso.FileExists(candidatePath) Then
-        Dim ts: Set ts = loaderFso.OpenTextFile(candidatePath, 1)
-        Dim contents: contents = ts.ReadAll
-        ts.Close
-        ExecuteGlobal contents
-        loaded = True
-        Exit For
-      End If
-    End If
-  Next
-
-  If Not loaded Then
-    WScript.Echo "Fatal: unable to load common Outlook helpers."
-    WScript.Quit 1
-  End If
-End Sub
-
 Function CreateMail(toAddr, ccAddr, bccAddr, subjectText, htmlBody, attachPaths, _
                     action, savePath, templateSource, inlineImgFolder, deferMinutes, logPath)
   On Error Resume Next
   If Len(Trim(logPath)) = 0 Then logPath = DefaultLogPath()
   LogAction logPath, "Mailer (fixsig) active."
 
-  Dim ok, olApp, olMail, sigHTML, f, fso, bodyHtml, htmlWrapped
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  Set olApp = GetOutlookApp()
+  If Not EnsureMailComposerLoaded() Then
+    LogAction logPath, "ERROR: Shared mail composer module could not be loaded."
+    CreateMail = False
+    Exit Function
+  End If
 
+  Dim bodyHtml
   If Len(Trim(templateSource)) > 0 Then
-    bodyHtml = LoadHtmlFromSource(templateSource) ' assumes UTF-8 template
+    bodyHtml = LoadHtmlFromSource(templateSource)
   Else
     bodyHtml = htmlBody
   End If
 
-  htmlWrapped = "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8'></head>" & _
-                "<body style='font-family:Segoe UI, Arial, sans-serif;'>" & bodyHtml
+  Dim options: Set options = CreateObject("Scripting.Dictionary")
+  options("To") = toAddr
+  options("Cc") = ccAddr
+  options("Bcc") = bccAddr
+  options("Subject") = subjectText
+  options("BodyHtml") = bodyHtml
+  options("InlineImageFolder") = inlineImgFolder
+  options("Action") = action
+  options("SavePath") = savePath
+  options("DeferMinutes") = deferMinutes
+  options("LogPath") = logPath
+  Set options("LogHandler") = GetRef("LogAction")
+  Set options("SignatureProvider") = GetRef("LoadSignatureWithImages_AutoCharset")
+  If Not IsEmpty(attachPaths) Then options("Attachments") = attachPaths
 
-  Set olMail = olApp.CreateItem(olMailItem)
-  sigHTML = LoadSignatureWithImages_AutoCharset(olMail)
+  Dim ok: ok = ComposeAndSendMail(options)
 
-  With olMail
-    .To = toAddr
-    .CC = ccAddr
-    .BCC = bccAddr
-    .Subject = subjectText
-    .BodyFormat = olFormatHTML
-    .HTMLBody = htmlWrapped & sigHTML & "</body></html>"
-
-    If Not IsEmpty(attachPaths) Then
-      For Each f In attachPaths
-        If Len(Trim(f)) > 0 And fso.FileExists(f) Then .Attachments.Add f
-      Next
-    End If
-
-    If Len(Trim(inlineImgFolder)) > 0 And fso.FolderExists(inlineImgFolder) Then
-      EmbedImagesFromFolder olMail, inlineImgFolder
-    End If
-
-    If IsNumeric(deferMinutes) And CDbl(deferMinutes) > 0 Then
-      .DeferredDeliveryTime = Now + (CDbl(deferMinutes) / (24 * 60))
-    End If
-
-    Select Case LCase(action)
-      Case "send"   : .Send : LogAction logPath, "Sent: " & subjectText
-      Case "save"
-        If Len(Trim(savePath)) > 0 Then
-          .SaveAs savePath, olMSG : LogAction logPath, "Saved as: " & savePath
-        Else
-          .Save : LogAction logPath, "Saved to Drafts: " & subjectText
-        End If
-      Case Else     : .Display : LogAction logPath, "Displayed: " & subjectText
-    End Select
-  End With
-
-  If Err.Number <> 0 Then
-    LogAction logPath, "ERROR: " & Err.Number & " - " & Err.Description
-    ok = False
-  Else
-    ok = True
-  End If
-
+  If Not ok Then LogAction logPath, "CreateMail reported failure for subject: " & subjectText
   CreateMail = ok
   On Error GoTo 0
 End Function
 
-' ================= Signature loader with charset auto-detect =================
+Function EnsureMailComposerLoaded()
+  On Error Resume Next
+  Dim existing
+  Set existing = GetRef("ComposeAndSendMail")
+  If Err.Number = 0 Then
+    EnsureMailComposerLoaded = True
+    Set existing = Nothing
+    On Error GoTo 0
+    Exit Function
+  End If
+  Err.Clear
+  On Error GoTo 0
+
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim scriptFolder: scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(scriptFolder) = 0 Then scriptFolder = "."
+  Dim parentFolder: parentFolder = fso.GetParentFolderName(scriptFolder)
+  Dim grandParent: grandParent = ""
+  If Len(parentFolder) > 0 Then grandParent = fso.GetParentFolderName(parentFolder)
+
+  Dim candidates(2)
+  candidates(0) = fso.BuildPath(scriptFolder, "utilities\mail_composer.vbs")
+  If Len(parentFolder) > 0 Then
+    candidates(1) = fso.BuildPath(parentFolder, "utilities\mail_composer.vbs")
+  Else
+    candidates(1) = ""
+  End If
+  If Len(grandParent) > 0 Then
+    candidates(2) = fso.BuildPath(grandParent, "utilities\mail_composer.vbs")
+  Else
+    candidates(2) = ""
+  End If
+
+  Dim i, path, ts, contents
+  For i = 0 To UBound(candidates)
+    path = candidates(i)
+    If Len(path) > 0 Then
+      If fso.FileExists(path) Then
+        Set ts = fso.OpenTextFile(path, 1)
+        contents = ts.ReadAll
+        ts.Close
+        ExecuteGlobal contents
+        EnsureMailComposerLoaded = True
+        Exit Function
+      End If
+    End If
+  Next
+
+  EnsureMailComposerLoaded = False
+End Function
+
 Function LoadSignatureWithImages_AutoCharset(olMail)
   Dim fso, shell, sigPath, folder, file, sigHTML, sigFile, baseName, imgFolder, imgFile, att, imgName, cid
   Set fso = CreateObject("Scripting.FileSystemObject")
@@ -161,7 +135,6 @@ Function LoadSignatureWithImages_AutoCharset(olMail)
   LoadSignatureWithImages_AutoCharset = sigHTML
 End Function
 
-' Detect HTML charset from meta tag; default to windows-1252 for Outlook signatures
 Function DetectHtmlCharset(filePath)
   On Error Resume Next
   Dim s : Set s = CreateObject("ADODB.Stream")
@@ -208,7 +181,6 @@ Function ReadHtmlAuto(filePath)
   ReadHtmlAuto = txt
 End Function
 
-' Marker counter for heuristic
 Function MarkerCount(s)
   Dim c: c = 0
   c = c + CountOf(s, "Ã")
@@ -228,37 +200,18 @@ Function CountOf(s, token)
   CountOf = n
 End Function
 
-' ================= Template loader (UTF-8) =================
-Function LoadHtmlFromSource(src)
-  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-  If Left(LCase(src), 7) = "http://" Or Left(LCase(src), 8) = "https://" Then
-    LoadHtmlFromSource = HttpGetUtf8(src)
-  ElseIf fso.FileExists(src) Then
-    LoadHtmlFromSource = ReadUTF8File(src)
-  Else
-    LoadHtmlFromSource = src
-  End If
+Function DefaultLogPath()
+  Dim fso, scriptFolder
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(scriptFolder) = 0 Then scriptFolder = "."
+  DefaultLogPath = scriptFolder & "\mail_util.log"
 End Function
 
-Function ReadUTF8File(filePath)
-  Dim s : Set s = CreateObject("ADODB.Stream")
-  s.Type = 2 : s.Charset = "utf-8" : s.Open : s.LoadFromFile filePath
-  ReadUTF8File = s.ReadText : s.Close
-End Function
-
-Function HttpGetUtf8(url)
-  Dim xhr, stm, txt
-  Set xhr = CreateObject("MSXML2.XMLHTTP")
-  xhr.Open "GET", url, False
-  xhr.Send
-  If xhr.Status = 200 Then
-    Set stm = CreateObject("ADODB.Stream")
-    stm.Type = 1 : stm.Open : stm.Write xhr.responseBody
-    stm.Position = 0 : stm.Type = 2 : stm.Charset = "utf-8"
-    txt = stm.ReadText : stm.Close
-    HttpGetUtf8 = txt
-  Else
-    HttpGetUtf8 = "<p>Failed to load template. HTTP " & xhr.Status & "</p>"
-  End If
-End Function
-
+Sub LogAction(logPath, message)
+  On Error Resume Next
+  Dim fso, f: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim ts: Set f = fso.OpenTextFile(logPath, 8, True)
+  f.WriteLine Now & "  " & message
+  f.Close
+End Sub

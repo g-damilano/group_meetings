@@ -4,67 +4,22 @@
 Option Explicit
 SetLocale 1033
 
-Const olMailItem = 0
-Const olFormatHTML = 2
-Const olMSG = 3
-Const PR_ATTACH_CONTENT_ID = "http://schemas.microsoft.com/mapi/proptag/0x3712001F"
-
-Call IncludeCommonOutlook()
-
-Sub IncludeCommonOutlook()
-  Dim loaderFso: Set loaderFso = CreateObject("Scripting.FileSystemObject")
-  Dim baseFolder: baseFolder = loaderFso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(baseFolder) = 0 Then baseFolder = "."
-
-  Dim candidates()
-  ReDim candidates(1)
-  candidates(0) = loaderFso.BuildPath(baseFolder, "common_outlook.vbs")
-  candidates(1) = loaderFso.BuildPath(baseFolder, "utilities\common_outlook.vbs")
-
-  Dim parentFolder: parentFolder = loaderFso.GetParentFolderName(baseFolder)
-  If Len(parentFolder) > 0 Then
-    ReDim Preserve candidates(UBound(candidates) + 1)
-    candidates(UBound(candidates)) = loaderFso.BuildPath(parentFolder, "utilities\common_outlook.vbs")
-  End If
-
-  Dim grandParent: grandParent = loaderFso.GetParentFolderName(parentFolder)
-  If Len(grandParent) > 0 Then
-    ReDim Preserve candidates(UBound(candidates) + 1)
-    candidates(UBound(candidates)) = loaderFso.BuildPath(grandParent, "utilities\common_outlook.vbs")
-  End If
-
-  Dim i, candidatePath, loaded: loaded = False
-  For i = LBound(candidates) To UBound(candidates)
-    candidatePath = candidates(i)
-    If Len(candidatePath) > 0 Then
-      If loaderFso.FileExists(candidatePath) Then
-        Dim ts: Set ts = loaderFso.OpenTextFile(candidatePath, 1)
-        Dim contents: contents = ts.ReadAll
-        ts.Close
-        ExecuteGlobal contents
-        loaded = True
-        Exit For
-      End If
-    End If
-  Next
-
-  If Not loaded Then
-    WScript.Echo "Fatal: unable to load common Outlook helpers."
-    WScript.Quit 1
-  End If
-End Sub
-
 Function CreateMail(toAddr, ccAddr, bccAddr, subjectText, htmlBody, attachPaths, _
                     action, savePath, templateSource, inlineImgFolder, deferMinutes, logPath)
   On Error Resume Next
   If Len(Trim(logPath)) = 0 Then logPath = DefaultLogPath()
   LogAction logPath, "Mailer (dynamic links) active."
 
-  Dim ok, olApp, olMail, sigHTML, f, fso, bodyHtml, htmlWrapped, folder
+  If Not EnsureMailComposerLoaded() Then
+    LogAction logPath, "ERROR: Shared mail composer module could not be loaded."
+    CreateMail = False
+    Exit Function
+  End If
+
+  Dim fso, scriptFolder, bodyHtml, mapPath, options
   Set fso = CreateObject("Scripting.FileSystemObject")
-  Set olApp = GetOutlookApp()
-  folder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(folder) = 0 Then folder = "."
+  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(scriptFolder) = 0 Then scriptFolder = "."
 
   If Len(Trim(templateSource)) > 0 Then
     bodyHtml = LoadHtmlFromSource(templateSource)
@@ -72,106 +27,85 @@ Function CreateMail(toAddr, ccAddr, bccAddr, subjectText, htmlBody, attachPaths,
     bodyHtml = htmlBody
   End If
 
-  ' Apply dynamic link mapping (links_map.txt)
-  bodyHtml = ApplyLinkMap(bodyHtml, folder & "\links_map.txt")
+  mapPath = fso.BuildPath(scriptFolder, "links_map.txt")
+  bodyHtml = ApplyLinkMap(bodyHtml, mapPath)
 
-  htmlWrapped = "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8'></head>" & _
-                "<body style='font-family:Segoe UI, Arial, sans-serif;'>" & bodyHtml
+  Set options = CreateObject("Scripting.Dictionary")
+  options("To") = toAddr
+  options("Cc") = ccAddr
+  options("Bcc") = bccAddr
+  options("Subject") = subjectText
+  options("BodyHtml") = bodyHtml
+  options("InlineImageFolder") = inlineImgFolder
+  options("Action") = action
+  options("SavePath") = savePath
+  options("DeferMinutes") = deferMinutes
+  options("LogPath") = logPath
+  Set options("LogHandler") = GetRef("LogAction")
+  Set options("SignatureProvider") = GetRef("LoadSignatureWithImages_AutoCharset")
+  Set options("InlineImageCidTransform") = GetRef("SanitizeInlineCid")
+  If Not IsEmpty(attachPaths) Then options("Attachments") = attachPaths
 
-  Set olMail = olApp.CreateItem(olMailItem)
-  sigHTML = LoadSignatureWithImages_AutoCharset(olMail)
+  Dim ok: ok = ComposeAndSendMail(options)
 
-  With olMail
-    .To = toAddr
-    .CC = ccAddr
-    .BCC = bccAddr
-    .Subject = subjectText
-    .BodyFormat = olFormatHTML
-    .HTMLBody = htmlWrapped & sigHTML & "</body></html>"
-
-    If Not IsEmpty(attachPaths) Then
-      For Each f In attachPaths
-        If Len(Trim(f)) > 0 And fso.FileExists(f) Then .Attachments.Add f
-      Next
-    End If
-
-    If Len(Trim(inlineImgFolder)) > 0 And fso.FolderExists(inlineImgFolder) Then
-      EmbedImagesFromFolder olMail, inlineImgFolder
-    End If
-
-    If IsNumeric(deferMinutes) And CDbl(deferMinutes) > 0 Then
-      .DeferredDeliveryTime = Now + (CDbl(deferMinutes) / (24 * 60))
-    End If
-
-    Select Case LCase(action)
-      Case "send"   : .Send : LogAction logPath, "Sent: " & subjectText
-      Case "save"
-        If Len(Trim(savePath)) > 0 Then
-          .SaveAs savePath, olMSG : LogAction logPath, "Saved as: " & savePath
-        Else
-          .Save : LogAction logPath, "Saved to Drafts: " & subjectText
-        End If
-      Case Else     : .Display : LogAction logPath, "Displayed: " & subjectText
-    End Select
-  End With
-
-  If Err.Number <> 0 Then
-    LogAction logPath, "ERROR: " & Err.Number & " - " & Err.Description
-    ok = False
-  Else
-    ok = True
-  End If
-
+  If Not ok Then LogAction logPath, "CreateMail reported failure for subject: " & subjectText
   CreateMail = ok
   On Error GoTo 0
 End Function
 
-'================== Dynamic Link Mapping ==================
-Function ApplyLinkMap(htmlBody, mapPath)
-  Dim fso, ts, line, pos, key, value
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  If Not fso.FileExists(mapPath) Then
-    ApplyLinkMap = htmlBody
-    Exit Function
-  End If
-
-  Set ts = fso.OpenTextFile(mapPath, 1)
-  Dim mapDict: Set mapDict = CreateObject("Scripting.Dictionary")
-  On Error Resume Next
-  mapDict.CompareMode = 1
-  On Error GoTo 0
-
-  Do Until ts.AtEndOfStream
-    line = Trim(ts.ReadLine)
-    If Len(line) > 0 And Left(line, 1) <> "#" Then
-      pos = InStr(line, "=")
-      If pos > 0 Then
-        key = Trim(Left(line, pos - 1))
-        value = Trim(Mid(line, pos + 1))
-        If Len(key) > 0 Then mapDict(key) = value
-      End If
-    End If
-  Loop
-  ts.Close
-
-  For Each key In mapDict.Keys
-    value = mapDict(key)
-    htmlBody = Replace(htmlBody, "{{" & key & "}}", value)
-    htmlBody = Replace(htmlBody, "{{" & UCase(key) & "}}", value)
-    htmlBody = Replace(htmlBody, "[" & key & "]", value)
-    htmlBody = Replace(htmlBody, "[" & UCase(key) & "]", value)
-  Next
-
-  ApplyLinkMap = htmlBody
+Function SanitizeInlineCid(fileName)
+  SanitizeInlineCid = Replace(fileName, " ", "_")
 End Function
 
-Function LoadHtmlFromSource(src)
-  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-  If fso.FileExists(src) Then
-    LoadHtmlFromSource = ReadUTF8File(src)
-  Else
-    LoadHtmlFromSource = src
+Function EnsureMailComposerLoaded()
+  On Error Resume Next
+  Dim existing
+  Set existing = GetRef("ComposeAndSendMail")
+  If Err.Number = 0 Then
+    EnsureMailComposerLoaded = True
+    Set existing = Nothing
+    On Error GoTo 0
+    Exit Function
   End If
+  Err.Clear
+  On Error GoTo 0
+
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim scriptFolder: scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(scriptFolder) = 0 Then scriptFolder = "."
+  Dim parentFolder: parentFolder = fso.GetParentFolderName(scriptFolder)
+  Dim grandParent: grandParent = ""
+  If Len(parentFolder) > 0 Then grandParent = fso.GetParentFolderName(parentFolder)
+
+  Dim candidates(2)
+  candidates(0) = fso.BuildPath(scriptFolder, "utilities\mail_composer.vbs")
+  If Len(parentFolder) > 0 Then
+    candidates(1) = fso.BuildPath(parentFolder, "utilities\mail_composer.vbs")
+  Else
+    candidates(1) = ""
+  End If
+  If Len(grandParent) > 0 Then
+    candidates(2) = fso.BuildPath(grandParent, "utilities\mail_composer.vbs")
+  Else
+    candidates(2) = ""
+  End If
+
+  Dim i, path, ts, contents
+  For i = 0 To UBound(candidates)
+    path = candidates(i)
+    If Len(path) > 0 Then
+      If fso.FileExists(path) Then
+        Set ts = fso.OpenTextFile(path, 1)
+        contents = ts.ReadAll
+        ts.Close
+        ExecuteGlobal contents
+        EnsureMailComposerLoaded = True
+        Exit Function
+      End If
+    End If
+  Next
+
+  EnsureMailComposerLoaded = False
 End Function
 
 Function LoadSignatureWithImages_AutoCharset(olMail)
@@ -258,13 +192,11 @@ Function ReadHtmlAuto(filePath)
 End Function
 
 Function MarkerCount(s)
-  Dim tokens, i, total
-  tokens = Array("Ã", "Â", "â€”", "â€“", "â€œ", "â€�", "â€˜", "â€™", "â€¦")
-  total = 0
-  For i = 0 To UBound(tokens)
-    total = total + CountOf(s, tokens(i))
-  Next
-  MarkerCount = total
+  Dim c: c = 0
+  c = c + CountOf(s, "Ã")
+  c = c + CountOf(s, "Â")
+  c = c + CountOf(s, "â€”") + CountOf(s, "â€“") + CountOf(s, "â€œ") + CountOf(s, "â€�") + CountOf(s, "â€˜") + CountOf(s, "â€™") + CountOf(s, "â€¦")
+  MarkerCount = c
 End Function
 
 Function CountOf(s, token)
@@ -278,9 +210,18 @@ Function CountOf(s, token)
   CountOf = n
 End Function
 
-Function ReadUTF8File(filePath)
-  Dim s : Set s = CreateObject("ADODB.Stream")
-  s.Type = 2 : s.Charset = "utf-8" : s.Open : s.LoadFromFile filePath
-  ReadUTF8File = s.ReadText : s.Close
+Function DefaultLogPath()
+  Dim fso, scriptFolder
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(scriptFolder) = 0 Then scriptFolder = "."
+  DefaultLogPath = scriptFolder & "\mail_util.log"
 End Function
 
+Sub LogAction(logPath, message)
+  On Error Resume Next
+  Dim fso, f: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim ts: Set f = fso.OpenTextFile(logPath, 8, True)
+  f.WriteLine Now & "  " & message
+  f.Close
+End Sub
