@@ -9,6 +9,7 @@ Sub Main()
   Dim scriptFolder: scriptFolder = GetScriptFolder()
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
+  Call LoadModule(scriptFolder, "common_outlook.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
@@ -1359,18 +1360,6 @@ Function GetScriptFolder()
   Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
   If Len(folder) = 0 Then folder = "."
   GetScriptFolder = folder
-End Function
-
-Function GetOutlookApp()
-  Dim app
-  On Error Resume Next
-  Set app = GetObject(, "Outlook.Application")
-  If Err.Number <> 0 Then
-    Err.Clear
-    Set app = CreateObject("Outlook.Application")
-  End If
-  On Error GoTo 0
-  Set GetOutlookApp = app
 End Function
 
 Sub LoadModule(baseFolder, relativePath)
