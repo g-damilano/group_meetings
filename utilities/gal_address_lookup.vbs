@@ -1,54 +1,42 @@
 Option Explicit
 SetLocale 1033
 
-Call BootstrapSharedUtilities()
+Call BootstrapIncludeEntry()
 
-Sub BootstrapSharedUtilities()
-  Dim loaderFso: Set loaderFso = CreateObject("Scripting.FileSystemObject")
-  Dim loaderPath: loaderPath = BootstrapLocateNearest(loaderFso, WScript.ScriptFullName, _
-    Array("utilities\\bootstrap_loader.vbs", "bootstrap_loader.vbs"))
+Sub BootstrapIncludeEntry()
+  Dim entryFso: Set entryFso = CreateObject("Scripting.FileSystemObject")
+  Dim scriptFolder: scriptFolder = entryFso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(scriptFolder) = 0 Then scriptFolder = "."
 
-  If Len(loaderPath) = 0 Then
-    WScript.Echo "Fatal: unable to locate utilities\\bootstrap_loader.vbs"
+  Dim entryPath: entryPath
+  entryPath = entryFso.BuildPath(scriptFolder, "utilities\\bootstrap_entry.vbs")
+  If Not entryFso.FileExists(entryPath) Then
+    entryPath = entryFso.BuildPath(scriptFolder, "bootstrap_entry.vbs")
+  End If
+
+  If Not entryFso.FileExists(entryPath) Then
+    WScript.Echo "Fatal: unable to locate utilities\\bootstrap_entry.vbs"
     WScript.Quit 1
   End If
 
-  ExecuteGlobal BootstrapReadAllText(loaderFso, loaderPath)
-  Call EnsureCommonBootstrapLoaded(loaderFso)
-  Set loaderFso = Nothing
+  Dim entryStream
+  On Error Resume Next
+  Set entryStream = entryFso.OpenTextFile(entryPath, 1)
+  If Err.Number <> 0 Then
+    Dim entryError: entryError = Err.Description
+    Err.Clear
+    On Error GoTo 0
+    WScript.Echo "Fatal: unable to read bootstrap entry: " & entryError
+    WScript.Quit 1
+  End If
+  On Error GoTo 0
+
+  Dim entryContents: entryContents = entryStream.ReadAll
+  entryStream.Close
+
+  ExecuteGlobal entryContents
+  Set entryFso = Nothing
 End Sub
-
-Function BootstrapLocateNearest(fso, scriptPath, relativeTargets)
-  BootstrapLocateNearest = ""
-  If fso Is Nothing Then Exit Function
-
-  Dim startFolder: startFolder = fso.GetParentFolderName(scriptPath)
-  If Len(startFolder) = 0 Then startFolder = "."
-
-  If Not IsArray(relativeTargets) Then Exit Function
-
-  Dim currentFolder: currentFolder = startFolder
-  Do While Len(currentFolder) > 0
-    Dim idx
-    For idx = LBound(relativeTargets) To UBound(relativeTargets)
-      Dim candidate: candidate = fso.BuildPath(currentFolder, relativeTargets(idx))
-      If fso.FileExists(candidate) Then
-        BootstrapLocateNearest = candidate
-        Exit Function
-      End If
-    Next
-
-    Dim parentFolder: parentFolder = fso.GetParentFolderName(currentFolder)
-    If StrComp(parentFolder, currentFolder, vbTextCompare) = 0 Then Exit Do
-    currentFolder = parentFolder
-  Loop
-End Function
-
-Function BootstrapReadAllText(fso, filePath)
-  Dim stream: Set stream = fso.OpenTextFile(filePath, 1)
-  BootstrapReadAllText = stream.ReadAll
-  stream.Close
-End Function
 
 Call Main()
 
