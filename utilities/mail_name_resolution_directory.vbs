@@ -817,6 +817,8 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
   Dim trimmed: trimmed = Trim(displayName)
   If Len(trimmed) = 0 Then Exit Sub
 
+  WScript.Echo "  Enumerating directory matches for display name fallback '" & trimmed & "'."
+
   Dim components: Set components = ParseFullNameComponents(trimmed)
 
   Dim firstName: firstName = ""
@@ -873,6 +875,17 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
   Dim listNames: listNames = BuildDirectorySearchList(ns)
   If Not IsArray(listNames) Then Exit Sub
 
+  Dim candidateCount: candidateCount = 0
+  On Error Resume Next
+  candidateCount = candidateValues.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    candidateCount = 0
+  End If
+  On Error GoTo 0
+
+  WScript.Echo "    Candidate permutations generated: " & candidateCount
+
   Dim listCount
   listCount = 0
   On Error Resume Next
@@ -917,6 +930,7 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
     On Error GoTo 0
 
     If Not addressList Is Nothing Then
+      WScript.Echo "    Inspecting address list: " & listName
       Call RecordDirectoryAttempt(info, listName)
 
       Dim valueKey
@@ -925,22 +939,102 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
         If Len(candidateValue) > 0 Then
           Set matches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName", "FileAs"), candidateValue)
           Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
+
+          Dim candidateMatchCount: candidateMatchCount = 0
+          If Not matches Is Nothing Then
+            On Error Resume Next
+            candidateMatchCount = matches.Count
+            If Err.Number <> 0 Then
+              Err.Clear
+              candidateMatchCount = 0
+            End If
+            On Error GoTo 0
+          End If
+
+          Dim aggregateCount: aggregateCount = 0
+          On Error Resume Next
+          aggregateCount = aggregate.Count
+          If Err.Number <> 0 Then
+            Err.Clear
+            aggregateCount = 0
+          End If
+          On Error GoTo 0
+
+          WScript.Echo "      Candidate '" & candidateValue & "' produced " & candidateMatchCount & " matches (aggregate unique: " & aggregateCount & ")."
         End If
       Next
 
       If Len(firstName) > 0 And Len(lastName) > 0 Then
         Set matches = CollectAddressEntriesByFullName(addressList, firstName, lastName)
         Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
+
+        Dim fullMatchCount: fullMatchCount = 0
+        If Not matches Is Nothing Then
+          On Error Resume Next
+          fullMatchCount = matches.Count
+          If Err.Number <> 0 Then
+            Err.Clear
+            fullMatchCount = 0
+          End If
+          On Error GoTo 0
+        End If
+
+        Dim aggregateCountFull: aggregateCountFull = 0
+        On Error Resume Next
+        aggregateCountFull = aggregate.Count
+        If Err.Number <> 0 Then
+          Err.Clear
+          aggregateCountFull = 0
+        End If
+        On Error GoTo 0
+
+        WScript.Echo "      Full-name candidate '" & Trim(firstName & " " & lastName) & "' produced " & fullMatchCount & " matches (aggregate unique: " & aggregateCountFull & ")."
       End If
 
       If Len(alternateFirst) > 0 And Len(alternateLast) > 0 Then
         Set matches = CollectAddressEntriesByFullName(addressList, alternateFirst, alternateLast)
         Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
+
+        Dim altMatchCount: altMatchCount = 0
+        If Not matches Is Nothing Then
+          On Error Resume Next
+          altMatchCount = matches.Count
+          If Err.Number <> 0 Then
+            Err.Clear
+            altMatchCount = 0
+          End If
+          On Error GoTo 0
+        End If
+
+        Dim aggregateCountAlt: aggregateCountAlt = 0
+        On Error Resume Next
+        aggregateCountAlt = aggregate.Count
+        If Err.Number <> 0 Then
+          Err.Clear
+          aggregateCountAlt = 0
+        End If
+        On Error GoTo 0
+
+        WScript.Echo "      Alternate-name candidate '" & Trim(alternateFirst & " " & alternateLast) & "' produced " & altMatchCount & " matches (aggregate unique: " & aggregateCountAlt & ")."
       End If
     End If
   Next
 
-  If aggregate.Count = 0 Then Exit Sub
+  Dim aggregateTotal: aggregateTotal = 0
+  On Error Resume Next
+  aggregateTotal = aggregate.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    aggregateTotal = 0
+  End If
+  On Error GoTo 0
+
+  If aggregateTotal = 0 Then
+    WScript.Echo "  Display-name enumeration found no address entries for '" & trimmed & "'."
+    Exit Sub
+  End If
+
+  WScript.Echo "  Display-name enumeration aggregated " & aggregateTotal & " unique entries."
 
   Dim selection: Set selection = Nothing
   Set selection = ChooseBestAddressEntry(aggregate, callerProfile)
@@ -962,7 +1056,12 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
     Set entry = aggregate(0)
   End If
 
-  If entry Is Nothing Then Exit Sub
+  If entry Is Nothing Then
+    WScript.Echo "  Display-name enumeration could not select a best candidate despite aggregated matches."
+    Exit Sub
+  End If
+
+  WScript.Echo "  Display-name enumeration selected candidate: " & DescribeAddressEntry(entry)
 
   info("Found") = True
   If Len(SafeText(info("Full"))) = 0 Then info("Full") = entry.Name
@@ -1012,6 +1111,9 @@ Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
   If improved Then
     info("DirectorySource") = sourceLabel
     Call ReportAddressListLookup(lookupLabel, sourceLabel, entry, exch, info, Nothing, selectionSummary)
+    WScript.Echo "  Display-name enumeration updated resolution fields using " & sourceLabel & "."
+  Else
+    WScript.Echo "  Display-name enumeration selected '" & DescribeAddressEntry(entry) & "' but did not improve resolved fields."
   End If
 End Sub
 
@@ -1511,6 +1613,33 @@ Sub MergeAddressEntryMatches(targetList, matches, seen, sourceMap, listName)
     End If
   Next
 End Sub
+
+Function DescribeAddressEntry(entry)
+  DescribeAddressEntry = "(none)"
+  If entry Is Nothing Then Exit Function
+
+  Dim namePart: namePart = ""
+  Dim addressPart: addressPart = ""
+
+  On Error Resume Next
+  namePart = SafeText(entry.Name)
+  If Err.Number <> 0 Then
+    Err.Clear
+    namePart = ""
+  End If
+  addressPart = SafeText(entry.Address)
+  If Err.Number <> 0 Then
+    Err.Clear
+    addressPart = ""
+  End If
+  On Error GoTo 0
+
+  Dim summary: summary = Trim(namePart)
+  If Len(summary) = 0 Then summary = "(unnamed entry)"
+  If Len(addressPart) > 0 Then summary = summary & " <" & addressPart & ">"
+
+  DescribeAddressEntry = summary
+End Function
 
 Function BuildAddressEntryTrackingKey(entry)
   BuildAddressEntryTrackingKey = ""
