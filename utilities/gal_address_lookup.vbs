@@ -1,18 +1,62 @@
 Option Explicit
 SetLocale 1033
 
+Dim bootstrapFso, bootstrapBaseFolder, bootstrapModulePath
+Dim bootstrapCurrentFolder, bootstrapCandidate, bootstrapParentFolder
+Dim bootstrapStream, bootstrapContents
+
+Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
+bootstrapBaseFolder = bootstrapFso.GetParentFolderName(WScript.ScriptFullName)
+If Len(bootstrapBaseFolder) = 0 Then bootstrapBaseFolder = "."
+
+bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "common_bootstrap.vbs")
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "utilities\\common_bootstrap.vbs")
+End If
+
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  bootstrapModulePath = ""
+  bootstrapCurrentFolder = bootstrapBaseFolder
+  Do While Len(bootstrapCurrentFolder) > 0
+    bootstrapCandidate = bootstrapFso.BuildPath(bootstrapCurrentFolder, "utilities\\common_bootstrap.vbs")
+    If bootstrapFso.FileExists(bootstrapCandidate) Then
+      bootstrapModulePath = bootstrapCandidate
+      Exit Do
+    End If
+
+    bootstrapParentFolder = bootstrapFso.GetParentFolderName(bootstrapCurrentFolder)
+    If StrComp(bootstrapParentFolder, bootstrapCurrentFolder, vbTextCompare) = 0 Then Exit Do
+    bootstrapCurrentFolder = bootstrapParentFolder
+  Loop
+End If
+
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  WScript.Echo "Fatal: unable to locate utilities\\common_bootstrap.vbs"
+  WScript.Quit 1
+End If
+
+Set bootstrapStream = bootstrapFso.OpenTextFile(bootstrapModulePath, 1)
+bootstrapContents = bootstrapStream.ReadAll
+bootstrapStream.Close
+ExecuteGlobal bootstrapContents
+
 Call Main()
 
 Sub Main()
-  If Not EnsureConsoleHost() Then Exit Sub
-
   Dim scriptFolder: scriptFolder = GetScriptFolder()
+  Call LoadModule(scriptFolder, "common_bootstrap.vbs")
+  Call LoadModule(scriptFolder, "common_console.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
+  Call LoadModule(scriptFolder, "common_outlook.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_prompt.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_console.vbs")
+
+  If Not EnsureConsoleHost() Then Exit Sub
 
   Dim count: count = WScript.Arguments.Count
   If count > 0 Then
@@ -22,87 +66,13 @@ Sub Main()
     Next
   Else
     Do
-      Dim rawInput: rawInput = PromptLine("Enter a lookup value (prefix with name:/surname:/first:/last:/full:/email:, blank to quit): ")
+      Dim rawInput: rawInput = PromptNameResolutionLine("Enter a lookup value (prefix with name:/surname:/first:/last:/full:/email:, blank to quit): ")
       rawInput = Trim(rawInput)
       If Len(rawInput) = 0 Then Exit Do
       Call DisplayResolution(rawInput)
     Loop
   End If
 End Sub
-
-Function EnsureConsoleHost()
-  Dim host: host = LCase(WScript.FullName)
-  If InStr(host, "cscript.exe") = 0 Then
-    WScript.Echo "Please run this script with cscript.exe to use the console interface."
-    EnsureConsoleHost = False
-  Else
-    EnsureConsoleHost = True
-  End If
-End Function
-
-Function GetScriptFolder()
-  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-  Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(folder) = 0 Then folder = "."
-  GetScriptFolder = folder
-End Function
-
-Sub LoadModule(baseFolder, relativePath)
-  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-  Dim modulePath: modulePath = fso.BuildPath(baseFolder, relativePath)
-  If Not fso.FileExists(modulePath) Then
-    WScript.Echo "Warning: utility module not found: " & relativePath
-    Exit Sub
-  End If
-
-  Dim ts: Set ts = fso.OpenTextFile(modulePath, 1)
-  Dim contents: contents = ts.ReadAll
-  ts.Close
-
-  contents = RemoveByteOrderMark(contents)
-
-  On Error Resume Next
-  ExecuteGlobal contents
-  If Err.Number <> 0 Then
-    WScript.Echo "Warning: failed to load module '" & relativePath & "': " & Err.Description
-    Err.Clear
-  End If
-  On Error GoTo 0
-End Sub
-
-Function RemoveByteOrderMark(text)
-  RemoveByteOrderMark = text
-  If Len(text) = 0 Then Exit Function
-
-  If Len(text) >= 3 Then
-    Dim leading: leading = Mid(text, 1, 3)
-    If StrComp(leading, Chr(239) & Chr(187) & Chr(191), vbBinaryCompare) = 0 Then
-      RemoveByteOrderMark = Mid(text, 4)
-      Exit Function
-    End If
-  End If
-
-  Dim firstChar: firstChar = Mid(text, 1, 1)
-  If Len(firstChar) = 0 Then Exit Function
-
-  On Error Resume Next
-  Dim codePoint: codePoint = AscW(firstChar)
-  If Err.Number <> 0 Then
-    Err.Clear
-    On Error GoTo 0
-    Exit Function
-  End If
-  On Error GoTo 0
-
-  If codePoint = &HFEFF Or codePoint = &HFFFE Then
-    RemoveByteOrderMark = Mid(text, 2)
-  End If
-End Function
-
-Function PromptLine(prompt)
-  WScript.StdOut.Write prompt
-  PromptLine = WScript.StdIn.ReadLine()
-End Function
 
 Function ParseLookupExpression(text)
   Dim result: Set result = CreateObject("Scripting.Dictionary")
@@ -236,16 +206,4 @@ Function DescribeField(info, key, placeholder)
     End If
   End If
   DescribeField = text
-End Function
-
-Function GetOutlookApp()
-  Dim app
-  On Error Resume Next
-  Set app = GetObject(, "Outlook.Application")
-  If Err.Number <> 0 Then
-    Err.Clear
-    Set app = CreateObject("Outlook.Application")
-  End If
-  On Error GoTo 0
-  Set GetOutlookApp = app
 End Function
