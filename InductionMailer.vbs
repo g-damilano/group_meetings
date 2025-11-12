@@ -70,10 +70,7 @@ Call Main()
 ' Support module bootstrap
 '======================================================================
 Sub LoadUtilityModules()
-  Dim baseFolder: baseFolder = GetScriptFolder()
-  Dim modules
-  modules = Array( _
-    "utilities\common_bootstrap.vbs", _
+  Call LoadBootstrapModules(Array( _
     "utilities\common_console.vbs", _
     "utilities\mail_collections.vbs", _
     "utilities\mail_template_utils.vbs", _
@@ -83,11 +80,7 @@ Sub LoadUtilityModules()
     "utilities\mail_name_resolution_text.vbs", _
     "utilities\mail_name_resolution_directory.vbs", _
     "utilities\mail_name_resolution_core.vbs", _
-    "utilities\mail_name_resolution_console.vbs")
-  Dim i
-  For i = LBound(modules) To UBound(modules)
-    Call LoadModule(baseFolder, modules(i))
-  Next
+    "utilities\mail_name_resolution_console.vbs"))
 End Sub
 
 '======================================================================

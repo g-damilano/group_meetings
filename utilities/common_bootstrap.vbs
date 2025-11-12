@@ -7,6 +7,32 @@ Function GetScriptFolder()
   GetScriptFolder = folder
 End Function
 
+Sub LoadBootstrapModules(modulePaths)
+  Dim baseFolder: baseFolder = GetScriptFolder()
+  If IsEmpty(modulePaths) Then Exit Sub
+
+  Dim idx, item, pathText
+
+  If IsArray(modulePaths) Then
+    For idx = LBound(modulePaths) To UBound(modulePaths)
+      pathText = NormalizeModulePath(modulePaths(idx))
+      If Len(pathText) > 0 Then Call LoadModule(baseFolder, pathText)
+    Next
+    Exit Sub
+  End If
+
+  If IsObject(modulePaths) Then
+    For Each item In modulePaths
+      pathText = NormalizeModulePath(item)
+      If Len(pathText) > 0 Then Call LoadModule(baseFolder, pathText)
+    Next
+    Exit Sub
+  End If
+
+  pathText = NormalizeModulePath(modulePaths)
+  If Len(pathText) > 0 Then Call LoadModule(baseFolder, pathText)
+End Sub
+
 Sub LoadModule(baseFolder, relativePath)
   Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
   Dim modulePath: modulePath = ResolveModulePath(fso, baseFolder, relativePath)
@@ -29,6 +55,24 @@ Sub LoadModule(baseFolder, relativePath)
   End If
   On Error GoTo 0
 End Sub
+
+Function NormalizeModulePath(value)
+  NormalizeModulePath = ""
+  If IsEmpty(value) Then Exit Function
+  If IsNull(value) Then Exit Function
+
+  Dim text
+  On Error Resume Next
+  text = CStr(value)
+  If Err.Number <> 0 Then
+    Err.Clear
+    On Error GoTo 0
+    Exit Function
+  End If
+  On Error GoTo 0
+
+  NormalizeModulePath = Trim(text)
+End Function
 
 Function ResolveModulePath(fso, baseFolder, relativePath)
   Dim modulePath: modulePath = ""
