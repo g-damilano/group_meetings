@@ -321,7 +321,6 @@ Function HasRecipientLookupValues(values)
 End Function
 
 Function ArrayFromList(list)
-  Dim result()
   If list Is Nothing Then
     ArrayFromList = Array()
     Exit Function
@@ -332,12 +331,15 @@ Function ArrayFromList(list)
     Exit Function
   End If
 
-  ReDim result(list.Count - 1)
+  On Error Resume Next
+  Dim copied: copied = list.ToArray()
+  If Err.Number <> 0 Then
+    Err.Clear
+    On Error GoTo 0
+    ArrayFromList = Array()
+    Exit Function
+  End If
+  On Error GoTo 0
 
-  Dim i
-  For i = 0 To list.Count - 1
-    result(i) = list(i)
-  Next
-
-  ArrayFromList = result
+  ArrayFromList = copied
 End Function
