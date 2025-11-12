@@ -8,7 +8,7 @@ Sub BootstrapIncludeEntry()
   Dim scriptFolder: scriptFolder = entryFso.GetParentFolderName(WScript.ScriptFullName)
   If Len(scriptFolder) = 0 Then scriptFolder = "."
 
-  Dim entryPath: entryPath
+  Dim entryPath
   entryPath = entryFso.BuildPath(scriptFolder, "utilities\\bootstrap_entry.vbs")
   If Not entryFso.FileExists(entryPath) Then
     entryPath = entryFso.BuildPath(scriptFolder, "bootstrap_entry.vbs")
