@@ -49,7 +49,7 @@ Function ResolveNameFromEmail(emailAddress)
   recip.Resolve
   If recip.Resolved Then
     info("Found") = True
-    info("Full") = recip.Name
+    Call ApplyFullNameCandidate(info, recip.Name, emailAddress)
     info("DirectorySource") = "Recipient resolve"
     Call ApplyEmailCandidate(info, emailAddress)
     Dim exch: Set exch = recip.AddressEntry.GetExchangeUser()
@@ -61,7 +61,7 @@ Function ResolveNameFromEmail(emailAddress)
       Call ApplyEmailCandidate(info, primarySmtp)
       Call ApplyFirstNameCandidate(info, exch.FirstName, primaryAlias, emailAddress)
       If Len(exch.LastName) > 0 And Len(info("Last")) = 0 Then info("Last") = exch.LastName
-      If Len(info("Full")) = 0 Then info("Full") = exch.Name
+      Call ApplyFullNameCandidate(info, exch.Name, emailAddress)
       Call PopulateNameFromPropertyAccessor(exch, info, primaryAlias, emailAddress)
     End If
     Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info, primaryAlias, emailAddress)
@@ -124,21 +124,106 @@ Function ResolveNameFromEmail(emailAddress)
 End Function
 
 Function ResolveNameUsingHeuristics(searchValue)
+  Set ResolveNameUsingHeuristics = ResolveNameUsingHeuristicsWithOptions(searchValue, True)
+End Function
+
+Function ResolveNameUsingHeuristicsWithOptions(searchValue, allowSplit)
   Dim trimmed: trimmed = Trim(searchValue)
   If Len(trimmed) = 0 Then
-    Set ResolveNameUsingHeuristics = CreateEmptyResolutionInfo()
+    Set ResolveNameUsingHeuristicsWithOptions = CreateEmptyResolutionInfo()
     Exit Function
   End If
 
   If IsValidEmail(trimmed) Then
-    Set ResolveNameUsingHeuristics = ResolveNameFromEmail(trimmed)
+    Set ResolveNameUsingHeuristicsWithOptions = ResolveNameFromEmail(trimmed)
     Exit Function
   End If
 
-  Dim components: Set components = ParseFullNameComponents(trimmed)
+  If allowSplit Then
+    If InStr(trimmed, ";") > 0 Then
+      Dim parts: parts = Split(trimmed, ";")
+      Dim i
+      For i = LBound(parts) To UBound(parts)
+        Dim candidate: candidate = Trim(parts(i))
+        If Len(candidate) = 0 Then
+          ' Skip empty segments
+        Else
+          Dim parsedCandidate: Set parsedCandidate = ExtractDisplayNameAndEmail(candidate)
+          Dim candidateHasAngle: candidateHasAngle = False
+          On Error Resume Next
+          candidateHasAngle = CBool(parsedCandidate("HasAngleFormat"))
+          On Error GoTo 0
+          If candidateHasAngle Then
+            Dim preferredInfo: Set preferredInfo = ResolveNameUsingHeuristicsWithOptions(candidate, False)
+            If Not preferredInfo Is Nothing Then
+              Set ResolveNameUsingHeuristicsWithOptions = preferredInfo
+              Exit Function
+            End If
+          End If
+        End If
+      Next
+
+      Dim lastInfo: Set lastInfo = Nothing
+      For i = LBound(parts) To UBound(parts)
+        Dim fallbackCandidate: fallbackCandidate = Trim(parts(i))
+        If Len(fallbackCandidate) = 0 Then
+          ' Skip empty segments
+        Else
+          Dim candidateInfo: Set candidateInfo = ResolveNameUsingHeuristicsWithOptions(fallbackCandidate, False)
+          If ResolutionWasSuccessful(candidateInfo) Then
+            Set ResolveNameUsingHeuristicsWithOptions = candidateInfo
+            Exit Function
+          End If
+          Set lastInfo = candidateInfo
+        End If
+      Next
+
+      If Not lastInfo Is Nothing Then
+        Set ResolveNameUsingHeuristicsWithOptions = lastInfo
+        Exit Function
+      End If
+    End If
+  End If
+
+  Dim normalizedInput: normalizedInput = trimmed
+  Dim componentSourceText: componentSourceText = trimmed
+  Dim parsedDisplay: parsedDisplay = ""
+  Dim extractedEmail: extractedEmail = ""
+  Dim angleRecognized: angleRecognized = False
+  Dim parsedContact: Set parsedContact = ExtractDisplayNameAndEmail(trimmed)
+  If Not parsedContact Is Nothing Then
+    On Error Resume Next
+    parsedDisplay = Trim(SafeText(parsedContact("Display")))
+    extractedEmail = NormalizeEmailText(parsedContact("Email"))
+    angleRecognized = CBool(parsedContact("HasAngleFormat"))
+    On Error GoTo 0
+
+    If Len(parsedDisplay) > 0 Then
+      normalizedInput = parsedDisplay
+      componentSourceText = parsedDisplay
+    ElseIf Len(extractedEmail) > 0 Then
+      normalizedInput = extractedEmail
+      componentSourceText = parsedDisplay
+    End If
+  End If
+
+  trimmed = normalizedInput
+
+  Dim components: Set components = ParseFullNameComponents(componentSourceText)
   Dim tokens: Set tokens = CollectFlexibleNameTokens(trimmed)
   Dim tokenCount: tokenCount = 0
   If Not tokens Is Nothing Then tokenCount = tokens.Count
+
+  Dim angleInfo: Set angleInfo = Nothing
+  If Len(extractedEmail) > 0 Then
+    Set angleInfo = ResolveNameFromEmail(extractedEmail)
+    Call ApplyEmailCandidate(angleInfo, extractedEmail)
+    Call MergeParsedContactIntoInfo(angleInfo, components, componentSourceText)
+    If ResolutionWasSuccessful(angleInfo) Then
+      Set ResolveNameUsingHeuristicsWithOptions = angleInfo
+      Exit Function
+    End If
+  End If
 
   If tokenCount >= 2 Then
     Dim candidateSet: Set candidateSet = CreateObject("Scripting.Dictionary")
@@ -180,7 +265,9 @@ Function ResolveNameUsingHeuristics(searchValue)
       If Len(candidateValue) > 0 Then
         Dim resolved: Set resolved = ResolveNameFromFullName(candidateValue)
         If ResolutionWasSuccessful(resolved) Then
-          Set ResolveNameUsingHeuristics = resolved
+          If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(resolved, extractedEmail)
+          Call MergeParsedContactIntoInfo(resolved, components, componentSourceText)
+          Set ResolveNameUsingHeuristicsWithOptions = resolved
           Exit Function
         End If
       End If
@@ -191,7 +278,9 @@ Function ResolveNameUsingHeuristics(searchValue)
       If Len(candidateDisplay) > 0 Then
         Dim displayInfo: Set displayInfo = ResolveNameFromDisplayName(candidateDisplay)
         If ResolutionWasSuccessful(displayInfo) Then
-          Set ResolveNameUsingHeuristics = displayInfo
+          If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(displayInfo, extractedEmail)
+          Call MergeParsedContactIntoInfo(displayInfo, components, componentSourceText)
+          Set ResolveNameUsingHeuristicsWithOptions = displayInfo
           Exit Function
         End If
       End If
@@ -200,7 +289,9 @@ Function ResolveNameUsingHeuristics(searchValue)
     If Len(SafeText(firstToken)) > 0 Then
       Dim firstTokenInfo: Set firstTokenInfo = ResolveNameFromGivenName(firstToken)
       If ResolutionWasSuccessful(firstTokenInfo) Then
-        Set ResolveNameUsingHeuristics = firstTokenInfo
+        If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(firstTokenInfo, extractedEmail)
+        Call MergeParsedContactIntoInfo(firstTokenInfo, components, componentSourceText)
+        Set ResolveNameUsingHeuristicsWithOptions = firstTokenInfo
         Exit Function
       End If
     End If
@@ -208,7 +299,9 @@ Function ResolveNameUsingHeuristics(searchValue)
     If Len(SafeText(lastToken)) > 0 Then
       Dim lastTokenInfo: Set lastTokenInfo = ResolveNameFromSurname(lastToken)
       If ResolutionWasSuccessful(lastTokenInfo) Then
-        Set ResolveNameUsingHeuristics = lastTokenInfo
+        If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(lastTokenInfo, extractedEmail)
+        Call MergeParsedContactIntoInfo(lastTokenInfo, components, componentSourceText)
+        Set ResolveNameUsingHeuristicsWithOptions = lastTokenInfo
         Exit Function
       End If
     End If
@@ -220,7 +313,9 @@ Function ResolveNameUsingHeuristics(searchValue)
       If Len(componentFirst) > 0 Then
         Dim componentGiven: Set componentGiven = ResolveNameFromGivenName(componentFirst)
         If ResolutionWasSuccessful(componentGiven) Then
-          Set ResolveNameUsingHeuristics = componentGiven
+          If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(componentGiven, extractedEmail)
+          Call MergeParsedContactIntoInfo(componentGiven, components, componentSourceText)
+          Set ResolveNameUsingHeuristicsWithOptions = componentGiven
           Exit Function
         End If
       End If
@@ -228,7 +323,9 @@ Function ResolveNameUsingHeuristics(searchValue)
       If Len(componentLast) > 0 Then
         Dim componentSurname: Set componentSurname = ResolveNameFromSurname(componentLast)
         If ResolutionWasSuccessful(componentSurname) Then
-          Set ResolveNameUsingHeuristics = componentSurname
+          If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(componentSurname, extractedEmail)
+          Call MergeParsedContactIntoInfo(componentSurname, components, componentSourceText)
+          Set ResolveNameUsingHeuristicsWithOptions = componentSurname
           Exit Function
         End If
       End If
@@ -237,7 +334,9 @@ Function ResolveNameUsingHeuristics(searchValue)
       If Len(normalizedFull) > 0 And SafeLower(normalizedFull) <> SafeLower(trimmed) Then
         Dim normalizedInfo: Set normalizedInfo = ResolveNameFromFullName(normalizedFull)
         If ResolutionWasSuccessful(normalizedInfo) Then
-          Set ResolveNameUsingHeuristics = normalizedInfo
+          If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(normalizedInfo, extractedEmail)
+          Call MergeParsedContactIntoInfo(normalizedInfo, components, componentSourceText)
+          Set ResolveNameUsingHeuristicsWithOptions = normalizedInfo
           Exit Function
         End If
       End If
@@ -246,24 +345,84 @@ Function ResolveNameUsingHeuristics(searchValue)
 
   Dim fallbackInfo: Set fallbackInfo = ResolveNameFromGivenName(trimmed)
   If ResolutionWasSuccessful(fallbackInfo) Then
-    Set ResolveNameUsingHeuristics = fallbackInfo
+    If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(fallbackInfo, extractedEmail)
+    Call MergeParsedContactIntoInfo(fallbackInfo, components, componentSourceText)
+    Set ResolveNameUsingHeuristicsWithOptions = fallbackInfo
     Exit Function
   End If
 
   Dim surnameInfo: Set surnameInfo = ResolveNameFromSurname(trimmed)
   If ResolutionWasSuccessful(surnameInfo) Then
-    Set ResolveNameUsingHeuristics = surnameInfo
+    If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(surnameInfo, extractedEmail)
+    Call MergeParsedContactIntoInfo(surnameInfo, components, componentSourceText)
+    Set ResolveNameUsingHeuristicsWithOptions = surnameInfo
     Exit Function
   End If
 
   Dim displayFallback: Set displayFallback = ResolveNameFromDisplayName(trimmed)
   If ResolutionWasSuccessful(displayFallback) Then
-    Set ResolveNameUsingHeuristics = displayFallback
+    If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(displayFallback, extractedEmail)
+    Call MergeParsedContactIntoInfo(displayFallback, components, componentSourceText)
+    Set ResolveNameUsingHeuristicsWithOptions = displayFallback
     Exit Function
   End If
 
-  Set ResolveNameUsingHeuristics = fallbackInfo
+  If Not angleInfo Is Nothing Then
+    If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(angleInfo, extractedEmail)
+    Call MergeParsedContactIntoInfo(angleInfo, components, componentSourceText)
+    If angleRecognized Then
+      angleInfo("Found") = True
+      Dim existingSource: existingSource = Trim(SafeText(angleInfo("DirectorySource")))
+      If Len(existingSource) = 0 Or SafeLower(existingSource) = "(not found)" Then
+        angleInfo("DirectorySource") = "Parsed recipient input"
+      End If
+      If Len(Trim(SafeText(angleInfo("DirectoryAttempted")))) = 0 Then
+        angleInfo("DirectoryAttempted") = "(not attempted)"
+      End If
+    End If
+    Set ResolveNameUsingHeuristicsWithOptions = angleInfo
+    Exit Function
+  End If
+
+  If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(fallbackInfo, extractedEmail)
+  Call MergeParsedContactIntoInfo(fallbackInfo, components, componentSourceText)
+  Set ResolveNameUsingHeuristicsWithOptions = fallbackInfo
 End Function
+
+Sub MergeParsedContactIntoInfo(info, components, displayText)
+  If info Is Nothing Then Exit Sub
+
+  Dim displayCandidate: displayCandidate = Trim(SafeText(displayText))
+  Dim firstCandidate: firstCandidate = ""
+  Dim lastCandidate: lastCandidate = ""
+  Dim normalizedCandidate: normalizedCandidate = ""
+
+  If Not components Is Nothing Then
+    On Error Resume Next
+    firstCandidate = Trim(SafeText(components("First")))
+    lastCandidate = Trim(SafeText(components("Last")))
+    normalizedCandidate = Trim(SafeText(components("Normalized")))
+    If Len(displayCandidate) = 0 Then displayCandidate = Trim(SafeText(components("Display")))
+    On Error GoTo 0
+  End If
+
+  Dim existingFirst: existingFirst = Trim(SafeText(info("First")))
+  If Len(existingFirst) = 0 And Len(firstCandidate) > 0 Then info("First") = firstCandidate
+
+  Dim existingLast: existingLast = Trim(SafeText(info("Last")))
+  If Len(existingLast) = 0 And Len(lastCandidate) > 0 Then info("Last") = lastCandidate
+
+  Dim existingFull: existingFull = Trim(SafeText(info("Full")))
+  If Len(existingFull) = 0 Then
+    If Len(displayCandidate) > 0 Then
+      info("Full") = displayCandidate
+    ElseIf Len(normalizedCandidate) > 0 Then
+      info("Full") = normalizedCandidate
+    ElseIf Len(firstCandidate) > 0 Or Len(lastCandidate) > 0 Then
+      info("Full") = Trim(firstCandidate & " " & lastCandidate)
+    End If
+  End If
+End Sub
 
 Function ResolveNameFromGivenName(givenName)
   Dim info: Set info = CreateEmptyResolutionInfo()
