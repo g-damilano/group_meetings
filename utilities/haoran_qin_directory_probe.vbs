@@ -4,24 +4,15 @@ SetLocale 1033
 Call Main()
 
 Sub Main()
-  Call LoadBootstrapModules(Array( _
+  Call RequireBootstrapModules(Array( _
     "common_console.vbs", _
     "mail_collections.vbs", _
     "mail_template_utils.vbs", _
     "common_outlook.vbs", _
     "mail_input_validation.vbs", _
-    "mail_name_resolution_text.vbs", _
-    "mail_name_resolution_directory.vbs", _
-    "mail_name_resolution_core.vbs"))
+    "mail_name_resolution_loader.vbs"))
 
-  Dim scriptFolder: scriptFolder = GetScriptFolder()
-  Call LoadModule(scriptFolder, "common_bootstrap.vbs")
-  Call LoadModule(scriptFolder, "mail_collections.vbs")
-  Call LoadModule(scriptFolder, "mail_template_utils.vbs")
-  Call LoadModule(scriptFolder, "common_outlook.vbs")
-  Call LoadModule(scriptFolder, "mail_input_validation.vbs")
-  Call LoadModule(scriptFolder, "mail_name_resolution_loader.vbs")
-  Call LoadNameResolutionModules(scriptFolder)
+  If Not EnsureConsoleHost() Then Exit Sub
 
   Dim target: target = "Haoran Qin"
   Dim baselineEmail: baselineEmail = "haoran.qin22@imperial.ac.uk"
@@ -85,6 +76,23 @@ Sub Main()
   Call ScanGalAddressListsForMatches(ns, target, components, tokens)
   Call SummarizeBaselineComparison(baseline)
   Call ScanContactFoldersForTokens(ns, tokens)
+End Sub
+
+Sub RequireBootstrapModules(modulePaths)
+  Dim loadError: loadError = ""
+
+  On Error Resume Next
+  Execute "Call LoadBootstrapModules(modulePaths)"
+  If Err.Number <> 0 Then
+    loadError = Err.Description
+    Err.Clear
+  End If
+  On Error GoTo 0
+
+  If Len(loadError) > 0 Then
+    WScript.Echo "Fatal: unable to invoke LoadBootstrapModules: " & loadError
+    WScript.Quit 1
+  End If
 End Sub
 
 Function BuildMatchTokenList(tokens)
