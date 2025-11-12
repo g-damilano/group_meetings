@@ -101,18 +101,41 @@ Sub Main()
 
   Call RunEmailBaselineCheck(ns, baselineEmail, baseline)
 
+  Dim autoResponses: Set autoResponses = CreateArrayList()
+  Call SetLookupResponseRecorder(autoResponses)
   Dim autoInfo: Set autoInfo = ResolveNameLookup(target, "auto")
-  Call DumpResolutionBlock("Step 1 - ResolveNameLookup (auto)", autoInfo, "    ")
+  Call ClearLookupResponseRecorder()
+  Call DumpResolutionBlock("Step 1 - ResolveNameLookup (auto)", autoInfo, "    ", autoResponses)
 
+  Dim displayResponses: Set displayResponses = CreateArrayList()
+  Call SetLookupResponseRecorder(displayResponses)
   Dim displayInfo: Set displayInfo = ResolveNameFromDisplayName(target)
-  Call DumpResolutionBlock("Step 2 - ResolveNameFromDisplayName", displayInfo, "    ")
+  Call ClearLookupResponseRecorder()
+  Call DumpResolutionBlock("Step 2 - ResolveNameFromDisplayName", displayInfo, "    ", displayResponses)
 
+  Dim fullResponses: Set fullResponses = CreateArrayList()
+  Call SetLookupResponseRecorder(fullResponses)
   Dim fullInfo: Set fullInfo = ResolveNameFromFullName(target)
-  Call DumpResolutionBlock("Step 3 - ResolveNameFromFullName", fullInfo, "    ")
+  Call ClearLookupResponseRecorder()
+  Call DumpResolutionBlock("Step 3 - ResolveNameFromFullName", fullInfo, "    ", fullResponses)
 
+  Dim recipientResponses: Set recipientResponses = CreateArrayList()
+  Call SetLookupResponseRecorder(recipientResponses)
   Call RunRecipientResolveProbes(ns, target, components, tokens)
+  Call ClearLookupResponseRecorder()
+  Call DumpRecordedOutlookResponses(recipientResponses, "    ", "Direct Outlook responses (Recipient resolve probes)")
+
+  Dim enumerationResponses: Set enumerationResponses = CreateArrayList()
+  Call SetLookupResponseRecorder(enumerationResponses)
   Call RunGalDisplayEnumerationProbes(ns, target, components, tokens, baseline)
+  Call ClearLookupResponseRecorder()
+  Call DumpRecordedOutlookResponses(enumerationResponses, "    ", "Direct Outlook responses (Display-name enumeration)")
+
+  Dim scanResponses: Set scanResponses = CreateArrayList()
+  Call SetLookupResponseRecorder(scanResponses)
   Call ScanGalAddressListsForMatches(ns, target, components, tokens)
+  Call ClearLookupResponseRecorder()
+  Call DumpRecordedOutlookResponses(scanResponses, "    ", "Direct Outlook responses (Address list scans)")
   Call SummarizeBaselineComparison(baseline)
   Call ScanContactFoldersForTokens(ns, tokens)
 End Sub
@@ -493,8 +516,11 @@ Sub RunEmailBaselineCheck(ns, emailAddress, baseline)
 
   WScript.Echo "  Target email: " & emailAddress
 
+  Dim emailResponses: Set emailResponses = CreateArrayList()
+  Call SetLookupResponseRecorder(emailResponses)
   Dim emailInfo: Set emailInfo = ResolveNameFromEmail(emailAddress)
-  Call DumpResolutionBlock("  Email resolution via ResolveNameFromEmail", emailInfo, "    ")
+  Call ClearLookupResponseRecorder()
+  Call DumpResolutionBlock("  Email resolution via ResolveNameFromEmail", emailInfo, "    ", emailResponses)
 
   If Not baseline Is Nothing Then
     On Error Resume Next
@@ -1111,10 +1137,11 @@ Sub OutputAddressEntrySummary(entry, indent)
   End If
 End Sub
 
-Sub DumpResolutionBlock(title, info, indent)
+Sub DumpResolutionBlock(title, info, indent, responses)
   WScript.Echo ""
   WScript.Echo title
   Call DumpResolutionDetails(info, indent)
+  Call DumpRecordedOutlookResponses(responses, indent, "")
 End Sub
 
 Sub DumpResolutionDetails(info, indent)
@@ -1134,6 +1161,33 @@ Sub DumpResolutionDetails(info, indent)
   WScript.Echo indent & "Display name: " & DescribeField(info, "Full", "(empty)")
   WScript.Echo indent & "Raw resolution payload:"
   Call DumpVariantStructure(info, indent & "  ", 0)
+End Sub
+
+Sub DumpRecordedOutlookResponses(responses, indent, label)
+  If Len(indent) = 0 Then indent = ""
+
+  If responses Is Nothing Then Exit Sub
+
+  Dim count: count = 0
+  On Error Resume Next
+  count = responses.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    count = 0
+  End If
+  On Error GoTo 0
+
+  If count = 0 Then Exit Sub
+
+  Dim effectiveLabel: effectiveLabel = Trim(label)
+  If Len(effectiveLabel) = 0 Then effectiveLabel = "Direct Outlook responses"
+
+  WScript.Echo indent & effectiveLabel & ":"
+
+  Dim i
+  For i = 0 To count - 1
+    WScript.Echo indent & "  - " & SafeText(responses(i))
+  Next
 End Sub
 
 Function BuildCandidateProbeList(target, components, tokens)
