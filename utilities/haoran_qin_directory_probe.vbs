@@ -1134,6 +1134,8 @@ Sub DumpResolutionDetails(info, indent)
   WScript.Echo indent & "Surname: " & DescribeField(info, "Last", "(empty)")
   WScript.Echo indent & "Email: " & DescribeField(info, "Email", "(empty)")
   WScript.Echo indent & "Display name: " & DescribeField(info, "Full", "(empty)")
+  WScript.Echo indent & "Raw resolution payload:"
+  Call DumpVariantStructure(info, indent & "  ", 0)
 End Sub
 
 Function BuildCandidateProbeList(target, components, tokens)
@@ -1400,5 +1402,214 @@ Function OpenAddressList(ns, listName)
     Set OpenAddressList = Nothing
   End If
   On Error GoTo 0
+End Function
+
+
+Sub DumpVariantStructure(value, indent, depth)
+  If Len(indent) = 0 Then indent = ""
+  If depth > 8 Then
+    WScript.Echo indent & "(Maximum inspection depth reached.)"
+    Exit Sub
+  End If
+
+  If value Is Nothing Then
+    WScript.Echo indent & "(Value is Nothing)"
+    Exit Sub
+  End If
+
+  Dim typeName: typeName = SafeTypeName(value)
+
+  If IsObject(value) Then
+    If StrComp(typeName, "Dictionary", vbTextCompare) = 0 Then
+      Call DumpDictionaryVariant(value, indent, depth)
+      Exit Sub
+    End If
+
+    If StrComp(typeName, "ArrayList", vbTextCompare) = 0 Then
+      Call DumpArrayListVariant(value, indent, depth)
+      Exit Sub
+    End If
+
+    WScript.Echo indent & DescribeVariant(value, True)
+    Exit Sub
+  End If
+
+  If IsArray(value) Then
+    Call DumpArrayVariant(value, indent, depth)
+    Exit Sub
+  End If
+
+  WScript.Echo indent & DescribeVariant(value, True)
+End Sub
+
+Sub DumpDictionaryVariant(dictValue, indent, depth)
+  Dim count
+  On Error Resume Next
+  count = dictValue.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    WScript.Echo indent & DescribeVariant(dictValue, True)
+    Exit Sub
+  End If
+  On Error GoTo 0
+
+  WScript.Echo indent & "(Dictionary with " & count & " entries)"
+  If count = 0 Then Exit Sub
+
+  Dim entryIndent: entryIndent = indent & "  "
+  Dim key
+  For Each key In dictValue
+    Dim entryValue
+    On Error Resume Next
+    entryValue = dictValue(key)
+    If Err.Number <> 0 Then
+      Err.Clear
+      WScript.Echo entryIndent & "- Key " & DescribeVariant(key, True) & " => (Unable to read value)"
+    Else
+      WScript.Echo entryIndent & "- Key " & DescribeVariant(key, True) & " => " & DescribeVariant(entryValue, True)
+      If ShouldExpandVariant(entryValue, depth) Then
+        Call DumpVariantStructure(entryValue, entryIndent & "    ", depth + 1)
+      End If
+    End If
+    On Error GoTo 0
+  Next
+End Sub
+
+Sub DumpArrayListVariant(listValue, indent, depth)
+  Dim count
+  On Error Resume Next
+  count = listValue.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    WScript.Echo indent & DescribeVariant(listValue, True)
+    Exit Sub
+  End If
+  On Error GoTo 0
+
+  WScript.Echo indent & "(ArrayList with " & count & " entries)"
+  If count = 0 Then Exit Sub
+
+  Dim entryIndent: entryIndent = indent & "  "
+  Dim idx
+  For idx = 0 To count - 1
+    Dim listItem
+    On Error Resume Next
+    listItem = listValue(idx)
+    If Err.Number <> 0 Then
+      Err.Clear
+      WScript.Echo entryIndent & "[" & idx & "] => (Unable to read value)"
+    Else
+      WScript.Echo entryIndent & "[" & idx & "] => " & DescribeVariant(listItem, True)
+      If ShouldExpandVariant(listItem, depth) Then
+        Call DumpVariantStructure(listItem, entryIndent & "    ", depth + 1)
+      End If
+    End If
+    On Error GoTo 0
+  Next
+End Sub
+
+Sub DumpArrayVariant(arrayValue, indent, depth)
+  Dim lowerBound, upperBound, length
+  lowerBound = 0
+  upperBound = -1
+  length = 0
+
+  On Error Resume Next
+  lowerBound = LBound(arrayValue)
+  upperBound = UBound(arrayValue)
+  If Err.Number <> 0 Then
+    Err.Clear
+    WScript.Echo indent & DescribeVariant(arrayValue, True)
+    Exit Sub
+  End If
+  On Error GoTo 0
+
+  length = upperBound - lowerBound + 1
+  WScript.Echo indent & "(Array with " & length & " elements)"
+  If length <= 0 Then Exit Sub
+
+  Dim entryIndent: entryIndent = indent & "  "
+  Dim idx
+  For idx = lowerBound To upperBound
+    Dim item
+    item = arrayValue(idx)
+    WScript.Echo entryIndent & "[" & idx & "] => " & DescribeVariant(item, True)
+    If ShouldExpandVariant(item, depth) Then
+      Call DumpVariantStructure(item, entryIndent & "    ", depth + 1)
+    End If
+  Next
+End Sub
+
+Function ShouldExpandVariant(value, depth)
+  ShouldExpandVariant = False
+  If depth >= 8 Then Exit Function
+
+  If IsObject(value) Then
+    Dim typeName: typeName = SafeTypeName(value)
+    If StrComp(typeName, "Dictionary", vbTextCompare) = 0 Then
+      ShouldExpandVariant = True
+    ElseIf StrComp(typeName, "ArrayList", vbTextCompare) = 0 Then
+      ShouldExpandVariant = True
+    End If
+  ElseIf IsArray(value) Then
+    ShouldExpandVariant = True
+  End If
+End Function
+
+Function SafeTypeName(value)
+  On Error Resume Next
+  Dim name: name = TypeName(value)
+  If Err.Number <> 0 Then
+    Err.Clear
+    name = "Unknown"
+  End If
+  On Error GoTo 0
+  SafeTypeName = name
+End Function
+
+Function DescribeVariant(value, includeQuotes)
+  Dim typeName: typeName = SafeTypeName(value)
+  Dim description: description = ""
+
+  If IsObject(value) Then
+    description = "<Object>"
+  ElseIf IsArray(value) Then
+    Dim lowerBound, upperBound
+    lowerBound = 0
+    upperBound = -1
+    On Error Resume Next
+    lowerBound = LBound(value)
+    upperBound = UBound(value)
+    If Err.Number <> 0 Then
+      Err.Clear
+      description = "<Array>"
+    Else
+      description = "<Array length=" & (upperBound - lowerBound + 1) & ">"
+    End If
+    On Error GoTo 0
+  ElseIf IsNull(value) Then
+    description = "(Null)"
+  ElseIf IsEmpty(value) Then
+    description = "(Empty)"
+  ElseIf VarType(value) = vbBoolean Then
+    If value Then
+      description = "True"
+    Else
+      description = "False"
+    End If
+  ElseIf VarType(value) = vbString Then
+    description = value
+    If includeQuotes Then description = """" & description & """"
+  Else
+    On Error Resume Next
+    description = CStr(value)
+    If Err.Number <> 0 Then
+      Err.Clear
+      description = "<Unprintable>"
+    End If
+    On Error GoTo 0
+  End If
+
+  DescribeVariant = description & " (" & typeName & ")"
 End Function
 
