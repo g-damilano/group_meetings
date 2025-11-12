@@ -1,55 +1,14 @@
 Option Explicit
 SetLocale 1033
 
-Dim bootstrapFso, bootstrapBaseFolder, bootstrapModulePath
-Dim bootstrapCurrentFolder, bootstrapCandidate, bootstrapParentFolder
-Dim bootstrapStream, bootstrapContents
-
-Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
-bootstrapBaseFolder = bootstrapFso.GetParentFolderName(WScript.ScriptFullName)
-If Len(bootstrapBaseFolder) = 0 Then bootstrapBaseFolder = "."
-
-bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "common_bootstrap.vbs")
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
-  bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "utilities\\common_bootstrap.vbs")
-End If
-
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
-  bootstrapModulePath = ""
-  bootstrapCurrentFolder = bootstrapBaseFolder
-  Do While Len(bootstrapCurrentFolder) > 0
-    bootstrapCandidate = bootstrapFso.BuildPath(bootstrapCurrentFolder, "utilities\\common_bootstrap.vbs")
-    If bootstrapFso.FileExists(bootstrapCandidate) Then
-      bootstrapModulePath = bootstrapCandidate
-      Exit Do
-    End If
-
-    bootstrapParentFolder = bootstrapFso.GetParentFolderName(bootstrapCurrentFolder)
-    If StrComp(bootstrapParentFolder, bootstrapCurrentFolder, vbTextCompare) = 0 Then Exit Do
-    bootstrapCurrentFolder = bootstrapParentFolder
-  Loop
-End If
-
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
-  WScript.Echo "Fatal: unable to locate utilities\\common_bootstrap.vbs"
-  WScript.Quit 1
-End If
-
-Set bootstrapStream = bootstrapFso.OpenTextFile(bootstrapModulePath, 1)
-bootstrapContents = bootstrapStream.ReadAll
-bootstrapStream.Close
-ExecuteGlobal bootstrapContents
-
 Call Main()
 
 Sub Main()
   If Not EnsureConsoleHost() Then Exit Sub
 
   Dim scriptFolder: scriptFolder = GetScriptFolder()
-  Call LoadModule(scriptFolder, "common_bootstrap.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
-  Call LoadModule(scriptFolder, "common_outlook.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
@@ -216,7 +175,7 @@ Function EnumeratePartialMatches(addressList, probes, tokens, aggregate, seen, r
     candidateCounts(candidateKey) = GetDictionaryCount(candidateBucket)
   Next
 
-  stats("CandidateCounts") = candidateCounts
+  Set stats("CandidateCounts") = candidateCounts
   stats("TokenCount") = GetDictionaryCount(tokenEntryKeys)
 
   Set EnumeratePartialMatches = stats
@@ -1400,6 +1359,18 @@ Function GetScriptFolder()
   Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
   If Len(folder) = 0 Then folder = "."
   GetScriptFolder = folder
+End Function
+
+Function GetOutlookApp()
+  Dim app
+  On Error Resume Next
+  Set app = GetObject(, "Outlook.Application")
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set app = CreateObject("Outlook.Application")
+  End If
+  On Error GoTo 0
+  Set GetOutlookApp = app
 End Function
 
 Sub LoadModule(baseFolder, relativePath)
