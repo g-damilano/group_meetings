@@ -2,6 +2,48 @@ Option Explicit
 SetLocale 1033
 
 '======================================================================
+' Bootstrap shared utilities
+'======================================================================
+Dim bootstrapFso, bootstrapBaseFolder, bootstrapModulePath
+Dim bootstrapCurrentFolder, bootstrapCandidate, bootstrapParentFolder
+Dim bootstrapStream, bootstrapContents
+
+Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
+bootstrapBaseFolder = bootstrapFso.GetParentFolderName(WScript.ScriptFullName)
+If Len(bootstrapBaseFolder) = 0 Then bootstrapBaseFolder = "."
+
+bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "utilities\\common_bootstrap.vbs")
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "common_bootstrap.vbs")
+End If
+
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  bootstrapModulePath = ""
+  bootstrapCurrentFolder = bootstrapBaseFolder
+  Do While Len(bootstrapCurrentFolder) > 0
+    bootstrapCandidate = bootstrapFso.BuildPath(bootstrapCurrentFolder, "utilities\\common_bootstrap.vbs")
+    If bootstrapFso.FileExists(bootstrapCandidate) Then
+      bootstrapModulePath = bootstrapCandidate
+      Exit Do
+    End If
+
+    bootstrapParentFolder = bootstrapFso.GetParentFolderName(bootstrapCurrentFolder)
+    If StrComp(bootstrapParentFolder, bootstrapCurrentFolder, vbTextCompare) = 0 Then Exit Do
+    bootstrapCurrentFolder = bootstrapParentFolder
+  Loop
+End If
+
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  WScript.Echo "Fatal: unable to locate utilities\\common_bootstrap.vbs"
+  WScript.Quit 1
+End If
+
+Set bootstrapStream = bootstrapFso.OpenTextFile(bootstrapModulePath, 1)
+bootstrapContents = bootstrapStream.ReadAll
+bootstrapStream.Close
+ExecuteGlobal bootstrapContents
+
+'======================================================================
 ' InductionMailer.vbs — Console workflow for staged induction templates
 '======================================================================
 
@@ -28,37 +70,38 @@ Call Main()
 ' Support module bootstrap
 '======================================================================
 Sub LoadUtilityModules()
-  Dim loaderFso: Set loaderFso = CreateObject("Scripting.FileSystemObject")
-  Dim baseFolder: baseFolder = loaderFso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(baseFolder) = 0 Then baseFolder = "."
+  Dim baseFolder
+  baseFolder = GetScriptFolder()
+
   Dim modules
   modules = Array( _
+    "utilities\common_bootstrap.vbs", _
+    "utilities\common_console.vbs", _
     "utilities\mail_collections.vbs", _
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
     "utilities\mail_input_validation.vbs", _
-    "utilities\mail_name_resolution_prompt.vbs", _
-    "utilities\mail_name_resolution_text.vbs", _
-    "utilities\mail_name_resolution_directory.vbs", _
-    "utilities\mail_name_resolution_core.vbs")
-  Dim i, modulePath, ts, contents
+    "utilities\mail_name_resolution_loader.vbs"))
+
+  On Error Resume Next
+  Call LoadNameResolutionModules(GetScriptFolder())
+  If Err.Number <> 0 Then
+    WScript.Echo "Fatal: unable to load name resolution modules: " & Err.Description
+    Err.Clear
+    WScript.Quit 1
+  End If
+  On Error GoTo 0
+End Sub
+
+Sub RequireBootstrapModules(modulePaths)
+  Dim loadError: loadError = ""
+
+  Dim i
   For i = LBound(modules) To UBound(modules)
-    modulePath = loaderFso.BuildPath(baseFolder, modules(i))
-    If loaderFso.FileExists(modulePath) Then
-      Set ts = loaderFso.OpenTextFile(modulePath, 1)
-      contents = ts.ReadAll
-      ts.Close
-      On Error Resume Next
-      ExecuteGlobal contents
-      If Err.Number <> 0 Then
-        WScript.Echo "Warning: failed to load module '" & modules(i) & "': " & Err.Description
-        Err.Clear
-      End If
-      On Error GoTo 0
-    Else
-      WScript.Echo "Warning: utility module not found: " & modules(i)
-    End If
+    Call LoadModule(baseFolder, modules(i))
   Next
+
+  Call LoadNameResolutionModules(baseFolder)
 End Sub
 
 '======================================================================
@@ -117,19 +160,6 @@ Sub Main()
   WScript.Echo "All requested templates processed."
 End Sub
 
-'======================================================================
-' Console helpers
-'======================================================================
-Function EnsureConsoleHost()
-  Dim host: host = LCase(WScript.FullName)
-  If InStr(host, "cscript.exe") = 0 Then
-    WScript.Echo "Please run this script with cscript.exe to use the console interface."
-    EnsureConsoleHost = False
-  Else
-    EnsureConsoleHost = True
-  End If
-End Function
-
 Function PromptLine(prompt)
   WScript.StdOut.Write prompt
   PromptLine = Trim(WScript.StdIn.ReadLine())
@@ -161,8 +191,7 @@ End Function
 '======================================================================
 Sub InitializeEnvironment()
   Set fso = CreateObject("Scripting.FileSystemObject")
-  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(scriptFolder) = 0 Then scriptFolder = "."
+  scriptFolder = GetScriptFolder()
   templateFolder = fso.BuildPath(scriptFolder, TEMPLATE_DIR_NAME)
   logFilePath = fso.BuildPath(scriptFolder, LOG_FILE_NAME)
   LogEvent "=== Induction Mailer (console) started ==="
@@ -184,6 +213,7 @@ Function LoadMailerLibrary()
       Set ts = fso.OpenTextFile(candidates(i), 1)
       contents = ts.ReadAll
       ts.Close
+      contents = RemoveByteOrderMark(contents)
       ExecuteGlobal contents
       LogEvent "Loaded mailer library from " & candidates(i)
       EnsureLinkMapAvailable candidates(i)
@@ -759,7 +789,7 @@ Function EnsureCapitalizedNameText(text, context)
     If Len(normalized) > 0 Then
       Dim capitalized: capitalized = CapitalizeNamePart(normalized)
       If Len(capitalized) > 0 Then
-        result = Replace(result, normalized, capitalized, 1, -1, vbTextCompare)
+        result = ReplaceWholeWordCaseInsensitive(result, normalized, capitalized)
       End If
     End If
   Next
@@ -789,6 +819,64 @@ Function CapitalizeNamePart(value)
     Else
       CapitalizeNamePart = firstChar
     End If
+  End If
+End Function
+
+Function ReplaceWholeWordCaseInsensitive(text, findValue, replacement)
+  Dim source: source = SafeText(text)
+  Dim target: target = SafeText(findValue)
+
+  If Len(target) = 0 Then
+    ReplaceWholeWordCaseInsensitive = source
+    Exit Function
+  End If
+
+  Dim result: result = source
+  Dim startPos: startPos = 1
+  Dim targetLen: targetLen = Len(target)
+
+  Do While targetLen > 0
+    Dim pos: pos = InStr(startPos, result, target, vbTextCompare)
+    If pos = 0 Then Exit Do
+
+    Dim beforeChar: beforeChar = ""
+    Dim afterChar: afterChar = ""
+
+    If pos > 1 Then beforeChar = Mid(result, pos - 1, 1)
+    If pos + targetLen <= Len(result) Then afterChar = Mid(result, pos + targetLen, 1)
+
+    If IsWordBoundary(beforeChar, afterChar) Then
+      result = Left(result, pos - 1) & replacement & Mid(result, pos + targetLen)
+      startPos = pos + Len(replacement)
+    Else
+      startPos = pos + targetLen
+    End If
+  Loop
+
+  ReplaceWholeWordCaseInsensitive = result
+End Function
+
+Function IsWordBoundary(beforeChar, afterChar)
+  If Len(beforeChar) = 0 Or Not IsWordCharacter(beforeChar) Then
+    If Len(afterChar) = 0 Or Not IsWordCharacter(afterChar) Then
+      IsWordBoundary = True
+      Exit Function
+    End If
+  End If
+  IsWordBoundary = False
+End Function
+
+Function IsWordCharacter(ch)
+  If Len(ch) = 0 Then
+    IsWordCharacter = False
+  Else
+    Dim code: code = AscW(ch)
+    IsWordCharacter = _
+      (code >= 48 And code <= 57) _
+      Or (code >= 65 And code <= 90) _
+      Or (code >= 97 And code <= 122) _
+      Or (code >= &H00C0 And code <= &H02AF) _
+      Or (code >= &H0370 And code <= &H1FFF)
   End If
 End Function
 
