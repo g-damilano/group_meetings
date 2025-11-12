@@ -387,7 +387,12 @@ Sub ScanGalAddressListsForMatches(ns, target, components, tokens)
         WScript.Echo "    Exact candidate '" & candidate & "' matched " & matchCount & " entr(ies) (" & newUnique & " new unique)."
       Next
 
-      Dim partialStats: Set partialStats = EnumeratePartialMatches(addressList, probes, normalizedTokens, aggregate, seen, reasonMap, listName)
+      Dim partialStats: Set partialStats = Nothing
+      If ShouldSkipPartialMatchScan(listName, normalizedTokens) Then
+        WScript.Echo "    Skipping partial candidate enumeration for '" & listName & "' due to performance safeguards."
+      Else
+        Set partialStats = EnumeratePartialMatches(addressList, probes, normalizedTokens, aggregate, seen, reasonMap, listName)
+      End If
 
       If Not partialStats Is Nothing Then
         Dim candidateCounts
@@ -868,6 +873,28 @@ Function CollectAddressEntriesByProperty(addressList, propertyName, propertyValu
       Exit Do
     End If
   Loop
+  On Error GoTo 0
+End Function
+
+Function ShouldSkipPartialMatchScan(listName, normalizedTokens)
+  ShouldSkipPartialMatchScan = False
+
+  Dim loweredName: loweredName = SafeLower(listName)
+  If Len(loweredName) = 0 Then Exit Function
+
+  If StrComp(loweredName, "offline global address list", vbTextCompare) = 0 Then
+    ' Enumerating partial matches over the offline GAL can take several minutes because
+    ' Outlook must hydrate every entry locally. We already scanned the online GAL, so
+    ' repeating the expensive scan provides little additional value but causes the
+    ' diagnostic script to appear frozen. Skip the partial scan for this list to keep
+    ' the tooling responsive.
+    ShouldSkipPartialMatchScan = True
+    Exit Function
+  End If
+
+  If normalizedTokens Is Nothing Then Exit Function
+  On Error Resume Next
+  ShouldSkipPartialMatchScan = (normalizedTokens.Count = 0)
   On Error GoTo 0
 End Function
 
