@@ -4,15 +4,17 @@ SetLocale 1033
 Call Main()
 
 Sub Main()
-  If Not EnsureConsoleHost() Then Exit Sub
-
   Dim scriptFolder: scriptFolder = GetScriptFolder()
+  Call LoadModule(scriptFolder, "common_console.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_core.vbs")
+  Call LoadModule(scriptFolder, "mail_name_resolution_console.vbs")
+
+  If Not EnsureConsoleHost() Then Exit Sub
 
   Dim target: target = "Haoran Qin"
   Dim baselineEmail: baselineEmail = "haoran.qin22@imperial.ac.uk"
@@ -764,34 +766,6 @@ Sub AddProbe(list, seen, value, reason)
   list.Add probe
 End Sub
 
-Function DescribeBoolean(info, key)
-  Dim defaultText: defaultText = "Unknown"
-  If info Is Nothing Then
-    DescribeBoolean = defaultText
-    Exit Function
-  End If
-
-  If info.Exists(key) Then
-    If CBool(info(key)) Then
-      DescribeBoolean = "Found"
-    Else
-      DescribeBoolean = "Not found"
-    End If
-  Else
-    DescribeBoolean = defaultText
-  End If
-End Function
-
-Function DescribeField(info, key, placeholder)
-  Dim text: text = placeholder
-  If Not info Is Nothing Then
-    If info.Exists(key) Then
-      Dim candidate: candidate = SafeText(info(key))
-      If Len(candidate) > 0 Then text = candidate
-    End If
-  End If
-  DescribeField = text
-End Function
 
 Sub SummarizeBaselineComparison(baseline)
   WScript.Echo ""
@@ -958,16 +932,6 @@ Function OpenAddressList(ns, listName)
     Set OpenAddressList = Nothing
   End If
   On Error GoTo 0
-End Function
-
-Function EnsureConsoleHost()
-  Dim host: host = LCase(WScript.FullName)
-  If InStr(host, "cscript.exe") = 0 Then
-    WScript.Echo "Please run this script with cscript.exe to use the console interface."
-    EnsureConsoleHost = False
-  Else
-    EnsureConsoleHost = True
-  End If
 End Function
 
 Function GetScriptFolder()
