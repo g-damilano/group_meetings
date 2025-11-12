@@ -1,44 +1,42 @@
 Option Explicit
 SetLocale 1033
 
-Dim bootstrapFso, bootstrapBaseFolder, bootstrapModulePath
-Dim bootstrapCurrentFolder, bootstrapCandidate, bootstrapParentFolder
-Dim bootstrapStream, bootstrapContents
+Call BootstrapIncludeEntry()
 
-Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
-bootstrapBaseFolder = bootstrapFso.GetParentFolderName(WScript.ScriptFullName)
-If Len(bootstrapBaseFolder) = 0 Then bootstrapBaseFolder = "."
+Sub BootstrapIncludeEntry()
+  Dim entryFso: Set entryFso = CreateObject("Scripting.FileSystemObject")
+  Dim scriptFolder: scriptFolder = entryFso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(scriptFolder) = 0 Then scriptFolder = "."
 
-bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "common_bootstrap.vbs")
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
-  bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "utilities\\common_bootstrap.vbs")
-End If
+  Dim entryPath: entryPath
+  entryPath = entryFso.BuildPath(scriptFolder, "utilities\\bootstrap_entry.vbs")
+  If Not entryFso.FileExists(entryPath) Then
+    entryPath = entryFso.BuildPath(scriptFolder, "bootstrap_entry.vbs")
+  End If
 
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
-  bootstrapModulePath = ""
-  bootstrapCurrentFolder = bootstrapBaseFolder
-  Do While Len(bootstrapCurrentFolder) > 0
-    bootstrapCandidate = bootstrapFso.BuildPath(bootstrapCurrentFolder, "utilities\\common_bootstrap.vbs")
-    If bootstrapFso.FileExists(bootstrapCandidate) Then
-      bootstrapModulePath = bootstrapCandidate
-      Exit Do
-    End If
+  If Not entryFso.FileExists(entryPath) Then
+    WScript.Echo "Fatal: unable to locate utilities\\bootstrap_entry.vbs"
+    WScript.Quit 1
+  End If
 
-    bootstrapParentFolder = bootstrapFso.GetParentFolderName(bootstrapCurrentFolder)
-    If StrComp(bootstrapParentFolder, bootstrapCurrentFolder, vbTextCompare) = 0 Then Exit Do
-    bootstrapCurrentFolder = bootstrapParentFolder
-  Loop
-End If
+  Dim entryStream
+  On Error Resume Next
+  Set entryStream = entryFso.OpenTextFile(entryPath, 1)
+  If Err.Number <> 0 Then
+    Dim entryError: entryError = Err.Description
+    Err.Clear
+    On Error GoTo 0
+    WScript.Echo "Fatal: unable to read bootstrap entry: " & entryError
+    WScript.Quit 1
+  End If
+  On Error GoTo 0
 
-If Not bootstrapFso.FileExists(bootstrapModulePath) Then
-  WScript.Echo "Fatal: unable to locate utilities\\common_bootstrap.vbs"
-  WScript.Quit 1
-End If
+  Dim entryContents: entryContents = entryStream.ReadAll
+  entryStream.Close
 
-Set bootstrapStream = bootstrapFso.OpenTextFile(bootstrapModulePath, 1)
-bootstrapContents = bootstrapStream.ReadAll
-bootstrapStream.Close
-ExecuteGlobal bootstrapContents
+  ExecuteGlobal entryContents
+  Set entryFso = Nothing
+End Sub
 
 Call Main()
 
