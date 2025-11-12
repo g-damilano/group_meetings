@@ -1859,7 +1859,6 @@ Function BuildAddressEntryCandidate(entry)
 
   Dim candidate: Set candidate = CreateObject("Scripting.Dictionary")
   Set candidate("Entry") = entry
-  Set candidate("Exchange") = Nothing
   candidate("Department") = ""
   candidate("Company") = ""
   Set candidate("MatchDetails") = CreateObject("System.Collections.ArrayList")
@@ -1972,8 +1971,6 @@ Function ChooseBestAddressEntry(entries, profile)
   result("Department") = ""
   result("Company") = ""
   result("UsedProfile") = False
-  Set result("Entry") = Nothing
-  Set result("Exchange") = Nothing
 
   Dim count: count = 0
   On Error Resume Next
