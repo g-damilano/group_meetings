@@ -76,11 +76,7 @@ Sub LoadUtilityModules()
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
     "utilities\mail_input_validation.vbs", _
-    "utilities\mail_name_resolution_prompt.vbs", _
-    "utilities\mail_name_resolution_text.vbs", _
-    "utilities\mail_name_resolution_directory.vbs", _
-    "utilities\mail_name_resolution_core.vbs", _
-    "utilities\mail_name_resolution_console.vbs"))
+    "utilities\mail_name_resolution_loader.vbs")
 End Sub
 
 Sub RequireBootstrapModules(modulePaths)

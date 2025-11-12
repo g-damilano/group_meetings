@@ -49,11 +49,7 @@ Sub Main()
     "mail_template_utils.vbs", _
     "common_outlook.vbs", _
     "mail_input_validation.vbs", _
-    "mail_name_resolution_prompt.vbs", _
-    "mail_name_resolution_text.vbs", _
-    "mail_name_resolution_directory.vbs", _
-    "mail_name_resolution_core.vbs", _
-    "mail_name_resolution_console.vbs"))
+    "mail_name_resolution_loader.vbs"))
 
   If Not EnsureConsoleHost() Then Exit Sub
 
