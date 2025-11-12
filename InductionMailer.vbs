@@ -83,8 +83,8 @@ Sub Main()
     Exit Sub
   End If
 
-  Dim targets: targets = PromptRecipientLookupValues()
-  If Not HasRecipientLookupValues(targets) Then
+  Dim recipientPackage: Set recipientPackage = PromptRecipientResolutionPackage()
+  If Not HasRecipientResolutionEntries(recipientPackage) Then
     WScript.Echo "No valid target email addresses supplied."
     Exit Sub
   End If
@@ -111,7 +111,7 @@ Sub Main()
 
   Dim key
   For Each key In selectedTemplates.Keys
-    ProcessTemplate selectedTemplates(key), targets, action
+    ProcessTemplate selectedTemplates(key), recipientPackage, action
   Next
 
   WScript.Echo "All requested templates processed."
@@ -511,7 +511,7 @@ End Function
 '======================================================================
 ' Template processing
 '======================================================================
-Sub ProcessTemplate(tmpl, targets, action)
+Sub ProcessTemplate(tmpl, recipientPackage, action)
   WScript.Echo "Preparing template: " & tmpl("DisplayName")
   LogEvent "Processing template: " & tmpl("DisplayName")
 
@@ -534,16 +534,20 @@ Sub ProcessTemplate(tmpl, targets, action)
   Dim htmlBody: htmlBody = inlineInfo("HtmlBody")
   Dim inlineFolder: inlineFolder = inlineInfo("InlineFolder")
 
+  Dim targets: targets = GetRecipientResolutionAddresses(recipientPackage)
+  Dim entries: entries = GetRecipientResolutionEntries(recipientPackage)
+  Dim recipientCount: recipientCount = GetRecipientResolutionCount(recipientPackage)
+
   Dim baseContext: Set baseContext = BuildContextFromMeta(meta)
   baseContext("TEMPLATE_NAME") = tmpl("DisplayName")
-  baseContext("RECIPIENT_COUNT") = CStr(UBound(targets) + 1)
+  baseContext("RECIPIENT_COUNT") = CStr(recipientCount)
   baseContext("TARGETS") = Join(targets, "; ")
   Call NormalizeNameParts(baseContext)
 
   If delivery = DELIVERY_BROADCAST Then
     HandleBroadcast tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext
   Else
-    HandlePersonal tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext
+    HandlePersonal tmpl, entries, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext
   End If
 End Sub
 
@@ -579,88 +583,114 @@ Sub HandleBroadcast(tmpl, targets, action, toText, ccText, bccText, subjectText,
   End If
 End Sub
 
-Sub HandlePersonal(tmpl, targets, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext)
+Sub HandlePersonal(tmpl, entries, action, toText, ccText, bccText, subjectText, htmlBody, attachments, inlineFolder, baseContext)
+  Dim entryUpper: entryUpper = GetRecipientResolutionArrayUpperBound(entries)
+  If entryUpper < 0 Then Exit Sub
+
   Dim i
-  For i = LBound(targets) To UBound(targets)
-    Dim address: address = targets(i)
-    Dim context: Set context = CloneDictionary(baseContext)
-    context("EMAIL") = address
+  For i = 0 To entryUpper
+    Dim entry
+    Set entry = entries(i)
+    If entry Is Nothing Then
+      ' Skip missing entries
+    Else
+      Dim address: address = SafeText(GetDictionaryValue(entry, "PreferredAddress"))
+      If Len(address) = 0 Then address = SafeText(GetDictionaryValue(entry, "RawValue"))
 
-    If Not context.Exists("NAME") Then context("NAME") = ""
-    If Not context.Exists("SURNAME") Then context("SURNAME") = ""
-    If Not context.Exists("FULL_NAME") Then context("FULL_NAME") = ""
-    If Not context.Exists("DIRECTORY_SOURCE") Then context("DIRECTORY_SOURCE") = ""
-    If Not context.Exists("DIRECTORY_ATTEMPTED") Then context("DIRECTORY_ATTEMPTED") = ""
+      Dim context: Set context = CloneDictionary(baseContext)
+      context("EMAIL") = address
 
-    Dim nameInfo: Set nameInfo = ResolveNameLookup(address, "auto")
-    If IsValidEmail(address) Then
-      Call MaybeRefineNameUsingGivenName(address, nameInfo)
-    End If
-    If nameInfo("Found") Then
-      Dim resolvedFirst: resolvedFirst = SafeText(nameInfo("First"))
-      Dim resolvedLast: resolvedLast = SafeText(nameInfo("Last"))
-      Dim resolvedFull: resolvedFull = SafeText(nameInfo("Full"))
-      Dim resolvedEmail: resolvedEmail = ""
-      If nameInfo.Exists("Email") Then resolvedEmail = SafeText(nameInfo("Email"))
+      If Not context.Exists("NAME") Then context("NAME") = ""
+      If Not context.Exists("SURNAME") Then context("SURNAME") = ""
+      If Not context.Exists("FULL_NAME") Then context("FULL_NAME") = ""
+      If Not context.Exists("DIRECTORY_SOURCE") Then context("DIRECTORY_SOURCE") = ""
+      If Not context.Exists("DIRECTORY_ATTEMPTED") Then context("DIRECTORY_ATTEMPTED") = ""
 
-      If Len(resolvedFirst) > 0 Then
-        resolvedFirst = CapitalizeNamePart(resolvedFirst)
-        nameInfo("First") = resolvedFirst
-        context("NAME") = resolvedFirst
+      Dim nameInfo: Set nameInfo = Nothing
+      If entry.Exists("Resolution") Then Set nameInfo = entry("Resolution")
+      If nameInfo Is Nothing Then Set nameInfo = CreateEmptyResolutionInfo()
+
+      If nameInfo("Found") Then
+        Dim resolvedFirst: resolvedFirst = SafeText(nameInfo("First"))
+        Dim resolvedLast: resolvedLast = SafeText(nameInfo("Last"))
+        Dim resolvedFull: resolvedFull = SafeText(nameInfo("Full"))
+        Dim resolvedEmail: resolvedEmail = ""
+        If nameInfo.Exists("Email") Then resolvedEmail = SafeText(nameInfo("Email"))
+
+        If Len(resolvedFirst) > 0 Then
+          resolvedFirst = CapitalizeNamePart(resolvedFirst)
+          nameInfo("First") = resolvedFirst
+          context("NAME") = resolvedFirst
+        End If
+
+        If Len(resolvedLast) > 0 Then
+          resolvedLast = CapitalizeNamePart(resolvedLast)
+          nameInfo("Last") = resolvedLast
+          context("SURNAME") = resolvedLast
+        End If
+
+        If Len(resolvedFull) > 0 Then
+          context("FULL_NAME") = resolvedFull
+        End If
+        If Len(resolvedEmail) > 0 Then
+          context("EMAIL") = resolvedEmail
+        End If
       End If
 
-      If Len(resolvedLast) > 0 Then
-        resolvedLast = CapitalizeNamePart(resolvedLast)
-        nameInfo("Last") = resolvedLast
-        context("SURNAME") = resolvedLast
+      If nameInfo.Exists("DirectorySource") Then context("DIRECTORY_SOURCE") = nameInfo("DirectorySource")
+      If nameInfo.Exists("DirectoryAttempted") Then context("DIRECTORY_ATTEMPTED") = nameInfo("DirectoryAttempted")
+
+      Call NormalizeNameParts(context)
+      Call ReviewResolvedName(address, context)
+
+      Call NormalizeNameParts(context)
+
+      If Len(context("FULL_NAME")) = 0 Then
+        context("FULL_NAME") = Trim(context("NAME") & " " & context("SURNAME"))
       End If
 
-      If Len(resolvedFull) > 0 Then
-        context("FULL_NAME") = resolvedFull
+      Call EnsurePlaceholderValues(Array(subjectText, htmlBody, toText, ccText, bccText), context, tmpl("DisplayName"))
+      Call NormalizeNameParts(context)
+
+      Dim finalSubject: finalSubject = ApplyContextToText(subjectText, context)
+      Dim finalBody: finalBody = ApplyContextToText(htmlBody, context)
+      Dim templatedTo: templatedTo = ApplyContextToText(toText, context)
+      Dim finalTo: finalTo = MergeRecipients(templatedTo, Array(address))
+      Dim finalCc: finalCc = ApplyContextToText(ccText, context)
+      Dim finalBcc: finalBcc = ApplyContextToText(bccText, context)
+
+      finalSubject = EnsureCapitalizedNameText(finalSubject, context)
+      finalBody = EnsureCapitalizedNameText(finalBody, context)
+      finalTo = EnsureCapitalizedNameText(finalTo, context)
+      finalCc = EnsureCapitalizedNameText(finalCc, context)
+      finalBcc = EnsureCapitalizedNameText(finalBcc, context)
+
+      LogEvent "Personal delivery for " & tmpl("DisplayName") & " -> " & finalTo
+      WScript.Echo "  Sending personal email to " & finalTo
+
+      Dim ok
+      ok = CreateMail(finalTo, finalCc, finalBcc, finalSubject, finalBody, attachments, action, "", "", inlineFolder, 0, logFilePath)
+      If Not ok Then
+        WScript.Echo "  Failed to create personal email for " & finalTo
+        LogEvent "ERROR: Personal delivery failed for " & finalTo
       End If
-      If Len(resolvedEmail) > 0 Then
-        context("EMAIL") = resolvedEmail
-      End If
-    End If
-    If nameInfo.Exists("DirectorySource") Then context("DIRECTORY_SOURCE") = nameInfo("DirectorySource")
-    If nameInfo.Exists("DirectoryAttempted") Then context("DIRECTORY_ATTEMPTED") = nameInfo("DirectoryAttempted")
-
-    Call NormalizeNameParts(context)
-    Call ReviewResolvedName(address, context)
-
-    Call NormalizeNameParts(context)
-
-    If Len(context("FULL_NAME")) = 0 Then
-      context("FULL_NAME") = Trim(context("NAME") & " " & context("SURNAME"))
-    End If
-
-    Call EnsurePlaceholderValues(Array(subjectText, htmlBody, toText, ccText, bccText), context, tmpl("DisplayName"))
-    Call NormalizeNameParts(context)
-
-    Dim finalSubject: finalSubject = ApplyContextToText(subjectText, context)
-    Dim finalBody: finalBody = ApplyContextToText(htmlBody, context)
-    Dim templatedTo: templatedTo = ApplyContextToText(toText, context)
-    Dim finalTo: finalTo = MergeRecipients(templatedTo, Array(address))
-    Dim finalCc: finalCc = ApplyContextToText(ccText, context)
-    Dim finalBcc: finalBcc = ApplyContextToText(bccText, context)
-
-    finalSubject = EnsureCapitalizedNameText(finalSubject, context)
-    finalBody = EnsureCapitalizedNameText(finalBody, context)
-    finalTo = EnsureCapitalizedNameText(finalTo, context)
-    finalCc = EnsureCapitalizedNameText(finalCc, context)
-    finalBcc = EnsureCapitalizedNameText(finalBcc, context)
-
-    LogEvent "Personal delivery for " & tmpl("DisplayName") & " -> " & finalTo
-    WScript.Echo "  Sending personal email to " & finalTo
-
-    Dim ok
-    ok = CreateMail(finalTo, finalCc, finalBcc, finalSubject, finalBody, attachments, action, "", "", inlineFolder, 0, logFilePath)
-    If Not ok Then
-      WScript.Echo "  Failed to create personal email for " & finalTo
-      LogEvent "ERROR: Personal delivery failed for " & finalTo
     End If
   Next
 End Sub
+
+Function GetRecipientResolutionArrayUpperBound(values)
+  GetRecipientResolutionArrayUpperBound = -1
+  If Not IsArray(values) Then Exit Function
+
+  On Error Resume Next
+  Dim upper: upper = UBound(values)
+  If Err.Number <> 0 Then
+    Err.Clear
+  Else
+    GetRecipientResolutionArrayUpperBound = upper
+  End If
+  On Error GoTo 0
+End Function
 
 Sub NormalizeNameParts(dict)
   If dict Is Nothing Then Exit Sub
