@@ -296,6 +296,51 @@ Sub ApplyEmailCandidate(info, candidate)
   End If
 End Sub
 
+Sub ApplyFullNameCandidate(info, candidate, emailAddress)
+  If info Is Nothing Then Exit Sub
+
+  Dim proposed: proposed = Trim(SafeText(candidate))
+  If Len(proposed) = 0 Then Exit Sub
+
+  Dim existing: existing = ""
+  If info.Exists("Full") Then existing = Trim(SafeText(info("Full")))
+
+  If Len(existing) = 0 Then
+    info("Full") = proposed
+    Exit Sub
+  End If
+
+  Dim normalizedEmail: normalizedEmail = NormalizeEmailText(emailAddress)
+  If Len(normalizedEmail) > 0 Then
+    If SafeLower(existing) = SafeLower(normalizedEmail) Then
+      info("Full") = proposed
+      Exit Sub
+    End If
+  End If
+
+  Dim existingLooksLikeEmail: existingLooksLikeEmail = InStr(existing, "@") > 0
+  Dim proposedLooksLikeEmail: proposedLooksLikeEmail = InStr(proposed, "@") > 0
+
+  If existingLooksLikeEmail And Not proposedLooksLikeEmail Then
+    info("Full") = proposed
+    Exit Sub
+  End If
+
+  Dim existingHasNameSeparators: existingHasNameSeparators
+  existingHasNameSeparators = (InStr(existing, " ") > 0) Or (InStr(existing, ",") > 0)
+  Dim proposedHasNameSeparators: proposedHasNameSeparators
+  proposedHasNameSeparators = (InStr(proposed, " ") > 0) Or (InStr(proposed, ",") > 0)
+
+  If Not existingHasNameSeparators And proposedHasNameSeparators Then
+    info("Full") = proposed
+    Exit Sub
+  End If
+
+  If Not proposedLooksLikeEmail And Len(proposed) > Len(existing) Then
+    info("Full") = proposed
+  End If
+End Sub
+
 Sub ApplyFirstNameCandidate(info, candidate, aliasValue, emailAddress)
   If info Is Nothing Then Exit Sub
   Dim proposed: proposed = SafeText(candidate)

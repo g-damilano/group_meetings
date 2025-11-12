@@ -49,7 +49,7 @@ Function ResolveNameFromEmail(emailAddress)
   recip.Resolve
   If recip.Resolved Then
     info("Found") = True
-    info("Full") = recip.Name
+    Call ApplyFullNameCandidate(info, recip.Name, emailAddress)
     info("DirectorySource") = "Recipient resolve"
     Call ApplyEmailCandidate(info, emailAddress)
     Dim exch: Set exch = recip.AddressEntry.GetExchangeUser()
@@ -61,7 +61,7 @@ Function ResolveNameFromEmail(emailAddress)
       Call ApplyEmailCandidate(info, primarySmtp)
       Call ApplyFirstNameCandidate(info, exch.FirstName, primaryAlias, emailAddress)
       If Len(exch.LastName) > 0 And Len(info("Last")) = 0 Then info("Last") = exch.LastName
-      If Len(info("Full")) = 0 Then info("Full") = exch.Name
+      Call ApplyFullNameCandidate(info, exch.Name, emailAddress)
       Call PopulateNameFromPropertyAccessor(exch, info, primaryAlias, emailAddress)
     End If
     Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info, primaryAlias, emailAddress)

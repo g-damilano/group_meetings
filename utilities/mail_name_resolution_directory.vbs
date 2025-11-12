@@ -548,9 +548,12 @@ Sub PopulateNameFromPropertyAccessor(addressEntry, info, aliasValue, emailAddres
   display = GetAccessorString(accessor, Array( _
     "http://schemas.microsoft.com/mapi/proptag/0x3001001F", _
     "http://schemas.microsoft.com/mapi/proptag/0x3001001E"))
-  If Len(info("Full")) = 0 And Len(display) > 0 Then
-    info("Full") = display
-    foundAny = True
+  If Len(display) > 0 Then
+    Dim beforeFull: beforeFull = SafeText(info("Full"))
+    Call ApplyFullNameCandidate(info, display, emailAddress)
+    If SafeLower(Trim(SafeText(info("Full")))) <> SafeLower(Trim(beforeFull)) Then
+      foundAny = True
+    End If
   End If
 
   Dim emailValue
@@ -1456,13 +1459,13 @@ Sub AttemptAliasRecipientResolve(ns, aliasValue, info, emailAddress)
   End If
   On Error GoTo 0
 
-  If Len(SafeText(info("Full"))) = 0 Then info("Full") = recipient.Name
+  Call ApplyFullNameCandidate(info, recipient.Name, emailAddress)
 
   If Not exch Is Nothing Then
     Call ApplyEmailCandidate(info, SafeText(exch.PrimarySmtpAddress))
     Call ApplyFirstNameCandidate(info, exch.FirstName, trimmedAlias, emailAddress)
     If Len(SafeText(info("Last"))) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
-    If Len(SafeText(info("Full"))) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+    Call ApplyFullNameCandidate(info, exch.Name, emailAddress)
     Call PopulateNameFromPropertyAccessor(exch, info, trimmedAlias, emailAddress)
   End If
 
