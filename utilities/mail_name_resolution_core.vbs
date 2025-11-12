@@ -370,6 +370,16 @@ Function ResolveNameUsingHeuristicsWithOptions(searchValue, allowSplit)
   If Not angleInfo Is Nothing Then
     If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(angleInfo, extractedEmail)
     Call MergeParsedContactIntoInfo(angleInfo, components, componentSourceText)
+    If angleRecognized Then
+      angleInfo("Found") = True
+      Dim existingSource: existingSource = Trim(SafeText(angleInfo("DirectorySource")))
+      If Len(existingSource) = 0 Or SafeLower(existingSource) = "(not found)" Then
+        angleInfo("DirectorySource") = "Parsed recipient input"
+      End If
+      If Len(Trim(SafeText(angleInfo("DirectoryAttempted")))) = 0 Then
+        angleInfo("DirectoryAttempted") = "(not attempted)"
+      End If
+    End If
     Set ResolveNameUsingHeuristicsWithOptions = angleInfo
     Exit Function
   End If
