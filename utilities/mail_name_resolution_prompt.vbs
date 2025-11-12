@@ -74,8 +74,7 @@ Function PromptRecipientLookupValuesWithOptions(promptText, allowEmpty, emptyWar
   End If
 
   Dim warning: warning = emptyWarning
-  Dim loopAllowEmpty: loopAllowEmpty
-  loopAllowEmpty = CBool(allowEmpty)
+  Dim loopAllowEmpty: loopAllowEmpty = CBool(allowEmpty)
 
   Do
     Dim raw: raw = PromptNameResolutionLine(prompt)
