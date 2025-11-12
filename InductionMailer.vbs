@@ -2,6 +2,48 @@ Option Explicit
 SetLocale 1033
 
 '======================================================================
+' Bootstrap shared utilities
+'======================================================================
+Dim bootstrapFso, bootstrapBaseFolder, bootstrapModulePath
+Dim bootstrapCurrentFolder, bootstrapCandidate, bootstrapParentFolder
+Dim bootstrapStream, bootstrapContents
+
+Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
+bootstrapBaseFolder = bootstrapFso.GetParentFolderName(WScript.ScriptFullName)
+If Len(bootstrapBaseFolder) = 0 Then bootstrapBaseFolder = "."
+
+bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "utilities\\common_bootstrap.vbs")
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "common_bootstrap.vbs")
+End If
+
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  bootstrapModulePath = ""
+  bootstrapCurrentFolder = bootstrapBaseFolder
+  Do While Len(bootstrapCurrentFolder) > 0
+    bootstrapCandidate = bootstrapFso.BuildPath(bootstrapCurrentFolder, "utilities\\common_bootstrap.vbs")
+    If bootstrapFso.FileExists(bootstrapCandidate) Then
+      bootstrapModulePath = bootstrapCandidate
+      Exit Do
+    End If
+
+    bootstrapParentFolder = bootstrapFso.GetParentFolderName(bootstrapCurrentFolder)
+    If StrComp(bootstrapParentFolder, bootstrapCurrentFolder, vbTextCompare) = 0 Then Exit Do
+    bootstrapCurrentFolder = bootstrapParentFolder
+  Loop
+End If
+
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  WScript.Echo "Fatal: unable to locate utilities\\common_bootstrap.vbs"
+  WScript.Quit 1
+End If
+
+Set bootstrapStream = bootstrapFso.OpenTextFile(bootstrapModulePath, 1)
+bootstrapContents = bootstrapStream.ReadAll
+bootstrapStream.Close
+ExecuteGlobal bootstrapContents
+
+'======================================================================
 ' InductionMailer.vbs — Console workflow for staged induction templates
 '======================================================================
 
@@ -28,11 +70,10 @@ Call Main()
 ' Support module bootstrap
 '======================================================================
 Sub LoadUtilityModules()
-  Dim loaderFso: Set loaderFso = CreateObject("Scripting.FileSystemObject")
-  Dim baseFolder: baseFolder = loaderFso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(baseFolder) = 0 Then baseFolder = "."
+  Dim baseFolder: baseFolder = GetScriptFolder()
   Dim modules
   modules = Array( _
+    "utilities\common_bootstrap.vbs", _
     "utilities\common_console.vbs", _
     "utilities\mail_collections.vbs", _
     "utilities\mail_template_utils.vbs", _
@@ -43,23 +84,9 @@ Sub LoadUtilityModules()
     "utilities\mail_name_resolution_directory.vbs", _
     "utilities\mail_name_resolution_core.vbs", _
     "utilities\mail_name_resolution_console.vbs")
-  Dim i, modulePath, ts, contents
+  Dim i
   For i = LBound(modules) To UBound(modules)
-    modulePath = loaderFso.BuildPath(baseFolder, modules(i))
-    If loaderFso.FileExists(modulePath) Then
-      Set ts = loaderFso.OpenTextFile(modulePath, 1)
-      contents = ts.ReadAll
-      ts.Close
-      On Error Resume Next
-      ExecuteGlobal contents
-      If Err.Number <> 0 Then
-        WScript.Echo "Warning: failed to load module '" & modules(i) & "': " & Err.Description
-        Err.Clear
-      End If
-      On Error GoTo 0
-    Else
-      WScript.Echo "Warning: utility module not found: " & modules(i)
-    End If
+    Call LoadModule(baseFolder, modules(i))
   Next
 End Sub
 
@@ -150,8 +177,7 @@ End Function
 '======================================================================
 Sub InitializeEnvironment()
   Set fso = CreateObject("Scripting.FileSystemObject")
-  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(scriptFolder) = 0 Then scriptFolder = "."
+  scriptFolder = GetScriptFolder()
   templateFolder = fso.BuildPath(scriptFolder, TEMPLATE_DIR_NAME)
   logFilePath = fso.BuildPath(scriptFolder, LOG_FILE_NAME)
   LogEvent "=== Induction Mailer (console) started ==="
@@ -173,6 +199,7 @@ Function LoadMailerLibrary()
       Set ts = fso.OpenTextFile(candidates(i), 1)
       contents = ts.ReadAll
       ts.Close
+      contents = RemoveByteOrderMark(contents)
       ExecuteGlobal contents
       LogEvent "Loaded mailer library from " & candidates(i)
       EnsureLinkMapAvailable candidates(i)
