@@ -42,7 +42,7 @@ Function ParseRecipientLookupList(rawText)
   normalized = Replace(normalized, vbCrLf, ";")
   normalized = Replace(normalized, vbCr, ";")
   normalized = Replace(normalized, vbLf, ";")
-  normalized = Replace(normalized, ",", ";")
+  normalized = Replace(normalized, vbTab, ";")
 
   Dim parts: parts = Split(normalized, ";")
   Dim i, value, key
@@ -103,8 +103,13 @@ Function PromptRecipientResolutionPackage()
 End Function
 
 Function PromptRecipientResolutionPackageWithOptions(promptText, allowEmpty, emptyWarning, lookupField)
-  Dim rawValues: rawValues
+  Dim rawValues
   rawValues = PromptRecipientLookupValuesWithOptions(promptText, allowEmpty, emptyWarning)
+
+  If Not IsArray(rawValues) Then
+    rawValues = Array()
+  End If
+
   Set PromptRecipientResolutionPackageWithOptions = BuildRecipientResolutionPackage(rawValues, lookupField)
 End Function
 
