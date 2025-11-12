@@ -21,6 +21,8 @@ Sub LoadNameResolutionModules(baseFolder)
   Dim moduleRoot: moduleRoot = ResolveNameResolutionRoot(fso, effectiveBase)
   Dim resolvedFolder: resolvedFolder = ResolveFolderPath(fso, effectiveBase, moduleRoot)
   Dim modules
+  Dim i
+  Dim relativePath
 
   If Len(resolvedFolder) > 0 Then
     modules = CollectNameResolutionModules(fso, resolvedFolder)
@@ -34,10 +36,9 @@ Sub LoadNameResolutionModules(baseFolder)
       End If
       On Error GoTo 0
 
-      Dim i
       If upper >= 0 Then
         For i = 0 To upper
-          Dim relativePath: relativePath = moduleRoot & "\\" & modules(i)
+          relativePath = moduleRoot & "\\" & modules(i)
           Call LoadModule(effectiveBase, relativePath)
         Next
         Exit Sub
@@ -58,9 +59,8 @@ Sub LoadNameResolutionModules(baseFolder)
     "MNS_prompt.vbs", _
     "MNS_directory.vbs")
 
-  Dim i
   For i = LBound(modules) To UBound(modules)
-    Dim relativePath: relativePath = modules(i)
+    Set relativePath = modules(i)
     If Len(ResolveModulePath(fso, effectiveBase, relativePath)) = 0 Then
       relativePath = "name_resolution\\" & modules(i)
     End If
