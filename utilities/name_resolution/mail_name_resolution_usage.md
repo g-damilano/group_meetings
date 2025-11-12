@@ -1,6 +1,22 @@
 # mail_name_resolution Modules Usage Guide
 
-The mail name resolution helpers are now split across four focused modules (`mail_name_resolution_prompt.vbs`, `mail_name_resolution_text.vbs`, `mail_name_resolution_directory.vbs`, and `mail_name_resolution_core.vbs`).  Together they centralize the directory lookups used by both **InductionMailer** and the stand-alone GAL utilities.  The most common entry point is `ResolveNameLookup`, which accepts the raw user input together with the requested search field.  Supported field labels include:
+The mail name resolution helpers live under `utilities/name_resolution/` and are intentionally distributed across several small, purpose-scoped modules.  Script entry points should include `utilities/MNS_loader.vbs`, which takes care of loading every helper module.  The loader discovers each `.vbs` file in that folder and brings them in with the following dependency-aware structure:
+
+| Module | Scope |
+| ------ | ----- |
+| `MNS_prompt.vbs` | Console prompts and input collection helpers. |
+| `MNS_text.vbs` | Free-text parsing and token utilities shared by the resolvers. |
+| `MNS_directory_recording.vbs` | Logging hooks that capture Outlook/GAL responses during diagnostics. |
+| `MNS_directory_lists.vbs` | Helpers that discover and normalise Outlook address list names. |
+| `MNS_directory_population.vbs` | Functions that hydrate a resolution dictionary from contacts, Exchange users, and address lists. |
+| `MNS_directory_matching.vbs` | Candidate aggregation, scoring, and match-reason collection. |
+| `MNS_contacts.vbs` | Output helpers and token checks that operate on Outlook contact items. |
+| `MNS_collections.vbs` | Shared collection/dictionary helpers used across the other modules. |
+| `MNS_directory.vbs` | Legacy shim retained for backwards compatibility (no executable logic). |
+| `MNS_core.vbs` | Resolver entry points and heuristics. |
+| `MNS_console.vbs` | Console-facing orchestration helpers. |
+
+Together they centralize the directory lookups used by both **InductionMailer** and the stand-alone GAL utilities.  The most common entry point is `ResolveNameLookup`, which accepts the raw user input together with the requested search field.  Supported field labels include:
 
 | Lookup prefix/value | Targeted field |
 | ------------------- | -------------- |

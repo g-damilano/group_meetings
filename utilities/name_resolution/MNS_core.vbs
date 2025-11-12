@@ -66,7 +66,7 @@ Function ResolveNameFromEmail(emailAddress)
       Call PopulateNameFromPropertyAccessor(exch, info, primaryAlias, emailAddress)
     End If
     Call PopulateNameFromPropertyAccessor(recip.AddressEntry, info, primaryAlias, emailAddress)
-    Dim resolvedAddress: resolvedAddress
+    Dim resolvedAddress
     resolvedAddress = ""
     On Error Resume Next
     resolvedAddress = recip.Address
