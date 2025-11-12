@@ -1,6 +1,45 @@
 Option Explicit
 SetLocale 1033
 
+Dim bootstrapFso, bootstrapBaseFolder, bootstrapModulePath
+Dim bootstrapCurrentFolder, bootstrapCandidate, bootstrapParentFolder
+Dim bootstrapStream, bootstrapContents
+
+Set bootstrapFso = CreateObject("Scripting.FileSystemObject")
+bootstrapBaseFolder = bootstrapFso.GetParentFolderName(WScript.ScriptFullName)
+If Len(bootstrapBaseFolder) = 0 Then bootstrapBaseFolder = "."
+
+bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "common_bootstrap.vbs")
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  bootstrapModulePath = bootstrapFso.BuildPath(bootstrapBaseFolder, "utilities\\common_bootstrap.vbs")
+End If
+
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  bootstrapModulePath = ""
+  bootstrapCurrentFolder = bootstrapBaseFolder
+  Do While Len(bootstrapCurrentFolder) > 0
+    bootstrapCandidate = bootstrapFso.BuildPath(bootstrapCurrentFolder, "utilities\\common_bootstrap.vbs")
+    If bootstrapFso.FileExists(bootstrapCandidate) Then
+      bootstrapModulePath = bootstrapCandidate
+      Exit Do
+    End If
+
+    bootstrapParentFolder = bootstrapFso.GetParentFolderName(bootstrapCurrentFolder)
+    If StrComp(bootstrapParentFolder, bootstrapCurrentFolder, vbTextCompare) = 0 Then Exit Do
+    bootstrapCurrentFolder = bootstrapParentFolder
+  Loop
+End If
+
+If Not bootstrapFso.FileExists(bootstrapModulePath) Then
+  WScript.Echo "Fatal: unable to locate utilities\\common_bootstrap.vbs"
+  WScript.Quit 1
+End If
+
+Set bootstrapStream = bootstrapFso.OpenTextFile(bootstrapModulePath, 1)
+bootstrapContents = bootstrapStream.ReadAll
+bootstrapStream.Close
+ExecuteGlobal bootstrapContents
+
 Call Main()
 
 Sub Main()
