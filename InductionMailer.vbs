@@ -81,7 +81,20 @@ Sub LoadUtilityModules()
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
     "utilities\mail_input_validation.vbs", _
-    "utilities\mail_name_resolution_loader.vbs")
+    "utilities\mail_name_resolution_loader.vbs"))
+
+  On Error Resume Next
+  Call LoadNameResolutionModules(GetScriptFolder())
+  If Err.Number <> 0 Then
+    WScript.Echo "Fatal: unable to load name resolution modules: " & Err.Description
+    Err.Clear
+    WScript.Quit 1
+  End If
+  On Error GoTo 0
+End Sub
+
+Sub RequireBootstrapModules(modulePaths)
+  Dim loadError: loadError = ""
 
   Dim i
   For i = LBound(modules) To UBound(modules)
