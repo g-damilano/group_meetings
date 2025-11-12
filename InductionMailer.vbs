@@ -82,6 +82,10 @@ Sub LoadUtilityModules()
     "utilities\mail_delivery_utils.vbs", _
     "utilities\mail_input_validation.vbs", _
     "utilities\mail_name_resolution_loader.vbs"))
+End Sub
+
+Sub RequireBootstrapModules(modulePaths)
+  Dim loadError: loadError = ""
 
   On Error Resume Next
   Call LoadNameResolutionModules(GetScriptFolder())
