@@ -334,9 +334,14 @@ Function ArrayFromList(list)
 
   ReDim result(list.Count - 1)
 
-  Dim i
+  Dim i, value
   For i = 0 To list.Count - 1
-    result(i) = list(i)
+    value = list(i)
+    If IsObject(value) Then
+      Set result(i) = value
+    Else
+      result(i) = value
+    End If
   Next
 
   ArrayFromList = result
