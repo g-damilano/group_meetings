@@ -48,6 +48,7 @@ Sub Main()
   Call LoadModule(scriptFolder, "common_console.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
+  Call LoadModule(scriptFolder, "common_outlook.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_prompt.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
@@ -205,16 +206,4 @@ Function DescribeField(info, key, placeholder)
     End If
   End If
   DescribeField = text
-End Function
-
-Function GetOutlookApp()
-  Dim app
-  On Error Resume Next
-  Set app = GetObject(, "Outlook.Application")
-  If Err.Number <> 0 Then
-    Err.Clear
-    Set app = CreateObject("Outlook.Application")
-  End If
-  On Error GoTo 0
-  Set GetOutlookApp = app
 End Function

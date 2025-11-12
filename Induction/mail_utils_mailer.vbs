@@ -9,6 +9,51 @@ Const olFormatHTML = 2
 Const olMSG = 3
 Const PR_ATTACH_CONTENT_ID = "http://schemas.microsoft.com/mapi/proptag/0x3712001F"
 
+Call IncludeCommonOutlook()
+
+Sub IncludeCommonOutlook()
+  Dim loaderFso: Set loaderFso = CreateObject("Scripting.FileSystemObject")
+  Dim baseFolder: baseFolder = loaderFso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(baseFolder) = 0 Then baseFolder = "."
+
+  Dim candidates()
+  ReDim candidates(1)
+  candidates(0) = loaderFso.BuildPath(baseFolder, "common_outlook.vbs")
+  candidates(1) = loaderFso.BuildPath(baseFolder, "utilities\common_outlook.vbs")
+
+  Dim parentFolder: parentFolder = loaderFso.GetParentFolderName(baseFolder)
+  If Len(parentFolder) > 0 Then
+    ReDim Preserve candidates(UBound(candidates) + 1)
+    candidates(UBound(candidates)) = loaderFso.BuildPath(parentFolder, "utilities\common_outlook.vbs")
+  End If
+
+  Dim grandParent: grandParent = loaderFso.GetParentFolderName(parentFolder)
+  If Len(grandParent) > 0 Then
+    ReDim Preserve candidates(UBound(candidates) + 1)
+    candidates(UBound(candidates)) = loaderFso.BuildPath(grandParent, "utilities\common_outlook.vbs")
+  End If
+
+  Dim i, candidatePath, loaded: loaded = False
+  For i = LBound(candidates) To UBound(candidates)
+    candidatePath = candidates(i)
+    If Len(candidatePath) > 0 Then
+      If loaderFso.FileExists(candidatePath) Then
+        Dim ts: Set ts = loaderFso.OpenTextFile(candidatePath, 1)
+        Dim contents: contents = ts.ReadAll
+        ts.Close
+        ExecuteGlobal contents
+        loaded = True
+        Exit For
+      End If
+    End If
+  Next
+
+  If Not loaded Then
+    WScript.Echo "Fatal: unable to load common Outlook helpers."
+    WScript.Quit 1
+  End If
+End Sub
+
 Function CreateMail(toAddr, ccAddr, bccAddr, subjectText, htmlBody, attachPaths, _
                     action, savePath, templateSource, inlineImgFolder, deferMinutes, logPath)
   On Error Resume Next
@@ -74,28 +119,6 @@ Function CreateMail(toAddr, ccAddr, bccAddr, subjectText, htmlBody, attachPaths,
 
   CreateMail = ok
   On Error GoTo 0
-End Function
-
-Sub EmbedImagesFromFolder(olMail, folderPath)
-  Dim fso, file, cid, att
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  For Each file In fso.GetFolder(folderPath).Files
-    cid = fso.GetFileName(file.Name)
-    Set att = olMail.Attachments.Add(file.Path)
-    att.PropertyAccessor.SetProperty PR_ATTACH_CONTENT_ID, cid
-  Next
-End Sub
-
-Function GetOutlookApp()
-  Dim app
-  On Error Resume Next
-  Set app = GetObject(, "Outlook.Application")
-  If Err.Number <> 0 Then
-    Err.Clear
-    Set app = CreateObject("Outlook.Application")
-  End If
-  On Error GoTo 0
-  Set GetOutlookApp = app
 End Function
 
 ' ================= Signature loader with charset auto-detect =================
@@ -239,20 +262,3 @@ Function HttpGetUtf8(url)
   End If
 End Function
 
-' ================= Logging =================
-Function DefaultLogPath()
-  Dim fso, scriptFolder
-  Set fso = CreateObject("Scripting.FileSystemObject")
-  scriptFolder = fso.GetParentFolderName(WScript.ScriptFullName)
-  If Len(scriptFolder) = 0 Then scriptFolder = "."
-  DefaultLogPath = scriptFolder & "\mail_util.log"
-End Function
-
-Sub LogAction(logPath, message)
-  On Error Resume Next
-  If Len(Trim(logPath)) = 0 Then logPath = DefaultLogPath()
-  Dim fso, f: Set fso = CreateObject("Scripting.FileSystemObject")
-  Dim ts: Set f = fso.OpenTextFile(logPath, 8, True)
-  f.WriteLine Now & "  " & message
-  f.Close
-End Sub

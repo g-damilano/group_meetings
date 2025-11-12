@@ -49,6 +49,7 @@ Sub Main()
   Call LoadModule(scriptFolder, "common_bootstrap.vbs")
   Call LoadModule(scriptFolder, "mail_collections.vbs")
   Call LoadModule(scriptFolder, "mail_template_utils.vbs")
+  Call LoadModule(scriptFolder, "common_outlook.vbs")
   Call LoadModule(scriptFolder, "mail_input_validation.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_text.vbs")
   Call LoadModule(scriptFolder, "mail_name_resolution_directory.vbs")
@@ -1394,14 +1395,82 @@ Function EnsureConsoleHost()
   End If
 End Function
 
-Function GetOutlookApp()
-  Dim app
+Function GetScriptFolder()
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim folder: folder = fso.GetParentFolderName(WScript.ScriptFullName)
+  If Len(folder) = 0 Then folder = "."
+  GetScriptFolder = folder
+End Function
+
+Sub LoadModule(baseFolder, relativePath)
+  Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
+  Dim modulePath: modulePath = ResolveModulePath(fso, baseFolder, relativePath)
+  If Len(modulePath) = 0 Then
+    WScript.Echo "Warning: utility module not found: " & relativePath
+    Exit Sub
+  End If
+
+  Dim ts: Set ts = fso.OpenTextFile(modulePath, 1)
+  Dim contents: contents = ts.ReadAll
+  ts.Close
+
+  contents = RemoveByteOrderMark(contents)
+
   On Error Resume Next
-  Set app = GetObject(, "Outlook.Application")
+  ExecuteGlobal contents
   If Err.Number <> 0 Then
+    WScript.Echo "Warning: failed to load module '" & relativePath & "': " & Err.Description
     Err.Clear
-    Set app = CreateObject("Outlook.Application")
   End If
   On Error GoTo 0
-  Set GetOutlookApp = app
+End Sub
+
+Function ResolveModulePath(fso, baseFolder, relativePath)
+  Dim modulePath: modulePath = ""
+
+  If Not fso Is Nothing Then
+    Dim currentFolder: currentFolder = baseFolder
+    Do While Len(currentFolder) > 0
+      Dim candidate: candidate = fso.BuildPath(currentFolder, relativePath)
+      If fso.FileExists(candidate) Then
+        modulePath = candidate
+        Exit Do
+      End If
+
+      Dim parentFolder: parentFolder = fso.GetParentFolderName(currentFolder)
+      If StrComp(parentFolder, currentFolder, vbTextCompare) = 0 Then Exit Do
+      currentFolder = parentFolder
+    Loop
+  End If
+
+  ResolveModulePath = modulePath
+End Function
+
+Function RemoveByteOrderMark(text)
+  RemoveByteOrderMark = text
+  If Len(text) = 0 Then Exit Function
+
+  If Len(text) >= 3 Then
+    Dim leading: leading = Mid(text, 1, 3)
+    If StrComp(leading, Chr(239) & Chr(187) & Chr(191), vbBinaryCompare) = 0 Then
+      RemoveByteOrderMark = Mid(text, 4)
+      Exit Function
+    End If
+  End If
+
+  Dim firstChar: firstChar = Mid(text, 1, 1)
+  If Len(firstChar) = 0 Then Exit Function
+
+  On Error Resume Next
+  Dim codePoint: codePoint = AscW(firstChar)
+  If Err.Number <> 0 Then
+    Err.Clear
+    On Error GoTo 0
+    Exit Function
+  End If
+  On Error GoTo 0
+
+  If codePoint = &HFEFF Or codePoint = &HFFFE Then
+    RemoveByteOrderMark = Mid(text, 2)
+  End If
 End Function
