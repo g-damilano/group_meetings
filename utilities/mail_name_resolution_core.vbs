@@ -124,10 +124,10 @@ Function ResolveNameFromEmail(emailAddress)
 End Function
 
 Function ResolveNameUsingHeuristics(searchValue)
-  Set ResolveNameUsingHeuristics = ResolveNameUsingHeuristicsWithOptions(searchValue, True, False)
+  Set ResolveNameUsingHeuristics = ResolveNameUsingHeuristicsWithOptions(searchValue, True)
 End Function
 
-Function ResolveNameUsingHeuristicsWithOptions(searchValue, allowSplit, preferAngleWhenRecognized)
+Function ResolveNameUsingHeuristicsWithOptions(searchValue, allowSplit)
   Dim trimmed: trimmed = Trim(searchValue)
   If Len(trimmed) = 0 Then
     Set ResolveNameUsingHeuristicsWithOptions = CreateEmptyResolutionInfo()
@@ -154,7 +154,7 @@ Function ResolveNameUsingHeuristicsWithOptions(searchValue, allowSplit, preferAn
           candidateHasAngle = CBool(parsedCandidate("HasAngleFormat"))
           On Error GoTo 0
           If candidateHasAngle Then
-            Dim preferredInfo: Set preferredInfo = ResolveNameUsingHeuristicsWithOptions(candidate, False, True)
+            Dim preferredInfo: Set preferredInfo = ResolveNameUsingHeuristicsWithOptions(candidate, False)
             If Not preferredInfo Is Nothing Then
               Set ResolveNameUsingHeuristicsWithOptions = preferredInfo
               Exit Function
@@ -169,7 +169,7 @@ Function ResolveNameUsingHeuristicsWithOptions(searchValue, allowSplit, preferAn
         If Len(fallbackCandidate) = 0 Then
           ' Skip empty segments
         Else
-          Dim candidateInfo: Set candidateInfo = ResolveNameUsingHeuristicsWithOptions(fallbackCandidate, False, False)
+          Dim candidateInfo: Set candidateInfo = ResolveNameUsingHeuristicsWithOptions(fallbackCandidate, False)
           If ResolutionWasSuccessful(candidateInfo) Then
             Set ResolveNameUsingHeuristicsWithOptions = candidateInfo
             Exit Function
@@ -371,14 +371,6 @@ Function ResolveNameUsingHeuristicsWithOptions(searchValue, allowSplit, preferAn
     If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(angleInfo, extractedEmail)
     Call MergeParsedContactIntoInfo(angleInfo, components, componentSourceText)
     Set ResolveNameUsingHeuristicsWithOptions = angleInfo
-    Exit Function
-  End If
-
-  If preferAngleWhenRecognized And angleRecognized Then
-    Dim parsedInfo: Set parsedInfo = CreateEmptyResolutionInfo()
-    If Len(extractedEmail) > 0 Then Call ApplyEmailCandidate(parsedInfo, extractedEmail)
-    Call MergeParsedContactIntoInfo(parsedInfo, components, componentSourceText)
-    Set ResolveNameUsingHeuristicsWithOptions = parsedInfo
     Exit Function
   End If
 

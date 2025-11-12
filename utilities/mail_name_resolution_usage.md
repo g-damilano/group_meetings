@@ -21,10 +21,11 @@ Every resolver returns a dictionary containing the following keys:
 When the `auto` mode is used, `ResolveNameLookup` delegates to `ResolveNameUsingHeuristics`, which now performs the following steps:
 
 1. **Email recognition** – the helper `IsValidEmail` (now provided by the shared `mail_input_validation.vbs` module) applies a practical regular-expression check so that true email addresses are always resolved via `ResolveNameFromEmail`.
-2. **Name token analysis** – free-form values (with spaces, commas, dots, underscores, or hyphens) are tokenized and reshuffled into multiple candidate combinations for full-name and display-name searches.
-3. **Outlook recipient resolution** – when the direct address list queries cannot identify a candidate, the resolver now falls back to Outlook's built-in recipient resolution using the original name text so that reversed display names (for example, `Surname, Given`) are still matched.
-4. **Component fallbacks** – individual given-name and surname lookups are attempted using both the raw input and the inferred first/last name tokens.
-5. **Last resort** – if no candidate produced a resolved entry, the final attempt falls back to the best-effort given-name lookup so that the caller still receives a consistent dictionary structure.
+2. **Angle-bracket contact preference** – Outlook-style entries such as `Display Name <alias@example.com>` are detected within semicolon-delimited lists and the parsed SMTP/display data is returned before attempting any other heuristic.
+3. **Name token analysis** – free-form values (with spaces, commas, dots, underscores, or hyphens) are tokenized and reshuffled into multiple candidate combinations for full-name and display-name searches.
+4. **Outlook recipient resolution** – when the direct address list queries cannot identify a candidate, the resolver now falls back to Outlook's built-in recipient resolution using the original name text so that reversed display names (for example, `Surname, Given`) are still matched.
+5. **Component fallbacks** – individual given-name and surname lookups are attempted using both the raw input and the inferred first/last name tokens.
+6. **Last resort** – if no candidate produced a resolved entry, the final attempt falls back to the best-effort given-name lookup so that the caller still receives a consistent dictionary structure.
 
 For manual calls, prefer routing through `ResolveNameLookup(<input>, "auto")` unless you are explicitly constraining the directory property to inspect.
 
