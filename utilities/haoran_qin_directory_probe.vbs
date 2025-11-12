@@ -41,6 +41,8 @@ End Sub
 Call Main()
 
 Sub Main()
+  Dim scriptFolder: scriptFolder = GetScriptFolder()
+
   Call RequireBootstrapModules(Array( _
     "common_console.vbs", _
     "mail_collections.vbs", _
@@ -49,7 +51,7 @@ Sub Main()
     "mail_input_validation.vbs", _
     "MNS_loader.vbs"))
 
-  Call LoadNameResolutionModules("")
+  Call LoadNameResolutionModules(scriptFolder)
 
   If Not EnsureConsoleHost() Then Exit Sub
 
