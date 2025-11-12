@@ -585,8 +585,8 @@ End Function
 
 Sub LoadModule(baseFolder, relativePath)
   Dim fso: Set fso = CreateObject("Scripting.FileSystemObject")
-  Dim modulePath: modulePath = fso.BuildPath(baseFolder, relativePath)
-  If Not fso.FileExists(modulePath) Then
+  Dim modulePath: modulePath = ResolveModulePath(fso, baseFolder, relativePath)
+  If Len(modulePath) = 0 Then
     WScript.Echo "Warning: utility module not found: " & relativePath
     Exit Sub
   End If
@@ -605,6 +605,27 @@ Sub LoadModule(baseFolder, relativePath)
   End If
   On Error GoTo 0
 End Sub
+
+Function ResolveModulePath(fso, baseFolder, relativePath)
+  Dim modulePath: modulePath = ""
+
+  If Not fso Is Nothing Then
+    Dim currentFolder: currentFolder = baseFolder
+    Do While Len(currentFolder) > 0
+      Dim candidate: candidate = fso.BuildPath(currentFolder, relativePath)
+      If fso.FileExists(candidate) Then
+        modulePath = candidate
+        Exit Do
+      End If
+
+      Dim parentFolder: parentFolder = fso.GetParentFolderName(currentFolder)
+      If StrComp(parentFolder, currentFolder, vbTextCompare) = 0 Then Exit Do
+      currentFolder = parentFolder
+    Loop
+  End If
+
+  ResolveModulePath = modulePath
+End Function
 
 Function RemoveByteOrderMark(text)
   RemoveByteOrderMark = text
