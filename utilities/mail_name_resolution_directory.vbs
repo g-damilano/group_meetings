@@ -259,22 +259,16 @@ End Sub
 
 Function BuildDirectorySearchList(ns)
   Dim list: Set list = CreateObject("System.Collections.ArrayList")
-  list.Add "Global Address List"
-  list.Add "Offline Global Address List"
 
-  If Not ns Is Nothing Then
-    On Error Resume Next
-    Dim addressList, folder
-    For Each addressList In ns.AddressLists
-      Err.Clear
-      Set folder = addressList.GetContactsFolder()
-      If Err.Number = 0 Then
-        If list.IndexOf(addressList.Name) = -1 Then list.Add addressList.Name
-      Else
-        Err.Clear
-      End If
+  Call AddListNameIfMissing(list, "Global Address List")
+  Call AddListNameIfMissing(list, "Offline Global Address List")
+
+  Dim contactNames: contactNames = CollectLocalContactsListNames(ns)
+  If IsArray(contactNames) Then
+    Dim i
+    For i = LBound(contactNames) To UBound(contactNames)
+      Call AddListNameIfMissing(list, contactNames(i))
     Next
-    On Error GoTo 0
   End If
 
   If list.Count = 0 Then
@@ -282,6 +276,139 @@ Function BuildDirectorySearchList(ns)
   Else
     BuildDirectorySearchList = list.ToArray()
   End If
+End Function
+
+Sub AddListNameIfMissing(list, listName)
+  If list Is Nothing Then Exit Sub
+
+  Dim trimmed: trimmed = ""
+  If Not IsNull(listName) Then
+    If Not IsEmpty(listName) Then trimmed = Trim(CStr(listName))
+  End If
+  If Len(trimmed) = 0 Then Exit Sub
+
+  On Error Resume Next
+  If list.IndexOf(trimmed) = -1 Then list.Add trimmed
+  On Error GoTo 0
+End Sub
+
+Function CollectLocalContactsListNames(ns)
+  Dim results: Set results = CreateObject("System.Collections.ArrayList")
+  If ns Is Nothing Then
+    CollectLocalContactsListNames = results.ToArray()
+    Exit Function
+  End If
+
+  Dim defaultListName: defaultListName = GetDefaultContactsAddressListName(ns)
+  Call AppendAvailableContactList(results, ns, defaultListName)
+  Call AppendAvailableContactList(results, ns, "Contacts")
+  Call AppendAvailableContactList(results, ns, "Contacts (This computer only)")
+
+  If results.Count = 0 Then
+    CollectLocalContactsListNames = Array()
+  Else
+    CollectLocalContactsListNames = results.ToArray()
+  End If
+End Function
+
+Sub AppendAvailableContactList(target, ns, listName)
+  If target Is Nothing Then Exit Sub
+  If ns Is Nothing Then Exit Sub
+
+  Dim trimmed: trimmed = ""
+  If Not IsNull(listName) Then
+    If Not IsEmpty(listName) Then trimmed = Trim(CStr(listName))
+  End If
+  If Len(trimmed) = 0 Then Exit Sub
+
+  On Error Resume Next
+  If target.IndexOf(trimmed) <> -1 Then
+    On Error GoTo 0
+    Exit Sub
+  End If
+  On Error GoTo 0
+
+  Dim addressList
+  Set addressList = Nothing
+
+  On Error Resume Next
+  Set addressList = ns.AddressLists(trimmed)
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set addressList = Nothing
+  End If
+  On Error GoTo 0
+
+  If addressList Is Nothing Then Exit Sub
+  If Not ShouldTreatAsLocalContactsList(addressList) Then Exit Sub
+
+  target.Add trimmed
+End Sub
+
+Function ShouldTreatAsLocalContactsList(addressList)
+  ShouldTreatAsLocalContactsList = False
+  If addressList Is Nothing Then Exit Function
+
+  Dim listType
+  listType = -1
+  On Error Resume Next
+  listType = CLng(addressList.AddressListType)
+  If Err.Number <> 0 Then
+    Err.Clear
+    listType = -1
+  End If
+  On Error GoTo 0
+
+  Const olOutlookAddressList = 4
+  If listType = olOutlookAddressList Then
+    ShouldTreatAsLocalContactsList = True
+    Exit Function
+  End If
+
+  Dim name: name = ""
+  On Error Resume Next
+  name = addressList.Name
+  If Err.Number <> 0 Then
+    Err.Clear
+    name = ""
+  End If
+  On Error GoTo 0
+  If Len(name) = 0 Then Exit Function
+
+  Dim lowered: lowered = SafeLower(name)
+  If lowered = "contacts" Or lowered = "contacts (this computer only)" Then
+    ShouldTreatAsLocalContactsList = True
+  End If
+End Function
+
+Function GetDefaultContactsAddressListName(ns)
+  GetDefaultContactsAddressListName = ""
+  If ns Is Nothing Then Exit Function
+
+  Dim contactsFolder
+  Set contactsFolder = Nothing
+
+  On Error Resume Next
+  Set contactsFolder = ns.GetDefaultFolder(10)
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set contactsFolder = Nothing
+  End If
+  On Error GoTo 0
+
+  If contactsFolder Is Nothing Then Exit Function
+
+  Dim addressBookName: addressBookName = ""
+
+  On Error Resume Next
+  addressBookName = contactsFolder.AddressBookName
+  If Err.Number <> 0 Then
+    Err.Clear
+    addressBookName = contactsFolder.Name
+  End If
+  On Error GoTo 0
+
+  GetDefaultContactsAddressListName = Trim(CStr(addressBookName))
 End Function
 
 Function FindContactInAddressList(addressList, emailAddress)
@@ -810,6 +937,313 @@ Sub PopulateNameFromAddressListsByDisplayName(ns, displayName, info, emailAddres
   Next
 End Sub
 
+Sub EnumerateDirectoryMatchesByDisplayName(ns, displayName, info, descriptor)
+  If ns Is Nothing Then Exit Sub
+  If info Is Nothing Then Exit Sub
+
+  Dim trimmed: trimmed = Trim(displayName)
+  If Len(trimmed) = 0 Then Exit Sub
+
+  WScript.Echo "  Enumerating directory matches for display name fallback '" & trimmed & "'."
+
+  Dim components: Set components = ParseFullNameComponents(trimmed)
+
+  Dim firstName: firstName = ""
+  Dim lastName: lastName = ""
+  Dim alternateFirst: alternateFirst = ""
+  Dim alternateLast: alternateLast = ""
+  Dim normalized: normalized = trimmed
+  Dim reverseDisplay: reverseDisplay = ""
+
+  If Not components Is Nothing Then
+    If components.Exists("First") Then firstName = SafeText(components("First"))
+    If components.Exists("Last") Then lastName = SafeText(components("Last"))
+    If components.Exists("AlternateFirst") Then alternateFirst = SafeText(components("AlternateFirst"))
+    If components.Exists("AlternateLast") Then alternateLast = SafeText(components("AlternateLast"))
+    If components.Exists("Normalized") Then
+      Dim normalizedCandidate: normalizedCandidate = SafeText(components("Normalized"))
+      If Len(normalizedCandidate) > 0 Then normalized = normalizedCandidate
+    End If
+    If components.Exists("ReverseDisplay") Then reverseDisplay = SafeText(components("ReverseDisplay"))
+  End If
+
+  If Len(reverseDisplay) = 0 Then
+    If Len(lastName) > 0 And Len(firstName) > 0 Then
+      reverseDisplay = Trim(lastName & ", " & firstName)
+    Else
+      reverseDisplay = trimmed
+    End If
+  End If
+
+  Dim candidateValues: Set candidateValues = CreateObject("Scripting.Dictionary")
+  If candidateValues Is Nothing Then Exit Sub
+  On Error Resume Next
+  candidateValues.CompareMode = 1
+  On Error GoTo 0
+
+  Call AddCandidateValue(candidateValues, trimmed)
+  Call AddCandidateValue(candidateValues, normalized)
+  Call AddCandidateValue(candidateValues, reverseDisplay)
+
+  If Len(firstName) > 0 And Len(lastName) > 0 Then
+    Call AddCandidateValue(candidateValues, Trim(firstName & " " & lastName))
+    Call AddCandidateValue(candidateValues, Trim(lastName & " " & firstName))
+    Call AddCandidateValue(candidateValues, Trim(lastName & ", " & firstName))
+    Call AddCandidateValue(candidateValues, Trim(lastName & "," & firstName))
+  End If
+
+  If Len(alternateFirst) > 0 And Len(alternateLast) > 0 Then
+    Call AddCandidateValue(candidateValues, Trim(alternateFirst & " " & alternateLast))
+    Call AddCandidateValue(candidateValues, Trim(alternateLast & " " & alternateFirst))
+    Call AddCandidateValue(candidateValues, Trim(alternateLast & ", " & alternateFirst))
+    Call AddCandidateValue(candidateValues, Trim(alternateLast & "," & alternateFirst))
+  End If
+
+  Dim listNames: listNames = BuildDirectorySearchList(ns)
+  If Not IsArray(listNames) Then Exit Sub
+
+  Dim candidateCount: candidateCount = 0
+  On Error Resume Next
+  candidateCount = candidateValues.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    candidateCount = 0
+  End If
+  On Error GoTo 0
+
+  WScript.Echo "    Candidate permutations generated: " & candidateCount
+
+  Dim listCount
+  listCount = 0
+  On Error Resume Next
+  listCount = UBound(listNames) - LBound(listNames) + 1
+  If Err.Number <> 0 Then
+    Err.Clear
+    listCount = 0
+  End If
+  On Error GoTo 0
+  If listCount = 0 Then Exit Sub
+
+  Dim beforeFirst: beforeFirst = SafeText(info("First"))
+  Dim beforeLast: beforeLast = SafeText(info("Last"))
+  Dim beforeFull: beforeFull = SafeText(info("Full"))
+
+  Dim aggregate: Set aggregate = CreateObject("System.Collections.ArrayList")
+  Dim seen: Set seen = CreateObject("Scripting.Dictionary")
+  On Error Resume Next
+  seen.CompareMode = 1
+  On Error GoTo 0
+
+  Dim sourceMap: Set sourceMap = CreateObject("Scripting.Dictionary")
+  On Error Resume Next
+  sourceMap.CompareMode = 1
+  On Error GoTo 0
+
+  Dim callerProfile: Set callerProfile = GetCurrentUserProfileInfo()
+
+  Dim i, listName
+  Dim matches
+  Dim candidate
+  For i = LBound(listNames) To UBound(listNames)
+    listName = listNames(i)
+
+    Dim addressList: Set addressList = Nothing
+    On Error Resume Next
+    Set addressList = ns.AddressLists(listName)
+    If Err.Number <> 0 Then
+      Err.Clear
+      Set addressList = Nothing
+    End If
+    On Error GoTo 0
+
+    If Not addressList Is Nothing Then
+      WScript.Echo "    Inspecting address list: " & listName
+      Call RecordDirectoryAttempt(info, listName)
+
+      Dim valueKey
+      For Each valueKey In candidateValues.Keys
+        Dim candidateValue: candidateValue = Trim(SafeText(valueKey))
+        If Len(candidateValue) > 0 Then
+          Set matches = CollectAddressEntriesByFields(addressList, Array("Name", "DisplayName", "FileAs"), candidateValue)
+          Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
+
+          Dim candidateMatchCount: candidateMatchCount = 0
+          If Not matches Is Nothing Then
+            On Error Resume Next
+            candidateMatchCount = matches.Count
+            If Err.Number <> 0 Then
+              Err.Clear
+              candidateMatchCount = 0
+            End If
+            On Error GoTo 0
+          End If
+
+          Dim aggregateCount: aggregateCount = 0
+          On Error Resume Next
+          aggregateCount = aggregate.Count
+          If Err.Number <> 0 Then
+            Err.Clear
+            aggregateCount = 0
+          End If
+          On Error GoTo 0
+
+          WScript.Echo "      Candidate '" & candidateValue & "' produced " & candidateMatchCount & " matches (aggregate unique: " & aggregateCount & ")."
+        End If
+      Next
+
+      If Len(firstName) > 0 And Len(lastName) > 0 Then
+        Set matches = CollectAddressEntriesByFullName(addressList, firstName, lastName)
+        Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
+
+        Dim fullMatchCount: fullMatchCount = 0
+        If Not matches Is Nothing Then
+          On Error Resume Next
+          fullMatchCount = matches.Count
+          If Err.Number <> 0 Then
+            Err.Clear
+            fullMatchCount = 0
+          End If
+          On Error GoTo 0
+        End If
+
+        Dim aggregateCountFull: aggregateCountFull = 0
+        On Error Resume Next
+        aggregateCountFull = aggregate.Count
+        If Err.Number <> 0 Then
+          Err.Clear
+          aggregateCountFull = 0
+        End If
+        On Error GoTo 0
+
+        WScript.Echo "      Full-name candidate '" & Trim(firstName & " " & lastName) & "' produced " & fullMatchCount & " matches (aggregate unique: " & aggregateCountFull & ")."
+      End If
+
+      If Len(alternateFirst) > 0 And Len(alternateLast) > 0 Then
+        Set matches = CollectAddressEntriesByFullName(addressList, alternateFirst, alternateLast)
+        Call MergeAddressEntryMatches(aggregate, matches, seen, sourceMap, listName)
+
+        Dim altMatchCount: altMatchCount = 0
+        If Not matches Is Nothing Then
+          On Error Resume Next
+          altMatchCount = matches.Count
+          If Err.Number <> 0 Then
+            Err.Clear
+            altMatchCount = 0
+          End If
+          On Error GoTo 0
+        End If
+
+        Dim aggregateCountAlt: aggregateCountAlt = 0
+        On Error Resume Next
+        aggregateCountAlt = aggregate.Count
+        If Err.Number <> 0 Then
+          Err.Clear
+          aggregateCountAlt = 0
+        End If
+        On Error GoTo 0
+
+        WScript.Echo "      Alternate-name candidate '" & Trim(alternateFirst & " " & alternateLast) & "' produced " & altMatchCount & " matches (aggregate unique: " & aggregateCountAlt & ")."
+      End If
+    End If
+  Next
+
+  Dim aggregateTotal: aggregateTotal = 0
+  On Error Resume Next
+  aggregateTotal = aggregate.Count
+  If Err.Number <> 0 Then
+    Err.Clear
+    aggregateTotal = 0
+  End If
+  On Error GoTo 0
+
+  If aggregateTotal = 0 Then
+    WScript.Echo "  Display-name enumeration found no address entries for '" & trimmed & "'."
+    Exit Sub
+  End If
+
+  WScript.Echo "  Display-name enumeration aggregated " & aggregateTotal & " unique entries."
+
+  Dim selection: Set selection = Nothing
+  Set selection = ChooseBestAddressEntry(aggregate, callerProfile)
+
+  Dim selectionSummary: Set selectionSummary = Nothing
+  If Not selection Is Nothing Then
+    Set selectionSummary = BuildSelectionSummary(selection)
+  End If
+
+  Dim entry: Set entry = Nothing
+  Dim exch: Set exch = Nothing
+
+  If Not selection Is Nothing Then
+    If selection.Exists("Entry") Then Set entry = selection("Entry")
+    If selection.Exists("Exchange") Then Set exch = selection("Exchange")
+  End If
+
+  If entry Is Nothing Then
+    Set entry = aggregate(0)
+  End If
+
+  If entry Is Nothing Then
+    WScript.Echo "  Display-name enumeration could not select a best candidate despite aggregated matches."
+    Exit Sub
+  End If
+
+  WScript.Echo "  Display-name enumeration selected candidate: " & DescribeAddressEntry(entry)
+
+  info("Found") = True
+  If Len(SafeText(info("Full"))) = 0 Then info("Full") = entry.Name
+
+  On Error Resume Next
+  If exch Is Nothing Then Set exch = entry.GetExchangeUser()
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set exch = Nothing
+  End If
+  On Error GoTo 0
+
+  If Not exch Is Nothing Then
+    Call ApplyFirstNameCandidate(info, exch.FirstName, "", "")
+    If Len(SafeText(info("Last"))) = 0 And Len(exch.LastName) > 0 Then info("Last") = exch.LastName
+    If Len(SafeText(info("Full"))) = 0 And Len(exch.Name) > 0 Then info("Full") = exch.Name
+    Call PopulateNameFromPropertyAccessor(exch, info, "", "")
+  End If
+
+  Call PopulateNameFromPropertyAccessor(entry, info, "", "")
+
+  Dim afterFirst: afterFirst = SafeText(info("First"))
+  Dim afterLast: afterLast = SafeText(info("Last"))
+  Dim afterFull: afterFull = SafeText(info("Full"))
+
+  Dim improved: improved = False
+  If Len(afterLast) > 0 And SafeLower(afterLast) <> SafeLower(beforeLast) Then improved = True
+  If Not improved Then
+    If Len(afterFirst) > 0 And SafeLower(afterFirst) <> SafeLower(beforeFirst) Then improved = True
+  End If
+  If Not improved Then
+    If Len(afterFull) > 0 And SafeLower(afterFull) <> SafeLower(beforeFull) Then improved = True
+  End If
+
+  Dim sourceLabel: sourceLabel = ""
+  Dim chosenKey: chosenKey = BuildAddressEntryTrackingKey(entry)
+  If Len(chosenKey) > 0 Then
+    On Error Resume Next
+    If sourceMap.Exists(chosenKey) Then sourceLabel = CStr(sourceMap(chosenKey))
+    On Error GoTo 0
+  End If
+  If Len(Trim(sourceLabel)) = 0 Then sourceLabel = "Display name enumeration"
+
+  Dim lookupLabel: lookupLabel = descriptor
+  If Len(Trim(lookupLabel)) = 0 Then lookupLabel = "display name '" & trimmed & "'"
+
+  If improved Then
+    info("DirectorySource") = sourceLabel
+    Call ReportAddressListLookup(lookupLabel, sourceLabel, entry, exch, info, Nothing, selectionSummary)
+    WScript.Echo "  Display-name enumeration updated resolution fields using " & sourceLabel & "."
+  Else
+    WScript.Echo "  Display-name enumeration selected '" & DescribeAddressEntry(entry) & "' but did not improve resolved fields."
+  End If
+End Sub
+
 Sub PopulateNameFromAddressListsByFullName(ns, fullName, info, emailAddress)
   If ns Is Nothing Then Exit Sub
   If info Is Nothing Then Exit Sub
@@ -1254,19 +1688,7 @@ Sub AddAddressEntryToCollection(targetList, entry, seen)
   Dim key: key = ""
 
   If Not seen Is Nothing Then
-    On Error Resume Next
-    key = SafeLower(entry.ID)
-    If Err.Number <> 0 Then
-      Err.Clear
-      key = ""
-    End If
-    On Error GoTo 0
-
-    If Len(key) = 0 Then
-      Dim namePart: namePart = SafeLower(SafeText(entry.Name))
-      Dim addrPart: addrPart = SafeLower(SafeText(entry.Address))
-      key = Trim(namePart & "|" & addrPart)
-    End If
+    key = BuildAddressEntryTrackingKey(entry)
 
     If Len(key) > 0 Then
       If Not seen.Exists(key) Then
@@ -1279,6 +1701,95 @@ Sub AddAddressEntryToCollection(targetList, entry, seen)
 
   targetList.Add entry
 End Sub
+
+Sub MergeAddressEntryMatches(targetList, matches, seen, sourceMap, listName)
+  If targetList Is Nothing Then Exit Sub
+  If sourceMap Is Nothing Then Exit Sub
+
+  Dim candidate
+  If matches Is Nothing Then Exit Sub
+
+  For Each candidate In matches
+    Dim beforeCount: beforeCount = 0
+    On Error Resume Next
+    beforeCount = targetList.Count
+    If Err.Number <> 0 Then
+      Err.Clear
+      beforeCount = 0
+    End If
+    On Error GoTo 0
+
+    Call AddAddressEntryToCollection(targetList, candidate, seen)
+
+    Dim afterCount: afterCount = beforeCount
+    On Error Resume Next
+    afterCount = targetList.Count
+    If Err.Number <> 0 Then
+      Err.Clear
+      afterCount = beforeCount
+    End If
+    On Error GoTo 0
+
+    If afterCount > beforeCount Then
+      Dim entryKey: entryKey = BuildAddressEntryTrackingKey(candidate)
+      If Len(entryKey) > 0 Then
+        On Error Resume Next
+        If Not sourceMap.Exists(entryKey) Then sourceMap.Add entryKey, listName
+        On Error GoTo 0
+      End If
+    End If
+  Next
+End Sub
+
+Function DescribeAddressEntry(entry)
+  DescribeAddressEntry = "(none)"
+  If entry Is Nothing Then Exit Function
+
+  Dim namePart: namePart = ""
+  Dim addressPart: addressPart = ""
+
+  On Error Resume Next
+  namePart = SafeText(entry.Name)
+  If Err.Number <> 0 Then
+    Err.Clear
+    namePart = ""
+  End If
+  addressPart = SafeText(entry.Address)
+  If Err.Number <> 0 Then
+    Err.Clear
+    addressPart = ""
+  End If
+  On Error GoTo 0
+
+  Dim summary: summary = Trim(namePart)
+  If Len(summary) = 0 Then summary = "(unnamed entry)"
+  If Len(addressPart) > 0 Then summary = summary & " <" & addressPart & ">"
+
+  DescribeAddressEntry = summary
+End Function
+
+Function BuildAddressEntryTrackingKey(entry)
+  BuildAddressEntryTrackingKey = ""
+  If entry Is Nothing Then Exit Function
+
+  Dim key: key = ""
+
+  On Error Resume Next
+  key = SafeLower(entry.ID)
+  If Err.Number <> 0 Then
+    Err.Clear
+    key = ""
+  End If
+  On Error GoTo 0
+
+  If Len(key) = 0 Then
+    Dim namePart: namePart = SafeLower(SafeText(entry.Name))
+    Dim addrPart: addrPart = SafeLower(SafeText(entry.Address))
+    key = Trim(namePart & "|" & addrPart)
+  End If
+
+  BuildAddressEntryTrackingKey = key
+End Function
 
 Sub AppendAddressEntryResults(targetList, sourceList, seen)
   If targetList Is Nothing Then Exit Sub
