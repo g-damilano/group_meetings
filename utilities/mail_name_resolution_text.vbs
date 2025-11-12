@@ -63,6 +63,50 @@ Function CollectFlexibleNameTokens(text)
   Set CollectFlexibleNameTokens = CollectNameTokens(normalized)
 End Function
 
+Function ExtractDisplayNameAndEmail(text)
+  Dim result: Set result = CreateObject("Scripting.Dictionary")
+
+  result("Display") = ""
+  result("Email") = ""
+  result("HasAngleFormat") = False
+
+  Dim raw: raw = Trim(SafeText(text))
+  If Len(raw) = 0 Then
+    result("Display") = ""
+    Set ExtractDisplayNameAndEmail = result
+    Exit Function
+  End If
+
+  result("Display") = raw
+
+  Dim startPos: startPos = InStr(raw, "<")
+  Dim endPos: endPos = InStrRev(raw, ">")
+
+  If startPos > 0 And endPos > startPos Then
+    Dim between: between = Mid(raw, startPos + 1, endPos - startPos - 1)
+    Dim emailCandidate: emailCandidate = NormalizeEmailText(between)
+
+    If Len(emailCandidate) > 0 Then
+      result("Email") = emailCandidate
+      result("HasAngleFormat") = True
+
+      Dim beforePart: beforePart = Trim(Left(raw, startPos - 1))
+      Dim afterPart: afterPart = Trim(Mid(raw, endPos + 1))
+      Dim mergedDisplay: mergedDisplay = beforePart
+
+      If Len(mergedDisplay) = 0 Then
+        mergedDisplay = afterPart
+      ElseIf Len(afterPart) > 0 Then
+        mergedDisplay = Trim(mergedDisplay & " " & afterPart)
+      End If
+
+      result("Display") = Trim(mergedDisplay)
+    End If
+  End If
+
+  Set ExtractDisplayNameAndEmail = result
+End Function
+
 Function JoinTokens(list, delimiter)
   Dim result: result = ""
 
