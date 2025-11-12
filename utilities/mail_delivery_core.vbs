@@ -4,8 +4,6 @@
 Option Explicit
 SetLocale 1033
 
-Const PR_ATTACH_CONTENT_ID = "http://schemas.microsoft.com/mapi/proptag/0x3712001F"
-
 '--------------------------------------------------------------------
 ' Public entry point
 '--------------------------------------------------------------------
