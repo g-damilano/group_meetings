@@ -96,11 +96,28 @@ Sub DisplayResolution(rawInput)
 
   Dim foundText: foundText = DescribeBoolean(info, "Found")
   WScript.Echo "  Resolution status: " & foundText
-  WScript.Echo "  Resolved name for " & fieldDescription & " '" & lookupValue & "':"
-  WScript.Echo "    Directory source: " & DescribeField(info, "DirectorySource", "(none)")
-  WScript.Echo "    Address lists checked: " & DescribeField(info, "DirectoryAttempted", "(none)")
-  WScript.Echo "    First name: " & DescribeField(info, "First", "(empty)")
-  WScript.Echo "    Surname: " & DescribeField(info, "Last", "(empty)")
-  WScript.Echo "    Email: " & DescribeField(info, "Email", "(empty)")
-  WScript.Echo "    Display name: " & DescribeField(info, "Full", "(empty)")
+  Call DisplayResolutionSummary("Resolved name for " & fieldDescription & " '" & lookupValue & "':", info, "  ")
+End Sub
+
+Sub DisplayResolutionSummary(headerText, info, Optional indent)
+  Dim linePrefix: linePrefix = ""
+  If Not IsMissing(indent) Then linePrefix = indent
+  If Len(linePrefix) = 0 Then linePrefix = ""
+
+  Dim resolvedHeader: resolvedHeader = headerText
+  If Len(resolvedHeader) = 0 Then resolvedHeader = "Resolved name:"
+
+  If Len(linePrefix) > 0 Then
+    WScript.Echo linePrefix & resolvedHeader
+  Else
+    WScript.Echo resolvedHeader
+  End If
+
+  Dim detailPrefix: detailPrefix = linePrefix & "  "
+  WScript.Echo detailPrefix & "Directory source: " & DescribeField(info, "DirectorySource", "(none)")
+  WScript.Echo detailPrefix & "Address lists checked: " & DescribeField(info, "DirectoryAttempted", "(none)")
+  WScript.Echo detailPrefix & "First name: " & DescribeField(info, "First", "(empty)")
+  WScript.Echo detailPrefix & "Surname: " & DescribeField(info, "Last", "(empty)")
+  WScript.Echo detailPrefix & "Email: " & DescribeField(info, "Email", "(empty)")
+  WScript.Echo detailPrefix & "Display name: " & DescribeField(info, "Full", "(empty)")
 End Sub
