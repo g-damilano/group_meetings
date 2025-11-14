@@ -41,7 +41,7 @@ Function ResolveNameFromEmail(emailAddress)
   On Error Resume Next
   Dim olApp: Set olApp = GetOutlookApp()
   If olApp Is Nothing Then
-    ResolveNameFromEmail = info
+    Set ResolveNameFromEmail = info
     Exit Function
   End If
   Dim ns: Set ns = olApp.GetNamespace("MAPI")
