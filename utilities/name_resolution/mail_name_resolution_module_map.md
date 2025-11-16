@@ -14,7 +14,7 @@ To keep the name-resolution helpers maintainable, every VBScript module under `u
 | `MNS_collections.vbs` | Shared collection/dictionary helpers used by multiple modules. | `CreateArrayList`, `CreateTextDictionary`, `GetCollectionCount`. |
 | `MNS_directory.vbs` | Legacy shim that documents the module split (no logic). | N/A |
 | `MNS_core.vbs` | Public resolver entry points and heuristics. | `ResolveNameLookup`, `ResolveNameUsingHeuristics`, `ResolveNameFromEmail`. |
-| `MNS_console.vbs` | Console orchestration that ties the modules together. | `DumpResolutionBlock`, `DumpRecordedOutlookResponses`. |
+| `MNS_console.vbs` | Console orchestration that ties the modules together. | `DisplayResolution`, `DisplayResolutionSummary`, `DisplayResolutionFields`. |
 
 ## Contributing guidelines
 

@@ -875,40 +875,19 @@ End Function
 Sub ReviewResolvedName(address, context)
   Call NormalizeNameParts(context)
 
-  Dim currentFirst: currentFirst = SafeText(context("NAME"))
-  Dim currentLast: currentLast = SafeText(context("SURNAME"))
-  Dim currentFull: currentFull = SafeText(context("FULL_NAME"))
-  Dim directorySource: directorySource = ""
-  Dim directoryAttempted: directoryAttempted = ""
-  If context.Exists("DIRECTORY_SOURCE") Then directorySource = SafeText(context("DIRECTORY_SOURCE"))
-  If context.Exists("DIRECTORY_ATTEMPTED") Then directoryAttempted = SafeText(context("DIRECTORY_ATTEMPTED"))
+  Dim summary: Set summary = CreateEmptyResolutionInfo()
+  summary("DirectorySource") = SafeText(GetDictionaryValue(context, "DIRECTORY_SOURCE"))
+  summary("DirectoryAttempted") = SafeText(GetDictionaryValue(context, "DIRECTORY_ATTEMPTED"))
+  summary("First") = SafeText(GetDictionaryValue(context, "NAME"))
+  summary("Last") = SafeText(GetDictionaryValue(context, "SURNAME"))
+  summary("Full") = SafeText(GetDictionaryValue(context, "FULL_NAME"))
+  summary("Email") = SafeText(GetDictionaryValue(context, "EMAIL"))
 
-  WScript.Echo "  Resolved name for " & address & ":"
-  If Len(directorySource) > 0 Then
-    WScript.Echo "    Directory source: " & directorySource
-  Else
-    WScript.Echo "    Directory source: (none)"
-  End If
-  If Len(directoryAttempted) > 0 Then
-    WScript.Echo "    Address lists checked: " & directoryAttempted
-  Else
-    WScript.Echo "    Address lists checked: (none)"
-  End If
-  If Len(currentFirst) > 0 Then
-    WScript.Echo "    First name: " & currentFirst
-  Else
-    WScript.Echo "    First name: (empty)"
-  End If
-  If Len(currentLast) > 0 Then
-    WScript.Echo "    Surname: " & currentLast
-  Else
-    WScript.Echo "    Surname: (empty)"
-  End If
-  If Len(currentFull) > 0 Then
-    WScript.Echo "    Display name: " & currentFull
-  Else
-    WScript.Echo "    Display name: (empty)"
-  End If
+  Call DisplayResolutionSummary("Resolved name for " & address & ":", summary, "  ")
+
+  Dim currentFirst: currentFirst = summary("First")
+  Dim currentLast: currentLast = summary("Last")
+  Dim currentFull: currentFull = summary("Full")
 
   Dim requireReview: requireReview = False
   If Len(currentFirst) = 0 Or Len(currentLast) = 0 Or Len(currentFull) = 0 Then
