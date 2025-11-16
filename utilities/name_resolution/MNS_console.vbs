@@ -114,10 +114,23 @@ Sub DisplayResolutionSummary(headerText, info, Optional indent)
   End If
 
   Dim detailPrefix: detailPrefix = linePrefix & "  "
-  WScript.Echo detailPrefix & "Directory source: " & DescribeField(info, "DirectorySource", "(none)")
-  WScript.Echo detailPrefix & "Address lists checked: " & DescribeField(info, "DirectoryAttempted", "(none)")
-  WScript.Echo detailPrefix & "First name: " & DescribeField(info, "First", "(empty)")
-  WScript.Echo detailPrefix & "Surname: " & DescribeField(info, "Last", "(empty)")
-  WScript.Echo detailPrefix & "Email: " & DescribeField(info, "Email", "(empty)")
-  WScript.Echo detailPrefix & "Display name: " & DescribeField(info, "Full", "(empty)")
+  Call DisplayResolutionFields(info, detailPrefix)
+End Sub
+
+Sub DisplayResolutionFields(info, Optional indent)
+  Dim linePrefix: linePrefix = ""
+  If Not IsMissing(indent) Then linePrefix = indent
+  If Len(linePrefix) = 0 Then linePrefix = ""
+
+  If info Is Nothing Then
+    WScript.Echo linePrefix & "(No resolution information returned.)"
+    Exit Sub
+  End If
+
+  WScript.Echo linePrefix & "Directory source: " & DescribeField(info, "DirectorySource", "(none)")
+  WScript.Echo linePrefix & "Address lists checked: " & DescribeField(info, "DirectoryAttempted", "(none)")
+  WScript.Echo linePrefix & "First name: " & DescribeField(info, "First", "(empty)")
+  WScript.Echo linePrefix & "Surname: " & DescribeField(info, "Last", "(empty)")
+  WScript.Echo linePrefix & "Email: " & DescribeField(info, "Email", "(empty)")
+  WScript.Echo linePrefix & "Display name: " & DescribeField(info, "Full", "(empty)")
 End Sub
