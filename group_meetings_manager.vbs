@@ -591,7 +591,7 @@ Function GenerateLabManagerReminderEmail(labManagerName, meetingDate)
 
     content = content & "On friday, please pick up all parcels addressed to " & parcelDisplay & _
               "; most of them contain the consumables ordered the last week that need to be re-stocked in the lab." & vbCrLf & vbCrLf
-    content = content & "Also, please send me the list of missing items I should procure from the whiteboard and procure the rest from the stores so that we can maintain supplies available at all time." & vbCrLf & vbCrLf
+    content = content & "Also, please procure the list of missing items on the whiteboard from the stores so that we can maintain supplies at all times." & vbCrLf & vbCrLf
     content = content & "Thank you for keeping the lab organized." & vbCrLf & vbCrLf
     content = content & "Best," & vbCrLf & Trim(senderDisplayName)
     GenerateLabManagerReminderEmail = content

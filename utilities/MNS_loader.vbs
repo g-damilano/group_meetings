@@ -24,6 +24,9 @@ Sub LoadNameResolutionModules(baseFolder)
   Dim i
   Dim relativePath
 
+  ' Ensure Outlook helpers are available for the name-resolution modules
+  Call LoadModule(effectiveBase, "utilities\\common_outlook.vbs")
+
   If Len(resolvedFolder) > 0 Then
     modules = CollectNameResolutionModules(fso, resolvedFolder)
     If IsArray(modules) Then
