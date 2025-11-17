@@ -9,7 +9,8 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+
+from typing import Dict, List, Sequence, Tuple
 
 BASE_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = BASE_DIR / "diagnostics_results"
@@ -90,7 +91,7 @@ def check_required_structure(base_dir: Path) -> CheckResult:
     )
 
 
-def _read_text(path: Path) -> Optional[str]:
+def _read_text(path: Path) -> str | None:
     try:
         return path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -207,7 +208,7 @@ def check_template_headers(base_dir: Path) -> CheckResult:
     )
 
 
-def load_link_map(base_dir: Path) -> Tuple[CheckResult, Optional[Dict[str, str]]]:
+def load_link_map(base_dir: Path) -> Tuple[CheckResult, Dict[str, str] | None]:
     link_map_path = base_dir / "links_map.txt"
     if not link_map_path.is_file():
         return (
@@ -335,7 +336,7 @@ def run_checklist(base_dir: Path) -> List[CheckResult]:
 
 
 def determine_variations(
-    previous: Optional[Dict[str, object]], current: Dict[str, object]
+    previous: Dict[str, object] | None, current: Dict[str, object]
 ) -> List[str]:
     if previous is None:
         return ["No previous diagnostic run to compare against."]
@@ -385,7 +386,9 @@ def save_results(results: List[CheckResult], output_dir: Path) -> Path:
     return output_path
 
 
-def load_previous_results(results_dir: Path, current_path: Path) -> Optional[Dict[str, object]]:
+def load_previous_results(
+    results_dir: Path, current_path: Path
+) -> Dict[str, object] | None:
     candidates = sorted(p for p in results_dir.glob("*.json") if p != current_path)
     if not candidates:
         return None
@@ -407,7 +410,7 @@ def format_results_table(results: Sequence[CheckResult]) -> str:
     return "\n".join(rows)
 
 
-def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Run repository diagnostics and persist the checklist outcome with a POSIX timestamp filename."
@@ -422,7 +425,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     checklist_results = run_checklist(BASE_DIR)
     print(format_results_table(checklist_results))
