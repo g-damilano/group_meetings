@@ -617,12 +617,7 @@ Sub DumpResolutionDetails(info, indent)
   End If
 
   WScript.Echo indent & "Found: " & DescribeBoolean(info, "Found")
-  WScript.Echo indent & "Directory source: " & DescribeField(info, "DirectorySource", "(none)")
-  WScript.Echo indent & "Address lists checked: " & DescribeField(info, "DirectoryAttempted", "(none)")
-  WScript.Echo indent & "First name: " & DescribeField(info, "First", "(empty)")
-  WScript.Echo indent & "Surname: " & DescribeField(info, "Last", "(empty)")
-  WScript.Echo indent & "Email: " & DescribeField(info, "Email", "(empty)")
-  WScript.Echo indent & "Display name: " & DescribeField(info, "Full", "(empty)")
+  Call DisplayResolutionFields(info, indent)
   WScript.Echo indent & "Raw resolution payload:"
   Call DumpVariantStructure(info, indent & "  ", 0)
 End Sub
