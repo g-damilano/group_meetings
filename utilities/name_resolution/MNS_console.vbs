@@ -96,11 +96,41 @@ Sub DisplayResolution(rawInput)
 
   Dim foundText: foundText = DescribeBoolean(info, "Found")
   WScript.Echo "  Resolution status: " & foundText
-  WScript.Echo "  Resolved name for " & fieldDescription & " '" & lookupValue & "':"
-  WScript.Echo "    Directory source: " & DescribeField(info, "DirectorySource", "(none)")
-  WScript.Echo "    Address lists checked: " & DescribeField(info, "DirectoryAttempted", "(none)")
-  WScript.Echo "    First name: " & DescribeField(info, "First", "(empty)")
-  WScript.Echo "    Surname: " & DescribeField(info, "Last", "(empty)")
-  WScript.Echo "    Email: " & DescribeField(info, "Email", "(empty)")
-  WScript.Echo "    Display name: " & DescribeField(info, "Full", "(empty)")
+  Call DisplayResolutionSummary("Resolved name for " & fieldDescription & " '" & lookupValue & "':", info, "  ")
+End Sub
+
+Sub DisplayResolutionSummary(headerText, info, ParamArray rest())
+  Dim linePrefix: linePrefix = ""
+  If UBound(rest) >= 0 Then linePrefix = rest(0)
+  If Len(linePrefix) = 0 Then linePrefix = ""
+
+  Dim resolvedHeader: resolvedHeader = headerText
+  If Len(resolvedHeader) = 0 Then resolvedHeader = "Resolved name:"
+
+  If Len(linePrefix) > 0 Then
+    WScript.Echo linePrefix & resolvedHeader
+  Else
+    WScript.Echo resolvedHeader
+  End If
+
+  Dim detailPrefix: detailPrefix = linePrefix & "  "
+  Call DisplayResolutionFields(info, detailPrefix)
+End Sub
+
+Sub DisplayResolutionFields(info, ParamArray rest())
+  Dim linePrefix: linePrefix = ""
+  If UBound(rest) >= 0 Then linePrefix = rest(0)
+  If Len(linePrefix) = 0 Then linePrefix = ""
+
+  If info Is Nothing Then
+    WScript.Echo linePrefix & "(No resolution information returned.)"
+    Exit Sub
+  End If
+
+  WScript.Echo linePrefix & "Directory source: " & DescribeField(info, "DirectorySource", "(none)")
+  WScript.Echo linePrefix & "Address lists checked: " & DescribeField(info, "DirectoryAttempted", "(none)")
+  WScript.Echo linePrefix & "First name: " & DescribeField(info, "First", "(empty)")
+  WScript.Echo linePrefix & "Surname: " & DescribeField(info, "Last", "(empty)")
+  WScript.Echo linePrefix & "Email: " & DescribeField(info, "Email", "(empty)")
+  WScript.Echo linePrefix & "Display name: " & DescribeField(info, "Full", "(empty)")
 End Sub
