@@ -12,6 +12,50 @@ Function CreateEmptyResolutionInfo()
   Set CreateEmptyResolutionInfo = info
 End Function
 
+Function AcquireResolutionNamespace()
+  Set AcquireResolutionNamespace = Nothing
+
+  Dim olApp
+  On Error Resume Next
+  Set olApp = GetOutlookApp()
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set olApp = Nothing
+  End If
+  On Error GoTo 0
+
+  If olApp Is Nothing Then Exit Function
+
+  Dim ns
+  On Error Resume Next
+  Set ns = olApp.GetNamespace("MAPI")
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set ns = Nothing
+  End If
+  On Error GoTo 0
+
+  If ns Is Nothing Then Exit Function
+
+  Set AcquireResolutionNamespace = ns
+End Function
+
+Function InitializeResolutionInfo(searchValue, info, trimmed)
+  Set info = CreateEmptyResolutionInfo()
+  trimmed = Trim(SafeText(searchValue))
+  InitializeResolutionInfo = (Len(trimmed) > 0)
+End Function
+
+Sub EnsureFullNameField(info)
+  If info Is Nothing Then Exit Sub
+
+  Dim existingFull: existingFull = Trim(SafeText(info("Full")))
+  If Len(existingFull) > 0 Then Exit Sub
+
+  Dim combined: combined = Trim(SafeText(info("First")) & " " & SafeText(info("Last")))
+  If Len(combined) > 0 Then info("Full") = combined
+End Sub
+
 Function ResolveNameLookup(searchValue, searchField)
   Dim fieldName: fieldName = SafeLower(Trim(searchField))
   If Len(fieldName) = 0 Then fieldName = "auto"
@@ -38,13 +82,13 @@ Function ResolveNameFromEmail(emailAddress)
   Dim trimmedEmail: trimmedEmail = Trim(SafeText(emailAddress))
   If Len(trimmedEmail) > 0 Then info("Email") = trimmedEmail
 
-  On Error Resume Next
-  Dim olApp: Set olApp = GetOutlookApp()
-  If olApp Is Nothing Then
-    ResolveNameFromEmail = info
+  Dim ns: Set ns = AcquireResolutionNamespace()
+  If ns Is Nothing Then
+    Set ResolveNameFromEmail = info
     Exit Function
   End If
-  Dim ns: Set ns = olApp.GetNamespace("MAPI")
+
+  On Error Resume Next
   Dim recip: Set recip = ns.CreateRecipient(emailAddress)
   recip.Resolve
   If recip.Resolved Then
@@ -117,9 +161,7 @@ Function ResolveNameFromEmail(emailAddress)
     End If
   End If
 
-  If Len(info("Full")) = 0 Then
-    info("Full") = Trim(info("First") & " " & info("Last"))
-  End If
+  Call EnsureFullNameField(info)
 
   Set ResolveNameFromEmail = info
 End Function
@@ -426,81 +468,51 @@ Sub MergeParsedContactIntoInfo(info, components, displayText)
 End Sub
 
 Function ResolveNameFromGivenName(givenName)
-  Dim info: Set info = CreateEmptyResolutionInfo()
-  Dim trimmed: trimmed = Trim(givenName)
-  If Len(trimmed) = 0 Then
+  Dim info, trimmed
+  If Not InitializeResolutionInfo(givenName, info, trimmed) Then
     Set ResolveNameFromGivenName = info
     Exit Function
   End If
 
-  On Error Resume Next
-  Dim olApp: Set olApp = GetOutlookApp()
-  If olApp Is Nothing Then
-    Set ResolveNameFromGivenName = info
-    Exit Function
-  End If
-  Dim ns: Set ns = olApp.GetNamespace("MAPI")
-  On Error GoTo 0
+  Dim ns: Set ns = AcquireResolutionNamespace()
   If ns Is Nothing Then
     Set ResolveNameFromGivenName = info
     Exit Function
   End If
 
   Call PopulateNameFromAddressListsByGivenName(ns, trimmed, info, "given name '" & trimmed & "'")
-
-  If Len(info("Full")) = 0 Then
-    info("Full") = Trim(info("First") & " " & info("Last"))
-  End If
+  Call EnsureFullNameField(info)
 
   Set ResolveNameFromGivenName = info
 End Function
 
 Function ResolveNameFromSurname(surname)
-  Dim info: Set info = CreateEmptyResolutionInfo()
-  Dim trimmed: trimmed = Trim(surname)
-  If Len(trimmed) = 0 Then
+  Dim info, trimmed
+  If Not InitializeResolutionInfo(surname, info, trimmed) Then
     Set ResolveNameFromSurname = info
     Exit Function
   End If
 
-  On Error Resume Next
-  Dim olApp: Set olApp = GetOutlookApp()
-  If olApp Is Nothing Then
-    Set ResolveNameFromSurname = info
-    Exit Function
-  End If
-  Dim ns: Set ns = olApp.GetNamespace("MAPI")
-  On Error GoTo 0
+  Dim ns: Set ns = AcquireResolutionNamespace()
   If ns Is Nothing Then
     Set ResolveNameFromSurname = info
     Exit Function
   End If
 
   Call PopulateNameFromAddressListsBySurname(ns, trimmed, info, "surname '" & trimmed & "'")
-
-  If Len(info("Full")) = 0 Then
-    info("Full") = Trim(info("First") & " " & info("Last"))
-  End If
+  Call EnsureFullNameField(info)
 
   Set ResolveNameFromSurname = info
 End Function
 
 Function ResolveNameFromDisplayName(displayName)
-  Dim info: Set info = CreateEmptyResolutionInfo()
-  Dim trimmed: trimmed = Trim(displayName)
-  If Len(trimmed) = 0 Then
+  Dim info, trimmed
+  If Not InitializeResolutionInfo(displayName, info, trimmed) Then
     Set ResolveNameFromDisplayName = info
     Exit Function
   End If
 
-  On Error Resume Next
-  Dim olApp: Set olApp = GetOutlookApp()
-  If olApp Is Nothing Then
-    Set ResolveNameFromDisplayName = info
-    Exit Function
-  End If
-  Dim ns: Set ns = olApp.GetNamespace("MAPI")
-  On Error GoTo 0
+  Dim ns: Set ns = AcquireResolutionNamespace()
   If ns Is Nothing Then
     Set ResolveNameFromDisplayName = info
     Exit Function
@@ -517,29 +529,19 @@ Function ResolveNameFromDisplayName(displayName)
     End If
   End If
 
-  If Len(info("Full")) = 0 Then
-    info("Full") = Trim(info("First") & " " & info("Last"))
-  End If
+  Call EnsureFullNameField(info)
 
   Set ResolveNameFromDisplayName = info
 End Function
 
 Function ResolveNameFromFullName(fullName)
-  Dim info: Set info = CreateEmptyResolutionInfo()
-  Dim trimmed: trimmed = Trim(fullName)
-  If Len(trimmed) = 0 Then
+  Dim info, trimmed
+  If Not InitializeResolutionInfo(fullName, info, trimmed) Then
     Set ResolveNameFromFullName = info
     Exit Function
   End If
 
-  On Error Resume Next
-  Dim olApp: Set olApp = GetOutlookApp()
-  If olApp Is Nothing Then
-    Set ResolveNameFromFullName = info
-    Exit Function
-  End If
-  Dim ns: Set ns = olApp.GetNamespace("MAPI")
-  On Error GoTo 0
+  Dim ns: Set ns = AcquireResolutionNamespace()
   If ns Is Nothing Then
     Set ResolveNameFromFullName = info
     Exit Function
@@ -551,9 +553,7 @@ Function ResolveNameFromFullName(fullName)
     Call AttemptRecipientResolveForValue(ns, trimmed, info, "full name")
   End If
 
-  If Len(info("Full")) = 0 Then
-    info("Full") = Trim(info("First") & " " & info("Last"))
-  End If
+  Call EnsureFullNameField(info)
 
   If ResolutionWasSuccessful(info) Then
     Set ResolveNameFromFullName = info
