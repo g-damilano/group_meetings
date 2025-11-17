@@ -7,6 +7,11 @@ template so the same file describes the recipients, subject, attachments, delive
 
 ## Repository layout
 
+### Additional documentation
+
+- `docs/InductionMailer.md` — Console workflow, configuration, environment setup, template handling, and diagnostics for `InductionMailer.vbs`.
+- `docs/group_meetings_manager.md` — Globals, logging, workbook sync, Outlook resolution, duplicate checks, email helpers, and overall orchestration for `group_meetings_manager.vbs`.
+
 ### Utility modules
 
 The helper scripts are now split out of `InductionMailer.vbs` so non-core logic can be debugged
