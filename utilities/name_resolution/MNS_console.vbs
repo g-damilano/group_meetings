@@ -99,11 +99,9 @@ Sub DisplayResolution(rawInput)
   Call DisplayResolutionSummary("Resolved name for " & fieldDescription & " '" & lookupValue & "':", info, "  ")
 End Sub
 
-Sub DisplayResolutionSummary(headerText, info, ParamArray rest())
-  Dim linePrefix: linePrefix = ""
-  If UBound(rest) >= 0 Then linePrefix = rest(0)
-  If Len(linePrefix) = 0 Then linePrefix = ""
-
+Sub DisplayResolutionSummary(headerText, info, linePrefix)
+  If IsEmpty(linePrefix) Then linePrefix = ""
+  
   Dim resolvedHeader: resolvedHeader = headerText
   If Len(resolvedHeader) = 0 Then resolvedHeader = "Resolved name:"
 
@@ -117,10 +115,8 @@ Sub DisplayResolutionSummary(headerText, info, ParamArray rest())
   Call DisplayResolutionFields(info, detailPrefix)
 End Sub
 
-Sub DisplayResolutionFields(info, ParamArray rest())
-  Dim linePrefix: linePrefix = ""
-  If UBound(rest) >= 0 Then linePrefix = rest(0)
-  If Len(linePrefix) = 0 Then linePrefix = ""
+Sub DisplayResolutionFields(info, linePrefix)
+  If IsEmpty(linePrefix) Then linePrefix = ""
 
   If info Is Nothing Then
     WScript.Echo linePrefix & "(No resolution information returned.)"
