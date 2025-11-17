@@ -99,9 +99,9 @@ Sub DisplayResolution(rawInput)
   Call DisplayResolutionSummary("Resolved name for " & fieldDescription & " '" & lookupValue & "':", info, "  ")
 End Sub
 
-Sub DisplayResolutionSummary(headerText, info, Optional indent)
+Sub DisplayResolutionSummary(headerText, info, ParamArray rest())
   Dim linePrefix: linePrefix = ""
-  If Not IsMissing(indent) Then linePrefix = indent
+  If UBound(rest) >= 0 Then linePrefix = rest(0)
   If Len(linePrefix) = 0 Then linePrefix = ""
 
   Dim resolvedHeader: resolvedHeader = headerText
@@ -117,9 +117,9 @@ Sub DisplayResolutionSummary(headerText, info, Optional indent)
   Call DisplayResolutionFields(info, detailPrefix)
 End Sub
 
-Sub DisplayResolutionFields(info, Optional indent)
+Sub DisplayResolutionFields(info, ParamArray rest())
   Dim linePrefix: linePrefix = ""
-  If Not IsMissing(indent) Then linePrefix = indent
+  If UBound(rest) >= 0 Then linePrefix = rest(0)
   If Len(linePrefix) = 0 Then linePrefix = ""
 
   If info Is Nothing Then
