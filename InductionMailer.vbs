@@ -71,6 +71,7 @@ Sub LoadUtilityModules()
   Dim modules
   modules = Array( _
     "utilities\common_console.vbs", _
+    "utilities\common_outlook.vbs", _
     "utilities\mail_collections.vbs", _
     "utilities\mail_template_utils.vbs", _
     "utilities\mail_delivery_utils.vbs", _
