@@ -391,7 +391,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
     End If
 
-    content = content & vbCrLf & Trim(meetingLeadName) & " will lead the meeting and do the inclusion activity." & vbCrLf
+    content = content & vbCrLf & Trim(meetingLeadName) & " will lead the meeting, keep presenters time, and do the inclusion activity." & vbCrLf
 
     If labManager = "" Then
         labManager = "TBD"
@@ -494,7 +494,14 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
 
     content = "Hi " & Trim(greetingName) & "," & vbCrLf & vbCrLf
     content = content & "Just a reminder that you are scheduled to present " & description & _
-              " at this week's group meeting on " & meetingDateText & "." & vbCrLf & vbCrLf
+              " at this week's group meeting on " & meetingDateText & ". The slot is 15 minutes for your presentation plus 5 minutes for Q&A. " & _
+              "The group meeting leader will keep time to ensure we don't overrun." & vbCrLf & vbCrLf
+    content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
+    content = content & "Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
+    content = content & "Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
+    content = content & "Let the slides support your performance, not be the performance—they shouldn't steal your stage." & vbCrLf & vbCrLf
+    content = content & "One clear, well-chosen image is often more effective than a lot of text, especially as many scientists are visual learners." & vbCrLf & vbCrLf
+    content = content & "Assume a left-to-right, top-to-bottom reading pattern: place the most important information at the top left and less critical details toward the bottom right." & vbCrLf & vbCrLf
     content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf & vbCrLf
     content = content & "Best," & vbCrLf & Trim(senderFirstName)
     GeneratePresenterReminderEmail = content
