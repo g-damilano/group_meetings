@@ -495,7 +495,7 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
     content = "Hi " & Trim(greetingName) & "," & vbCrLf & vbCrLf
     content = content & "Just a reminder that you are scheduled to present " & description & _
               " at this week's group meeting on " & meetingDateText & ". The slot is 15 minutes for your presentation plus 5 minutes for Q&A. " & _
-              "The group meeting leader will keep time to ensure we don't overrun." & vbCrLf & vbCrLf
+              "As a rough guide, aim for about 1 minute per slide (so around 10–12 slides in total). The group meeting leader will keep time to ensure we don’t overrun, so please rehearse your talk beforehand to check that you are within the time limit." & vbCrLf & vbCrLf
     content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
     content = content & "Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
     content = content & "Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
