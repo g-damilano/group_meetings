@@ -298,6 +298,36 @@ End Function
 '==============================================================
 ' Meeting Content Builders
 '==============================================================
+Function DeriveMeetingLeadName(objSheetRota, meetingDate)
+    Call LogVerbose("DeriveMeetingLeadName invoked")
+    Dim previousLabManager, previousFriday, previousFridayRow, searchRow, lastRow, candidateDate
+
+    previousFriday = DateAdd("d", -7, meetingDate)
+    previousFridayRow = -1
+    lastRow = objSheetRota.Cells(objSheetRota.Rows.Count, "A").End(-4162).Row
+
+    For searchRow = 2 To lastRow
+        candidateDate = objSheetRota.Cells(searchRow, 1).Value
+        If candidateDate = previousFriday Then
+            previousFridayRow = searchRow
+            Exit For
+        End If
+    Next
+
+    If previousFridayRow <> -1 Then
+        previousLabManager = Trim(objSheetRota.Cells(previousFridayRow, 6).Value)
+    Else
+        previousLabManager = ""
+    End If
+
+    If previousLabManager = "" Then
+        previousLabManager = DEFAULT_PREVIOUS_LAB_MANAGER
+    End If
+
+    DeriveMeetingLeadName = previousLabManager
+    LogEvent "Derived meeting lead as '" & previousLabManager & "' for meeting date " & FormatDateTime(meetingDate, 2)
+End Function
+
 Function BuildMeetingSubject(meetingDate)
     Call LogVerbose("BuildMeetingSubject invoked")
     BuildMeetingSubject = "ABT group meeting @ 11am (" & FormatDateTime(meetingDate, 2) & ")"
@@ -306,7 +336,7 @@ End Function
 Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     Call LogVerbose("GenerateEmailContent invoked for row " & row)
     Dim literature, results, alternate, room, labManager, next_lit, next_res, next_alt, content, nameParts
-    Dim previousLabManager, previousFriday, previousFridayRow, searchRow, lastRow, candidateDate, meetingLeadName
+    Dim meetingLeadName
     literature = Trim(objSheetRota.Cells(row, 2).Value)
     results    = Trim(objSheetRota.Cells(row, 3).Value)
     alternate  = Trim(objSheetRota.Cells(row, 4).Value)
@@ -343,28 +373,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         senderFirstName = Trim(olNS.Accounts.Item(1).CurrentUser)
     End If
 
-    previousFriday = DateAdd("d", -7, meetingDate)
-    previousFridayRow = -1
-    lastRow = objSheetRota.Cells(objSheetRota.Rows.Count, "A").End(-4162).Row
-    For searchRow = 2 To lastRow
-        candidateDate = objSheetRota.Cells(searchRow, 1).Value
-        If candidateDate = previousFriday Then
-            previousFridayRow = searchRow
-            Exit For
-        End If
-    Next
-
-    If previousFridayRow <> -1 Then
-        previousLabManager = Trim(objSheetRota.Cells(previousFridayRow, 6).Value)
-    Else
-        previousLabManager = ""
-    End If
-
-    If previousLabManager = "" Then
-        previousLabManager = DEFAULT_PREVIOUS_LAB_MANAGER
-    End If
-
-    meetingLeadName = previousLabManager
+    meetingLeadName = DeriveMeetingLeadName(objSheetRota, meetingDate)
 
     content = "Hi all," & vbCrLf
     If Trim(room) <> "" Then
@@ -492,20 +501,74 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
         End If
     End If
 
+    Dim enDash, apostrophe, bulletChar
+    enDash = ChrW(&H2013)
+    apostrophe = Chr(39)
+    bulletChar = ChrW(&H2022)
+
     content = "Hi " & Trim(greetingName) & "," & vbCrLf & vbCrLf
     content = content & "Just a reminder that you are scheduled to present " & description & _
               " at this week's group meeting on " & meetingDateText & ". The slot is 15 minutes for your presentation plus 5 minutes for Q&A. " & _
-              "As a rough guide, aim for about 1 minute per slide (so around 10–12 slides in total). The group meeting leader will keep time to ensure we don’t overrun, so please rehearse your talk beforehand to check that you are within the time limit." & vbCrLf & vbCrLf
+              "As a rough guide, aim for about 1 minute per slide (so around 10" & enDash & "12 slides in total). " & _
+              "The group meeting leader will keep time to ensure we don" & apostrophe & "t overrun, so please rehearse your talk beforehand to check that you are within the time limit." & vbCrLf & vbCrLf
     content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
-    content = content & "Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
-    content = content & "Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
-    content = content & "Let the slides support your performance, not be the performance—they shouldn't steal your stage." & vbCrLf & vbCrLf
-    content = content & "One clear, well-chosen image is often more effective than a lot of text, especially as many scientists are visual learners." & vbCrLf & vbCrLf
-    content = content & "Assume a left-to-right, top-to-bottom reading pattern: place the most important information at the top left and less critical details toward the bottom right." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Let the slides support your performance, not be the performance" & enDash & "they shouldn" & apostrophe & "t steal your stage." & vbCrLf & vbCrLf
+    content = content & bulletChar & " One clear, well-chosen image is often more effective than a lot of text, especially as many scientists are visual learners." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Assume a left-to-right, top-to-bottom reading pattern: place the most important information at the top left and less critical details toward the bottom right." & vbCrLf & vbCrLf
     content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf & vbCrLf
     content = content & "Best," & vbCrLf & Trim(senderFirstName)
     GeneratePresenterReminderEmail = content
     LogEvent "Generated presenter reminder length: " & Len(content)
+End Function
+
+Function GenerateMeetingLeadReminderEmail(meetingLeadName, meetingDate)
+    Call LogVerbose("GenerateMeetingLeadReminderEmail invoked for lead='" & meetingLeadName & "'")
+    Dim content, greetingName, tokens, meetingDateText
+    Dim nameParts, senderFirstName
+
+    meetingLeadName = Trim(meetingLeadName)
+    meetingDateText = FormatDateTime(meetingDate, 2)
+
+    nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
+    senderFirstName = ""
+    If UBound(nameParts) >= 1 Then
+        senderFirstName = Trim(nameParts(1))
+    ElseIf UBound(nameParts) = 0 Then
+        senderFirstName = Trim(nameParts(0))
+    End If
+    If senderFirstName = "" Then
+        senderFirstName = Trim(olNS.Accounts.Item(1).CurrentUser)
+    End If
+
+    greetingName = meetingLeadName
+    If InStr(greetingName, ",") > 0 Then
+        tokens = Split(greetingName, ",")
+        If UBound(tokens) >= 1 Then
+            greetingName = Trim(tokens(1))
+        ElseIf UBound(tokens) = 0 Then
+            greetingName = Trim(tokens(0))
+        End If
+    Else
+        tokens = Split(greetingName, " ")
+        If UBound(tokens) >= 0 Then
+            greetingName = Trim(tokens(0))
+        End If
+    End If
+
+    If Trim(greetingName) = "" Then
+        greetingName = "there"
+    End If
+
+    content = "Hi " & greetingName & "," & vbCrLf & vbCrLf
+    content = content & "Just a reminder that you will lead this week's group meeting on " & meetingDateText & "." & vbCrLf & vbCrLf
+    content = content & "Please arrive about 5 minutes early to set up the room so the computer is ready right at meeting time." & vbCrLf & vbCrLf
+    content = content & "Bring the red/yellow timing cards (5 minutes/1 minute left) to signal time to each presenter, and keep presenters on schedule while running the inclusion activity." & vbCrLf & vbCrLf
+    content = content & "Best," & vbCrLf & Trim(senderFirstName)
+
+    GenerateMeetingLeadReminderEmail = content
+    LogEvent "Generated meeting lead reminder length: " & Len(content)
 End Function
 
 Function GenerateLabManagerReminderEmail(labManagerName, meetingDate)
@@ -671,6 +734,11 @@ Function BuildPresenterReminderSubject(presentationType, meetingDate)
     BuildPresenterReminderSubject = typeLabel & " reminder (" & FormatDateTime(meetingDate, 2) & ")"
 End Function
 
+Function BuildMeetingLeadReminderSubject(meetingDate)
+    Call LogVerbose("BuildMeetingLeadReminderSubject invoked")
+    BuildMeetingLeadReminderSubject = "Meeting lead reminder (" & FormatDateTime(meetingDate, 2) & ")"
+End Function
+
 Function BuildLabManagerReminderSubject(labManagerName, meetingDate)
     Call LogVerbose("BuildLabManagerReminderSubject invoked")
     Dim startText, endText
@@ -679,11 +747,12 @@ Function BuildLabManagerReminderSubject(labManagerName, meetingDate)
     BuildLabManagerReminderSubject = "Lab management reminder (" & startText & " " & ChrW(&H2013) & " " & endText & ")"
 End Function
 
-Sub TriggerReminderEmails(literaturePresenter, resultsPresenter, labManagerName, meetingDate)
+Sub TriggerReminderEmails(literaturePresenter, resultsPresenter, labManagerName, meetingLeadName, meetingDate)
     Call LogVerbose("TriggerReminderEmails invoked")
     LogEvent "Triggering reminder workflow for meeting date " & FormatDateTime(meetingDate, 2)
     MaybeSendPresenterReminder literaturePresenter, "Literature", meetingDate
     MaybeSendPresenterReminder resultsPresenter, "Results", meetingDate
+    MaybeSendMeetingLeadReminder meetingLeadName, meetingDate
     MaybeSendLabManagerReminder labManagerName, meetingDate
 End Sub
 
@@ -701,6 +770,23 @@ Sub MaybeSendPresenterReminder(presenterName, presentationType, meetingDate)
     End If
 
     body = GeneratePresenterReminderEmail(trimmedName, presentationType, meetingDate)
+    DispatchReminderEmail targetEmail, subjectLine, body
+End Sub
+
+Sub MaybeSendMeetingLeadReminder(meetingLeadName, meetingDate)
+    Call LogVerbose("MaybeSendMeetingLeadReminder invoked for meeting lead='" & meetingLeadName & "'")
+    Dim trimmedName, subjectLine, targetEmail, body
+    trimmedName = Trim(meetingLeadName)
+
+    targetEmail = ResolveEmailOrManager(trimmedName)
+    subjectLine = BuildMeetingLeadReminderSubject(meetingDate)
+
+    If EmailExists(subjectLine, 5, True) Then
+        LogEvent "Skipping meeting lead reminder because Sent Items already contain subject '" & subjectLine & "'."
+        Exit Sub
+    End If
+
+    body = GenerateMeetingLeadReminderEmail(trimmedName, meetingDate)
     DispatchReminderEmail targetEmail, subjectLine, body
 End Sub
 
@@ -1084,7 +1170,7 @@ End Sub
 
 Sub HandleCommunications(ByRef fridayDates, ByRef rowIndexes, ByRef objSheetRota, ByVal shouldSendRegularEmail)
     Call LogVerbose("HandleCommunications invoked")
-    Dim currentRow, literature, results, labManager, alternate, body, header, managerAlertSubject
+    Dim currentRow, literature, results, labManager, alternate, meetingLeadName, body, header, managerAlertSubject
     currentRow = rowIndexes(0)
 
     If currentRow = -1 Then
@@ -1096,6 +1182,7 @@ Sub HandleCommunications(ByRef fridayDates, ByRef rowIndexes, ByRef objSheetRota
     results    = Trim(objSheetRota.Cells(currentRow, 3).Value)
     labManager = Trim(objSheetRota.Cells(currentRow, 6).Value)
     alternate  = Trim(objSheetRota.Cells(currentRow, 4).Value)
+    meetingLeadName = DeriveMeetingLeadName(objSheetRota, fridayDates(0))
 
     If literature = "" And results = "" And alternate = "" Then
         LogEvent "No presenters or alternate assigned for " & FormatDateTime(fridayDates(0), 2) & ". Regular meeting email suppressed."
@@ -1111,7 +1198,7 @@ Sub HandleCommunications(ByRef fridayDates, ByRef rowIndexes, ByRef objSheetRota
         Exit Sub
     End If
 
-    TriggerReminderEmails literature, results, labManager, fridayDates(0)
+    TriggerReminderEmails literature, results, labManager, meetingLeadName, fridayDates(0)
 
     If shouldSendRegularEmail Then
         header = BuildMeetingSubject(fridayDates(0))
