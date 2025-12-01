@@ -501,9 +501,10 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
         End If
     End If
 
-    Dim enDash, apostrophe
+    Dim enDash, apostrophe, bulletChar
     enDash = ChrW(&H2013)
     apostrophe = Chr(39)
+    bulletChar = ChrW(&H2022)
 
     content = "Hi " & Trim(greetingName) & "," & vbCrLf & vbCrLf
     content = content & "Just a reminder that you are scheduled to present " & description & _
@@ -511,11 +512,11 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
               "As a rough guide, aim for about 1 minute per slide (so around 10" & enDash & "12 slides in total). " & _
               "The group meeting leader will keep time to ensure we don" & apostrophe & "t overrun, so please rehearse your talk beforehand to check that you are within the time limit." & vbCrLf & vbCrLf
     content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
-    content = content & "Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
-    content = content & "Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
-    content = content & "Let the slides support your performance, not be the performance" & enDash & "they shouldn" & apostrophe & "t steal your stage." & vbCrLf & vbCrLf
-    content = content & "One clear, well-chosen image is often more effective than a lot of text, especially as many scientists are visual learners." & vbCrLf & vbCrLf
-    content = content & "Assume a left-to-right, top-to-bottom reading pattern: place the most important information at the top left and less critical details toward the bottom right." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Let the slides support your performance, not be the performance" & enDash & "they shouldn" & apostrophe & "t steal your stage." & vbCrLf & vbCrLf
+    content = content & bulletChar & " One clear, well-chosen image is often more effective than a lot of text, especially as many scientists are visual learners." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Assume a left-to-right, top-to-bottom reading pattern: place the most important information at the top left and less critical details toward the bottom right." & vbCrLf & vbCrLf
     content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf & vbCrLf
     content = content & "Best," & vbCrLf & Trim(senderFirstName)
     GeneratePresenterReminderEmail = content
