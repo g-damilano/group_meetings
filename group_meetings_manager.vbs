@@ -501,22 +501,20 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
         End If
     End If
 
-    Dim dashChar, apostrophe, bulletChar
-    dashChar = "-"
+    Dim enDash, apostrophe, bulletChar
+    enDash = ChrW(&H2013)
     apostrophe = Chr(39)
     bulletChar = ChrW(&H2022)
 
     content = "Hi " & Trim(greetingName) & "," & vbCrLf & vbCrLf
     content = content & "Just a reminder that you are scheduled to present " & description & _
               " at this week's group meeting on " & meetingDateText & ". The slot is 15 minutes for your presentation plus 5 minutes for Q&A. " & _
-              "As a rough guide, aim for about 1 minute per slide (so around 10" & dashChar & "12 slides in total). " & _
+              "As a rough guide, aim for about 1 minute per slide (so around 10" & enDash & "12 slides in total). " & _
               "The group meeting leader will keep time to ensure we don" & apostrophe & "t overrun, so please rehearse your talk beforehand to check that you are within the time limit." & vbCrLf & vbCrLf
-    content = content & "Please save your presentation to the group SharePoint folder (https://imperiallondon.sharepoint.com/:f:/r/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/Group%20Meeting%20Presentations?csf=1&web=1&e=eK2FLV) using the naming pattern YYMMDD_[NameInitials]_[results or literature]_presentation.pptx." & vbCrLf
-    content = content & "For clarity: use the meeting date as YYMMDD, add your initials, and include the talk type (e.g., " & description & "), ending with _presentation.pptx (e.g., 250715_JB_results_presentation.pptx)." & vbCrLf & vbCrLf
     content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
     content = content & bulletChar & " Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
     content = content & bulletChar & " Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
-    content = content & bulletChar & " Let the slides support your performance, not be the performance" & dashChar & "they shouldn" & apostrophe & "t steal your stage." & vbCrLf & vbCrLf
+    content = content & bulletChar & " Let the slides support your performance, not be the performance" & enDash & "they shouldn" & apostrophe & "t steal your stage." & vbCrLf & vbCrLf
     content = content & bulletChar & " One clear, well-chosen image is often more effective than a lot of text, especially as many scientists are visual learners." & vbCrLf & vbCrLf
     content = content & bulletChar & " Assume a left-to-right, top-to-bottom reading pattern: place the most important information at the top left and less critical details toward the bottom right." & vbCrLf & vbCrLf
     content = content & "Please ensure your materials are ready and let me know if you need any support." & vbCrLf & vbCrLf
