@@ -563,6 +563,7 @@ Function GenerateMeetingLeadReminderEmail(meetingLeadName, meetingDate)
 
     content = "Hi " & greetingName & "," & vbCrLf & vbCrLf
     content = content & "Just a reminder that you will lead this week's group meeting on " & meetingDateText & "." & vbCrLf & vbCrLf
+    content = content & "Each presenter has 15 minutes for their talk plus 5 minutes for Q&A." & vbCrLf & vbCrLf
     content = content & "Please arrive about 5 minutes early to set up the room so the computer is ready right at meeting time." & vbCrLf & vbCrLf
     content = content & "Bring the red/yellow timing cards (5 minutes/1 minute left) to signal time to each presenter, and keep presenters on schedule while running the inclusion activity." & vbCrLf & vbCrLf
     content = content & "Best," & vbCrLf & Trim(senderFirstName)
