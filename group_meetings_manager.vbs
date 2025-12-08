@@ -104,6 +104,58 @@ Sub LogVerbose(message)
 End Sub
 
 '==============================================================
+' Formatting Helpers
+'==============================================================
+Function FormatMeetingDateForFilename(meetingDate)
+    Dim yearPart, monthPart, dayPart
+    yearPart = Right("0" & (Year(meetingDate) Mod 100), 2)
+    monthPart = Right("0" & Month(meetingDate), 2)
+    dayPart = Right("0" & Day(meetingDate), 2)
+    FormatMeetingDateForFilename = yearPart & monthPart & dayPart
+End Function
+
+Function ExtractNameInitials(fullName)
+    Dim cleaned, parts, firstName, lastName, tokens, i, initials
+    cleaned = Trim(fullName)
+
+    If cleaned = "" Then
+        ExtractNameInitials = ""
+        Exit Function
+    End If
+
+    firstName = ""
+    lastName = ""
+
+    If InStr(cleaned, ",") > 0 Then
+        parts = Split(cleaned, ",")
+        lastName = Trim(parts(0))
+        If UBound(parts) >= 1 Then
+            firstName = Trim(parts(1))
+        End If
+    Else
+        tokens = Split(cleaned, " ")
+        If UBound(tokens) >= 0 Then
+            firstName = Trim(tokens(0))
+            lastName = Trim(tokens(UBound(tokens)))
+        End If
+    End If
+
+    If LCase(firstName) = LCase(lastName) Then
+        lastName = ""
+    End If
+
+    initials = ""
+    If firstName <> "" Then
+        initials = initials & UCase(Left(firstName, 1))
+    End If
+    If lastName <> "" Then
+        initials = initials & UCase(Left(lastName, 1))
+    End If
+
+    ExtractNameInitials = initials
+End Function
+
+'==============================================================
 ' Environment Bootstrap
 '==============================================================
 Sub InitializeFileSystem()
@@ -436,7 +488,7 @@ End Function
 Function GeneratePresenterReminderEmail(presenterName, presentationType, meetingDate)
     Call LogVerbose("GeneratePresenterReminderEmail invoked for presenter='" & presenterName & "'")
     Dim content, nameParts, trimmedType, normalizedType, description, reminderSubject, meetingDateText, typeLabel
-    Dim greetingName, tokens
+    Dim greetingName, tokens, meetingDateCode, presenterInitials
     presenterName = Trim(presenterName)
     presentationType = Trim(presentationType)
     LogEvent "Generating presenter reminder email | Presenter: " & presenterName & _
@@ -463,6 +515,11 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
 
     reminderSubject = LCase(typeLabel)
     meetingDateText = FormatDateTime(meetingDate, 2)
+    meetingDateCode = FormatMeetingDateForFilename(meetingDate)
+    presenterInitials = ExtractNameInitials(presenterName)
+    If presenterInitials = "" Then
+        presenterInitials = "XX"
+    End If
     nameParts = Split(olNS.Accounts.Item(1).CurrentUser, ", ")
     Dim senderFirstName
     senderFirstName = ""
@@ -512,7 +569,7 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
               "As a rough guide, aim for about 1 minute per slide (so around 10" & enDash & "12 slides in total). " & _
               "The group meeting leader will keep time to ensure we don" & apostrophe & "t overrun, so please rehearse your talk beforehand to check that you are within the time limit." & vbCrLf & vbCrLf
     content = content & "Please save your presentation to the group SharePoint folder (https://imperiallondon.sharepoint.com/:f:/r/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/Group%20Meeting%20Presentations?csf=1&web=1&e=eK2FLV) using the naming pattern YYMMDD_[NameInitials]_" & normalizedType & "_presentation.pptx." & vbCrLf
-    content = content & "For clarity: use the meeting date as YYMMDD, add your initials, and include the talk type (e.g., " & description & "), ending with _presentation.pptx (e.g., 250715_JB_" & normalizedType & "_presentation.pptx)." & vbCrLf & vbCrLf
+    content = content & "For clarity: use the meeting date as YYMMDD, add your initials, and include the talk type (e.g., " & description & "), ending with _presentation.pptx (e.g., " & meetingDateCode & "_" & presenterInitials & "_" & normalizedType & "_presentation.pptx)." & vbCrLf & vbCrLf
     content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
     content = content & bulletChar & " Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
     content = content & bulletChar & " Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
