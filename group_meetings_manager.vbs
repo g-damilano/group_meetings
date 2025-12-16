@@ -347,6 +347,37 @@ Function EmailExists(header, folderConstant, checkOnly)
     EmailExists = found
 End Function
 
+Function HasAlertBeenSentToday(subjectText)
+    Call LogVerbose("HasAlertBeenSentToday invoked for subject='" & subjectText & "'")
+    Dim sentItems, mail
+
+    On Error Resume Next
+    Set sentItems = olNS.GetDefaultFolder(5).Items
+    If Err.Number <> 0 Then
+        LogError "Unable to access Sent Items for alert subject '" & subjectText & "'"
+        On Error GoTo 0
+        HasAlertBeenSentToday = False
+        Exit Function
+    End If
+    On Error GoTo 0
+
+    sentItems.Sort "SentOn", True
+
+    HasAlertBeenSentToday = False
+    For Each mail In sentItems
+        If TypeName(mail) = "MailItem" Then
+            If DateValue(mail.SentOn) < Date Then Exit For
+            If mail.Subject = subjectText And DateValue(mail.SentOn) = Date Then
+                LogEvent "Alert with subject '" & subjectText & "' already sent today."
+                HasAlertBeenSentToday = True
+                Exit For
+            End If
+        End If
+    Next
+
+    LogEvent "HasAlertBeenSentToday('" & subjectText & "') result: " & HasAlertBeenSentToday
+End Function
+
 '==============================================================
 ' Meeting Content Builders
 '==============================================================
@@ -921,8 +952,8 @@ Function GenerateEmailAlert(alertType, missingDate, recipientEmail, tentativeRot
         Case "MissingRoom"
             content = content & "The rota entry for " & missingDate & " has no room reservation." & vbCrLf & _
                       "Please reserve a room for the meeting." & vbCrLf
-            content = content & vbCrLf & "Send Email to Iliane to request room for the upcoming term: " & _
-              "mailto:i.gomezvilchis@imperial.ac.uk?subject=Room%20Reservation%20Request%20for%20ABT%20Group%20Meetings%20%E2%80%93%20Upcoming%20Term&body=Hi%20Iliane,%0D%0A%0D%0AI%20hope%20you%20are%20well.%0D%0A%0D%0AI%20would%20like%20to%20request%20a%20recurring%20booking%20for%20our%20ABT%20group%20meetings%20for%20the%20upcoming%20academic%20term.%20Could%20you%20please%20reserve%20G25%20(MSRH)%20for%20Fridays%20from%2011:00%20to%2012:00,%20starting%20from%20the%20next%20available%20week?%0D%0A%0D%0ACould%20you%20also%20let%20me%20know%20the%20exact%20date%20the%20reservation%20ends?%0D%0A%0D%0AThank%20you%20very%20much%20for%20your%20help.%0D%0A%0D%0ABest%20regards,%0D%0AGiacomo" & vbCrLf & vbCrLf
+            content = content & vbCrLf & "Send Email to the building manager to request room for the upcoming term: " & _
+              "mailto:" & BUILDING_ADMIN_EMAIL & "?subject=Room%20Reservation%20Request%20for%20ABT%20Group%20Meetings%20%E2%80%93%20Upcoming%20Term&body=Hi%20building%20manager,%0D%0A%0D%0AI%20hope%20you%20are%20well.%0D%0A%0D%0AI%20would%20like%20to%20request%20a%20recurring%20booking%20for%20our%20ABT%20group%20meetings%20for%20the%20upcoming%20academic%20term.%20Could%20you%20please%20reserve%20G25%20(MSRH)%20for%20Fridays%20from%2011:00%20to%2012:00,%20starting%20from%20the%20next%20available%20week?%0D%0A%0D%0ACould%20you%20also%20let%20me%20know%20the%20exact%20date%20the%20reservation%20ends?%0D%0A%0D%0AThank%20you%20very%20much%20for%20your%20help.%0D%0A%0D%0ABest%20regards,%0D%0AGiacomo" & vbCrLf & vbCrLf
         Case "MeetingNotSet"
             content = content & "The rota entry for " & missingDate & " has no presenters or alternate assigned, so the regular meeting email was not sent to the distribution list." & vbCrLf & _
                       "Please update the rota with presenters so the meeting can be scheduled." & vbCrLf
@@ -935,6 +966,11 @@ End Function
 Sub AlertEmail(toAddress, messageBody, subjectText)
     Call LogVerbose("AlertEmail invoked to='" & toAddress & "'")
     Dim mail
+    If HasAlertBeenSentToday(subjectText) Then
+        LogEvent "Alert email for subject '" & subjectText & "' was already sent today. Skipping duplicate dispatch."
+        Exit Sub
+    End If
+
     LogEvent "Preparing alert email with subject: " & subjectText & " to " & toAddress
     Set mail = OL.CreateItem(0)
     With mail
@@ -952,6 +988,11 @@ Sub AlertEmail(toAddress, messageBody, subjectText)
         Else
             LogEvent "Sending alert email to " & toAddress & " with subject: " & subjectText
             .Send
+            If EmailExists(subjectText, 5, True) Then
+                LogEvent "Negative feedback loop confirmed for alert subject: " & subjectText
+            Else
+                LogEvent "WARNING: Alert subject not observed in Sent Items after sending: " & subjectText
+            End If
         End If
     End With
 End Sub
@@ -959,6 +1000,11 @@ End Sub
 Sub AlertEmailWithAttachment(toAddress, messageBody, subjectText, attachmentPath)
     Call LogVerbose("AlertEmailWithAttachment invoked to='" & toAddress & "' with attachment='" & attachmentPath & "'")
     Dim mail
+    If HasAlertBeenSentToday(subjectText) Then
+        LogEvent "Alert email with attachment for subject '" & subjectText & "' was already sent today. Skipping duplicate dispatch."
+        Exit Sub
+    End If
+
     LogEvent "Preparing alert email with attachment. Subject: " & subjectText & _
                   " | Recipient: " & toAddress & " | Attachment: " & attachmentPath
     Set mail = OL.CreateItem(0)
@@ -982,6 +1028,11 @@ Sub AlertEmailWithAttachment(toAddress, messageBody, subjectText, attachmentPath
         Else
             LogEvent "Sending alert email with attachment to " & toAddress & " with subject: " & subjectText
             .Send
+            If EmailExists(subjectText, 5, True) Then
+                LogEvent "Negative feedback loop confirmed for alert subject: " & subjectText
+            Else
+                LogEvent "WARNING: Alert subject not observed in Sent Items after sending: " & subjectText
+            End If
         End If
     End With
 End Sub
@@ -1178,7 +1229,10 @@ Sub SendCriticalAlert(alertType, targetDate, recipient, objSheetEmails)
     Dim subject, tentativeRota, csvPath
     subject = "ALERT: " & alertType & " for " & FormatDateTime(targetDate, 2)
 
-    If EmailExists(subject, 6, False) Then Exit Sub
+    If HasAlertBeenSentToday(subject) Then
+        LogEvent "Alert '" & subject & "' already dispatched today. Skipping duplicate send."
+        Exit Sub
+    End If
 
     If alertType = "MissingDate" Or alertType = "Unassigned" Then
         tentativeRota = GenerateTentativeRota(objSheetEmails)
@@ -1247,7 +1301,7 @@ Sub HandleCommunications(ByRef fridayDates, ByRef rowIndexes, ByRef objSheetRota
     If literature = "" And results = "" And alternate = "" Then
         LogEvent "No presenters or alternate assigned for " & FormatDateTime(fridayDates(0), 2) & ". Regular meeting email suppressed."
         managerAlertSubject = "ALERT: MeetingNotSet for " & FormatDateTime(fridayDates(0), 2)
-        If Not EmailExists(managerAlertSubject, 5, False) Then
+        If Not HasAlertBeenSentToday(managerAlertSubject) Then
             LogEvent "Sending manager alert that the meeting is not set for " & FormatDateTime(fridayDates(0), 2)
             Call AlertEmail(MANAGER, _
                 GenerateEmailAlert("MeetingNotSet", FormatDateTime(fridayDates(0), 2), MANAGER, ""), _
