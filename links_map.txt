@@ -20,3 +20,4 @@ FACULTY_HEALTH_AND_SAFETY_TEAM=https://imperiallondon.sharepoint.com/sites/fons/
 OFFSITE_WORKING_AND_DRIVING_POLICY=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Offsite-Work-%26-Driving.aspx
 OFFICE_AND_GENERAL_WORKPLACE_SAFETY=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Office%20%26%20General%20Workplace%20Safety.aspx
 LABORATORY_AND_WORKSHOP_SAFETY=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Laboratory-%26-Workshop.aspx
+MSRH_ACCESS_REQUEST=https://forms.office.com/pages/responsepage.aspx?id=B3WJK4zudUWDC0-CZ8PTBza34vI4NQ5CoIYkU5hY-mpUMFVVRDRaRk43T0JTTEk2TjJHQTMyMFNTSS4u

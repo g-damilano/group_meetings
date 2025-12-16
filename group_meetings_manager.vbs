@@ -1222,7 +1222,7 @@ Sub EvaluateCriticalWindows(ByRef fridayDates, ByRef rowIndexes, ByRef objSheetR
             End If
 
             If Trim(tmpRoom) = "" Then
-                SendCriticalAlert "MissingRoom", fridayDates(idx), BUILDING_ADMIN_EMAIL, objSheetEmails
+                SendCriticalAlert "MissingRoom", fridayDates(idx), MANAGER, objSheetEmails
             End If
         End If
     Next
