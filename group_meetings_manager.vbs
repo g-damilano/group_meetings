@@ -601,6 +601,9 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
               "The group meeting leader will keep time to ensure we don" & apostrophe & "t overrun, so please rehearse your talk beforehand to check that you are within the time limit." & vbCrLf & vbCrLf
     content = content & "Please save your presentation to the group SharePoint folder (https://imperiallondon.sharepoint.com/:f:/r/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/Group%20Meeting%20Presentations?csf=1&web=1&e=eK2FLV) using the naming pattern YYMMDD_[NameInitials]_" & normalizedType & "_presentation.pptx." & vbCrLf
     content = content & "For clarity: use the meeting date as YYMMDD, add your initials, and include the talk type (e.g., " & description & "), ending with _presentation.pptx (e.g., " & meetingDateCode & "_" & presenterInitials & "_" & normalizedType & "_presentation.pptx)." & vbCrLf & vbCrLf
+    If normalizedType = "literature" Then
+        content = content & "Share the article you" & apostrophe & "ll present on Friday by Wednesday, so anyone interested can skim it in advance and come prepared with questions" & enDash & "making the discussion more enjoyable and productive." & vbCrLf & vbCrLf
+    End If
     content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
     content = content & bulletChar & " Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
     content = content & bulletChar & " Use no more than ~3 concise bullet points per slide to support (not duplicate) what you say, so the audience focuses on you rather than reading the screen." & vbCrLf & vbCrLf
