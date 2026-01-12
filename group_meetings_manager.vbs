@@ -416,10 +416,20 @@ Function BuildMeetingSubject(meetingDate)
     BuildMeetingSubject = "ABT group meeting @ 11am (" & FormatDateTime(meetingDate, 2) & ")"
 End Function
 
+Function FormatDayMonth(targetDate)
+    FormatDayMonth = Right("0" & Day(targetDate), 2) & "/" & Right("0" & Month(targetDate), 2)
+End Function
+
 Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     Call LogVerbose("GenerateEmailContent invoked for row " & row)
     Dim literature, results, alternate, room, labManager, next_lit, next_res, next_alt, content, nameParts
-    Dim meetingLeadName
+    Dim meetingLeadName, nextMeetingLeadName
+    Dim meetingDateText, meetingShortDate, nextFridayDate, nextFridayText, nextFridayShortDate
+    Dim labManagerRangeStart, labManagerRangeEnd, nextLabManagerRangeStart, nextLabManagerRangeEnd
+    Dim nextLabManager
+    Dim currentResults, currentLiterature, currentLabManager, currentChair
+    Dim nextResults, nextLiterature, nextChair
+    Dim currentAlternate, nextAlternate
     literature = Trim(objSheetRota.Cells(row, 2).Value)
     results    = Trim(objSheetRota.Cells(row, 3).Value)
     alternate  = Trim(objSheetRota.Cells(row, 4).Value)
@@ -434,6 +444,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         next_lit = objSheetRota.Cells(nextFridayRow, 2).Value
         next_res = objSheetRota.Cells(nextFridayRow, 3).Value
         next_alt = objSheetRota.Cells(nextFridayRow, 4).Value
+        nextLabManager = Trim(objSheetRota.Cells(nextFridayRow, 6).Value)
+        nextFridayDate = objSheetRota.Cells(nextFridayRow, 1).Value
         LogEvent "Next Friday presenters found | Row: " & nextFridayRow & _
                   " | Lit: " & next_lit & " | Res: " & next_res & _
                   " | Alt: " & next_alt
@@ -441,6 +453,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         next_lit = ""
         next_res = ""
         next_alt = ""
+        nextLabManager = ""
+        nextFridayDate = DateAdd("d", 7, meetingDate)
         LogEvent "No next Friday data found. Using empty placeholders."
     End If
 
@@ -457,58 +471,98 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     End If
 
     meetingLeadName = DeriveMeetingLeadName(objSheetRota, meetingDate)
+    nextMeetingLeadName = DeriveMeetingLeadName(objSheetRota, nextFridayDate)
 
-    content = "Hi all," & vbCrLf
+    meetingDateText = WeekdayName(Weekday(meetingDate), False) & " " & FormatDateTime(meetingDate, 2)
+    meetingShortDate = FormatDayMonth(meetingDate)
+    nextFridayText = WeekdayName(Weekday(nextFridayDate), False) & " " & FormatDateTime(nextFridayDate, 2)
+    nextFridayShortDate = FormatDayMonth(nextFridayDate)
+
+    labManagerRangeStart = FormatDayMonth(DateAdd("d", -4, meetingDate))
+    labManagerRangeEnd = FormatDayMonth(meetingDate)
+    nextLabManagerRangeStart = FormatDayMonth(DateAdd("d", -4, nextFridayDate))
+    nextLabManagerRangeEnd = FormatDayMonth(nextFridayDate)
+
+    currentResults = Trim(results)
+    If currentResults = "" Then
+        currentResults = "TBC (X)"
+    End If
+
+    currentLiterature = Trim(literature)
+    If currentLiterature = "" Then
+        currentLiterature = "TBC (X)"
+    End If
+
+    currentLabManager = Trim(labManager)
+    If currentLabManager = "" Then
+        currentLabManager = "TBC (X)"
+    End If
+
+    currentChair = Trim(meetingLeadName)
+    If currentChair = "" Then
+        currentChair = "TBC (X)"
+    End If
+
+    currentAlternate = Trim(alternate)
+
+    nextResults = Trim(next_res)
+    If nextResults = "" Then
+        nextResults = "TBC (X)"
+    End If
+
+    nextLiterature = Trim(next_lit)
+    If nextLiterature = "" Then
+        nextLiterature = "TBC (X)"
+    End If
+
+    If Trim(nextLabManager) = "" Then
+        nextLabManager = "TBC (X)"
+    End If
+
+    nextAlternate = Trim(next_alt)
+
+    nextChair = Trim(nextMeetingLeadName)
+    If nextChair = "" Then
+        nextChair = "TBC (X)"
+    End If
+
+    content = "Hi all," & vbCrLf & vbCrLf
     If Trim(room) <> "" Then
-        content = content & "We will have our group meeting on " & meetingDate & _
-                  " at 11:00 am in " & room & " in person or via MS Teams." & vbCrLf
+        content = content & "We will have our group meeting on " & meetingDateText & _
+                  " at 11:00, in person (" & room & ") or via MS Teams (see calendar invite for the link)." & vbCrLf & vbCrLf
     Else
-        content = content & "We will have our group meeting on " & meetingDate & _
-                  " at 11:00 am in person or via MS Teams." & vbCrLf
+        content = content & "We will have our group meeting on " & meetingDateText & _
+                  " at 11:00, in person or via MS Teams (see calendar invite for the link)." & vbCrLf & vbCrLf
     End If
 
-    If Trim(alternate) <> "" Or Trim(results) <> "" Or Trim(literature) <> "" Then
-        content = content & vbCrLf & "Meeting agenda:" & vbCrLf
-        If Trim(alternate) <> "" Then
-            content = content & "    " & Trim(alternate) & vbCrLf
-        Else
-            If Trim(results) <> "" Then
-                content = content & "    " & Trim(results) & " will present results." & vbCrLf
-            End If
-            If Trim(literature) <> "" Then
-                content = content & "    " & Trim(literature) & " will present literature." & vbCrLf
-            End If
-        End If
+    content = content & "This week (" & meetingShortDate & "):" & vbCrLf & vbCrLf
+    If currentAlternate <> "" Then
+        content = content & "- " & currentAlternate & vbCrLf
     Else
-        content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
+        content = content & "- Results: " & currentResults & vbCrLf
+        content = content & "- Literature: " & currentLiterature & vbCrLf
     End If
+    content = content & "- Lab manager: " & currentLabManager & " (" & labManagerRangeStart & " - " & labManagerRangeEnd & ")" & vbCrLf
+    content = content & "- Chair / timekeeper: " & currentChair & " (will also provide the inclusion activity question)" & vbCrLf
+    content = content & vbCrLf
 
-    content = content & vbCrLf & Trim(meetingLeadName) & " will lead the meeting, keep presenters time, and do the inclusion activity." & vbCrLf
+    content = content & "We will be starting promptly at 11:00. Presenters, please arrive/join 5-10 minutes early to set up. If the room is occupied right up to 11:00, we will start at 11:05." & vbCrLf & vbCrLf
 
-    If labManager = "" Then
-        labManager = "TBD"
-    End If
+    content = content & "Please upload your slides before the meeting to the shared folder." & vbCrLf & vbCrLf
 
-    content = content & vbCrLf 
-    content = content & "The lab manager for this week is " & Trim(labManager) & "." & vbCrLf
-
-    If next_lit <> "" Or next_res <> "" Or next_alt <> "" Then
-        content = content & vbCrLf & "Next week:" & vbCrLf
-        If Trim(next_alt) <> "" Then
-            content = content & "    " & Trim(next_alt) & vbCrLf
-        End If
-        If Trim(next_res) <> "" Then
-            content = content & "    " & Trim(next_res) & " will present results." & vbCrLf
-        End If
-        If Trim(next_lit) <> "" Then
-            content = content & "    " & Trim(next_lit) & " will present literature." & vbCrLf
-        End If
+    content = content & "For the following Friday (" & nextFridayText & "):" & vbCrLf & vbCrLf
+    If nextAlternate <> "" Then
+        content = content & "- " & nextAlternate & vbCrLf
     Else
-        content = content & vbCrLf & "No meeting has been set for the following week." & vbCrLf
+        content = content & "- Results: " & nextResults & vbCrLf
+        content = content & "- Literature: " & nextLiterature & vbCrLf
     End If
+    content = content & "- Lab manager: " & nextLabManager & " (" & nextLabManagerRangeStart & " - " & nextLabManagerRangeEnd & ")" & vbCrLf
+    content = content & "- Chair / timekeeper: " & nextChair & " (will also provide the inclusion activity question)" & vbCrLf
+    content = content & vbCrLf
 
-    content = content & "Upcoming weeks schedule: " & _
-              "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx?web=1" & vbCrLf
+    content = content & "Upcoming weeks schedule:" & vbCrLf & _
+              "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx?web=1" & vbCrLf & vbCrLf
 
     content = content & "Best," & vbCrLf & Trim(senderFirstName)
 
@@ -603,6 +657,7 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
     content = content & "For clarity: use the meeting date as YYMMDD, add your initials, and include the talk type (e.g., " & description & "), ending with _presentation.pptx (e.g., " & meetingDateCode & "_" & presenterInitials & "_" & normalizedType & "_presentation.pptx)." & vbCrLf & vbCrLf
     If normalizedType = "literature" Then
         content = content & "Share the article you" & apostrophe & "ll present on Friday by Wednesday, so anyone interested can skim it in advance and come prepared with questions" & enDash & "making the discussion more enjoyable and productive." & vbCrLf & vbCrLf
+        content = content & "For literature presentations, please choose high-quality papers that may be of general interest, and focus on the higher-level implications (e.g., key scientific principles and/or relevance to work within the group)." & vbCrLf & vbCrLf
     End If
     content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
     content = content & bulletChar & " Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
