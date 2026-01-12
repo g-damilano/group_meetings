@@ -429,6 +429,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     Dim nextLabManager
     Dim currentResults, currentLiterature, currentLabManager, currentChair
     Dim nextResults, nextLiterature, nextChair
+    Dim currentAlternate, nextAlternate
     literature = Trim(objSheetRota.Cells(row, 2).Value)
     results    = Trim(objSheetRota.Cells(row, 3).Value)
     alternate  = Trim(objSheetRota.Cells(row, 4).Value)
@@ -502,6 +503,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         currentChair = "TBC (X)"
     End If
 
+    currentAlternate = Trim(alternate)
+
     nextResults = Trim(next_res)
     If nextResults = "" Then
         nextResults = "TBC (X)"
@@ -515,6 +518,8 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     If Trim(nextLabManager) = "" Then
         nextLabManager = "TBC (X)"
     End If
+
+    nextAlternate = Trim(next_alt)
 
     nextChair = Trim(nextMeetingLeadName)
     If nextChair = "" Then
@@ -531,12 +536,17 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     End If
 
     content = content & "This week (" & meetingShortDate & "):" & vbCrLf & vbCrLf
-    content = content & "- Results: " & currentResults & vbCrLf
-    content = content & "- Literature: " & currentLiterature & vbCrLf
-    content = content & "- Lab manager: " & currentLabManager & " (" & labManagerRangeStart & " – " & labManagerRangeEnd & ")" & vbCrLf
-    content = content & "- Chair / timekeeper: " & currentChair & " (will also provide the inclusion activity question)" & vbCrLf & vbCrLf
+    If currentAlternate <> "" Then
+        content = content & "- " & currentAlternate & vbCrLf
+    Else
+        content = content & "- Results: " & currentResults & vbCrLf
+        content = content & "- Literature: " & currentLiterature & vbCrLf
+        content = content & "- Lab manager: " & currentLabManager & " (" & labManagerRangeStart & " - " & labManagerRangeEnd & ")" & vbCrLf
+        content = content & "- Chair / timekeeper: " & currentChair & " (will also provide the inclusion activity question)" & vbCrLf
+    End If
+    content = content & vbCrLf
 
-    content = content & "We will be starting promptly at 11:00. Presenters, please arrive/join 5–10 minutes early to set up. If the room is occupied right up to 11:00, we will start at 11:05." & vbCrLf & vbCrLf
+    content = content & "We will be starting promptly at 11:00. Presenters, please arrive/join 5-10 minutes early to set up. If the room is occupied right up to 11:00, we will start at 11:05." & vbCrLf & vbCrLf
 
     content = content & "Presentation timings:" & vbCrLf & vbCrLf
     content = content & "- Research talks: 20 min + 10 min Q&A" & vbCrLf
@@ -547,10 +557,15 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     content = content & "Please upload your slides before the meeting to the shared folder." & vbCrLf & vbCrLf
 
     content = content & "For the following Friday (" & nextFridayText & "):" & vbCrLf & vbCrLf
-    content = content & "- Results: " & nextResults & vbCrLf
-    content = content & "- Literature: " & nextLiterature & vbCrLf
-    content = content & "- Lab manager: " & nextLabManager & " (" & nextLabManagerRangeStart & " – " & nextLabManagerRangeEnd & ")" & vbCrLf
-    content = content & "- Chair / timekeeper: " & nextChair & " (will also provide the inclusion activity question)" & vbCrLf & vbCrLf
+    If nextAlternate <> "" Then
+        content = content & "- " & nextAlternate & vbCrLf
+    Else
+        content = content & "- Results: " & nextResults & vbCrLf
+        content = content & "- Literature: " & nextLiterature & vbCrLf
+        content = content & "- Lab manager: " & nextLabManager & " (" & nextLabManagerRangeStart & " - " & nextLabManagerRangeEnd & ")" & vbCrLf
+        content = content & "- Chair / timekeeper: " & nextChair & " (will also provide the inclusion activity question)" & vbCrLf
+    End If
+    content = content & vbCrLf
 
     content = content & "Upcoming weeks schedule:" & vbCrLf & _
               "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx?web=1" & vbCrLf & vbCrLf
