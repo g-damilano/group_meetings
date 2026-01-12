@@ -543,7 +543,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         content = content & "- Literature: " & currentLiterature & vbCrLf
     End If
     content = content & "- Lab manager: " & currentLabManager & " (" & labManagerRangeStart & " - " & labManagerRangeEnd & ")" & vbCrLf
-    content = content & "- Chair / timekeeper: " & currentChair & " (will also provide the inclusion activity question)" & vbCrLf
+    content = content & "- Chair / timekeeper: " & currentChair & vbCrLf
     content = content & vbCrLf
 
     content = content & "We will be starting promptly at 11:00. Presenters, please arrive/join 5-10 minutes early to set up. If the room is occupied right up to 11:00, we will start at 11:05." & vbCrLf & vbCrLf
@@ -556,7 +556,7 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
         content = content & "- Literature: " & nextLiterature & vbCrLf
     End If
     content = content & "- Lab manager: " & nextLabManager & " (" & nextLabManagerRangeStart & " - " & nextLabManagerRangeEnd & ")" & vbCrLf
-    content = content & "- Chair / timekeeper: " & nextChair & " (will also provide the inclusion activity question)" & vbCrLf
+    content = content & "- Chair / timekeeper: " & nextChair &  vbCrLf
     content = content & vbCrLf
 
     content = content & "Upcoming weeks schedule:" & vbCrLf & _
