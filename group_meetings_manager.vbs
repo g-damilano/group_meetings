@@ -541,18 +541,12 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     Else
         content = content & "- Results: " & currentResults & vbCrLf
         content = content & "- Literature: " & currentLiterature & vbCrLf
-        content = content & "- Lab manager: " & currentLabManager & " (" & labManagerRangeStart & " - " & labManagerRangeEnd & ")" & vbCrLf
-        content = content & "- Chair / timekeeper: " & currentChair & " (will also provide the inclusion activity question)" & vbCrLf
     End If
+    content = content & "- Lab manager: " & currentLabManager & " (" & labManagerRangeStart & " - " & labManagerRangeEnd & ")" & vbCrLf
+    content = content & "- Chair / timekeeper: " & currentChair & " (will also provide the inclusion activity question)" & vbCrLf
     content = content & vbCrLf
 
     content = content & "We will be starting promptly at 11:00. Presenters, please arrive/join 5-10 minutes early to set up. If the room is occupied right up to 11:00, we will start at 11:05." & vbCrLf & vbCrLf
-
-    content = content & "Presentation timings:" & vbCrLf & vbCrLf
-    content = content & "- Research talks: 20 min + 10 min Q&A" & vbCrLf
-    content = content & "- Literature: 10 min + 5 min discussion" & vbCrLf & vbCrLf
-
-    content = content & "For literature presentations, please choose high-quality papers that may be of general interest, and focus on the higher-level implications (e.g., key scientific principles and/or relevance to work within the group)." & vbCrLf & vbCrLf
 
     content = content & "Please upload your slides before the meeting to the shared folder." & vbCrLf & vbCrLf
 
@@ -562,9 +556,9 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
     Else
         content = content & "- Results: " & nextResults & vbCrLf
         content = content & "- Literature: " & nextLiterature & vbCrLf
-        content = content & "- Lab manager: " & nextLabManager & " (" & nextLabManagerRangeStart & " - " & nextLabManagerRangeEnd & ")" & vbCrLf
-        content = content & "- Chair / timekeeper: " & nextChair & " (will also provide the inclusion activity question)" & vbCrLf
     End If
+    content = content & "- Lab manager: " & nextLabManager & " (" & nextLabManagerRangeStart & " - " & nextLabManagerRangeEnd & ")" & vbCrLf
+    content = content & "- Chair / timekeeper: " & nextChair & " (will also provide the inclusion activity question)" & vbCrLf
     content = content & vbCrLf
 
     content = content & "Upcoming weeks schedule:" & vbCrLf & _
@@ -663,6 +657,7 @@ Function GeneratePresenterReminderEmail(presenterName, presentationType, meeting
     content = content & "For clarity: use the meeting date as YYMMDD, add your initials, and include the talk type (e.g., " & description & "), ending with _presentation.pptx (e.g., " & meetingDateCode & "_" & presenterInitials & "_" & normalizedType & "_presentation.pptx)." & vbCrLf & vbCrLf
     If normalizedType = "literature" Then
         content = content & "Share the article you" & apostrophe & "ll present on Friday by Wednesday, so anyone interested can skim it in advance and come prepared with questions" & enDash & "making the discussion more enjoyable and productive." & vbCrLf & vbCrLf
+        content = content & "For literature presentations, please choose high-quality papers that may be of general interest, and focus on the higher-level implications (e.g., key scientific principles and/or relevance to work within the group)." & vbCrLf & vbCrLf
     End If
     content = content & "A few pointers for preparing your slides:" & vbCrLf & vbCrLf
     content = content & bulletChar & " Aim for a balanced, well-planned presentation, rather than trying to include everything." & vbCrLf & vbCrLf
