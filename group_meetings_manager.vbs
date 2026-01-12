@@ -548,8 +548,6 @@ Function GenerateEmailContent(meetingDate, row, objSheetRota, nextFridayRow)
 
     content = content & "We will be starting promptly at 11:00. Presenters, please arrive/join 5-10 minutes early to set up. If the room is occupied right up to 11:00, we will start at 11:05." & vbCrLf & vbCrLf
 
-    content = content & "Please upload your slides before the meeting to the shared folder." & vbCrLf & vbCrLf
-
     content = content & "For the following Friday (" & nextFridayText & "):" & vbCrLf & vbCrLf
     If nextAlternate <> "" Then
         content = content & "- " & nextAlternate & vbCrLf
