@@ -292,6 +292,9 @@ Function EmailExists(header, folderConstant, checkOnly)
     End If
 
     Select Case targetFolderId
+        Case 4
+            folderLabel = "Outbox"
+            sortField = "CreationTime"
         Case 5
             folderLabel = "Sent Items"
             sortField = "SentOn"
@@ -345,6 +348,20 @@ Function EmailExists(header, folderConstant, checkOnly)
 
     LogEvent "EmailExists('" & header & "', folder=" & folderLabel & ", checkOnly=" & checkMode & ") result: " & found
     EmailExists = found
+End Function
+
+Function EmailExistsInSentOrOutbox(header, checkOnly)
+    Call LogVerbose("EmailExistsInSentOrOutbox invoked for subject='" & header & "'")
+    Dim found
+
+    found = EmailExists(header, 5, checkOnly)
+    If found Then
+        EmailExistsInSentOrOutbox = True
+        Exit Function
+    End If
+
+    found = EmailExists(header, 4, checkOnly)
+    EmailExistsInSentOrOutbox = found
 End Function
 
 Function HasAlertBeenSentToday(subjectText)
@@ -852,10 +869,10 @@ Sub DispatchReminderEmail(toAddress, subjectText, bodyText)
         Else
             LogEvent "Sending reminder email to " & toAddress & " with subject: " & subjectText
             .Send
-            If EmailExists(subjectText, 5, True) Then
-                LogEvent "Negative feedback loop confirmed for reminder subject: " & subjectText
+            If EmailExistsInSentOrOutbox(subjectText, True) Then
+                LogEvent "Negative feedback loop confirmed for reminder subject (Sent Items or Outbox): " & subjectText
             Else
-                LogEvent "WARNING: Reminder subject not observed in Sent Items after sending: " & subjectText
+                LogEvent "WARNING: Reminder subject not observed in Sent Items or Outbox after sending: " & subjectText
             End If
         End If
     End With
@@ -911,8 +928,8 @@ Sub MaybeSendPresenterReminder(presenterName, presentationType, meetingDate)
     targetEmail = ResolveEmailOrManager(trimmedName)
     subjectLine = BuildPresenterReminderSubject(presentationType, meetingDate)
 
-    If EmailExists(subjectLine, 5, True) Then
-        LogEvent "Skipping presenter reminder because Sent Items already contain subject '" & subjectLine & "'."
+    If EmailExistsInSentOrOutbox(subjectLine, True) Then
+        LogEvent "Skipping presenter reminder because Sent Items or Outbox already contain subject '" & subjectLine & "'."
         Exit Sub
     End If
 
@@ -928,8 +945,8 @@ Sub MaybeSendMeetingLeadReminder(meetingLeadName, meetingDate)
     targetEmail = ResolveEmailOrManager(trimmedName)
     subjectLine = BuildMeetingLeadReminderSubject(meetingDate)
 
-    If EmailExists(subjectLine, 5, True) Then
-        LogEvent "Skipping meeting lead reminder because Sent Items already contain subject '" & subjectLine & "'."
+    If EmailExistsInSentOrOutbox(subjectLine, True) Then
+        LogEvent "Skipping meeting lead reminder because Sent Items or Outbox already contain subject '" & subjectLine & "'."
         Exit Sub
     End If
 
@@ -945,8 +962,8 @@ Sub MaybeSendLabManagerReminder(labManagerName, meetingDate)
     targetEmail = ResolveEmailOrManager(trimmedName)
     subjectLine = BuildLabManagerReminderSubject(trimmedName, meetingDate)
 
-    If EmailExists(subjectLine, 5, True) Then
-        LogEvent "Skipping lab manager reminder because Sent Items already contain subject '" & subjectLine & "'."
+    If EmailExistsInSentOrOutbox(subjectLine, True) Then
+        LogEvent "Skipping lab manager reminder because Sent Items or Outbox already contain subject '" & subjectLine & "'."
         Exit Sub
     End If
 
