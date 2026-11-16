@@ -25,6 +25,13 @@ Const SHEET_ROTA = "Rota"
 Const SHEET_EMAILS = "Emails"
 
 '==============================================================
+' Email Delivery Schedule (local Windows date)
+'==============================================================
+Function IsWeekend(checkDate)
+    IsWeekend = (Weekday(checkDate, vbMonday) > 5)
+End Function
+
+'==============================================================
 ' Logging Helpers
 '==============================================================
 Sub LogEvent(message)
@@ -868,6 +875,11 @@ Sub DispatchReminderEmail(toAddress, subjectText, bodyText)
             End If
         Else
             LogEvent "Sending reminder email to " & toAddress & " with subject: " & subjectText
+            ' Recheck in case this run continued past midnight into the weekend.
+            If IsWeekend(Date) Then
+                LogEvent "Weekend: email delivery skipped. Subject: " & .Subject
+                Exit Sub
+            End If
             .Send
             If EmailExistsInSentOrOutbox(subjectText, True) Then
                 LogEvent "Negative feedback loop confirmed for reminder subject (Sent Items or Outbox): " & subjectText
@@ -998,6 +1010,11 @@ Sub DistributeEmail(header, body)
             End If
         Else
             LogEvent "Sending email to " & EMAIL_TO & " with subject: " & header
+            ' Recheck in case this run continued past midnight into the weekend.
+            If IsWeekend(Date) Then
+                LogEvent "Weekend: email delivery skipped. Subject: " & .Subject
+                Exit Sub
+            End If
             .Send
             If EmailExists(header, 5, True) Then
                 LogEvent "Negative feedback loop confirmed for regular meeting subject: " & header
@@ -1060,6 +1077,11 @@ Sub AlertEmail(toAddress, messageBody, subjectText)
             End If
         Else
             LogEvent "Sending alert email to " & toAddress & " with subject: " & subjectText
+            ' Recheck in case this run continued past midnight into the weekend.
+            If IsWeekend(Date) Then
+                LogEvent "Weekend: email delivery skipped. Subject: " & .Subject
+                Exit Sub
+            End If
             .Send
             If EmailExists(subjectText, 5, True) Then
                 LogEvent "Negative feedback loop confirmed for alert subject: " & subjectText
@@ -1100,6 +1122,11 @@ Sub AlertEmailWithAttachment(toAddress, messageBody, subjectText, attachmentPath
             End If
         Else
             LogEvent "Sending alert email with attachment to " & toAddress & " with subject: " & subjectText
+            ' Recheck in case this run continued past midnight into the weekend.
+            If IsWeekend(Date) Then
+                LogEvent "Weekend: email delivery skipped. Subject: " & .Subject
+                Exit Sub
+            End If
             .Send
             If EmailExists(subjectText, 5, True) Then
                 LogEvent "Negative feedback loop confirmed for alert subject: " & subjectText
@@ -1436,6 +1463,12 @@ Sub Main()
     Call LogVerbose("Main invoked")
     InitializeFileSystem
     InitializeLogging
+
+    If IsWeekend(Date) Then
+        LogEvent "Weekend: skipping all group meeting emails, reminders, and alerts."
+        LogEvent "=== Script execution completed ==="
+        Exit Sub
+    End If
 
     If Not SyncMeetingWorkbook() Then
         LogEvent "Continuing execution despite sync issues."
