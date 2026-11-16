@@ -29,6 +29,13 @@ Const RCLONE_WORKBOOK_REMOTE = "ABTsharepoint:/Group Meetings/meeting_rota.xlsx"
 Const RCLONE_WORKBOOK_DEST_DIR = "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
 Const SHEET_ROTA = "Rota"
 Const SHEET_EMAILS = "Emails"
+
+'==============================================================
+' Email Delivery Schedule (local Windows date)
+'==============================================================
+Function IsWeekend(checkDate)
+    IsWeekend = (Weekday(checkDate, vbMonday) > 5)
+End Function
 Const SHEET_CHEMICAL_INVENTORY = "Chemicals"
 Const INVENTORY_WORKBOOK_URL = "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx?web=1&activeCell=Chemicals!A1"
 Const INVENTORY_REVIEW_DATE_HEADER = "Review date"
@@ -1915,6 +1922,11 @@ Function DispatchManagedEmailInternal(ByRef outlookApp, managedKey, subjectText,
         DispatchManagedEmailInternal = "LOOKUP_UNCERTAIN"
         Exit Function
     End If
+    ' Recheck in case this run continued past midnight into the weekend.
+    If IsWeekend(Date) Then
+        LogEvent "Weekend: email delivery skipped. Subject: " & .Subject
+        Exit Sub
+    End If
     If outboxMatches.Count = 0 Then
         If DEBUG_MODE Then
             LogEvent "DEBUG_MODE enabled - managed email not sent. Key: " & managedKey & " | Subject: " & subjectText
@@ -3558,6 +3570,11 @@ Sub AlertEmail(toAddress, messageBody, subjectText)
             End If
         Else
             LogEvent "Sending alert email to " & toAddress & " with subject: " & subjectText
+            ' Recheck in case this run continued past midnight into the weekend.
+            If IsWeekend(Date) Then
+                LogEvent "Weekend: email delivery skipped. Subject: " & .Subject
+                Exit Sub
+            End If
             .Send
             If EmailExists(subjectText, 5, True) Then
                 LogEvent "Negative feedback loop confirmed for alert subject: " & subjectText
@@ -3603,6 +3620,11 @@ Sub AlertEmailWithAttachment(toAddress, messageBody, subjectText, attachmentPath
             End If
         Else
             LogEvent "Sending alert email with attachment to " & toAddress & " with subject: " & subjectText
+            ' Recheck in case this run continued past midnight into the weekend.
+            If IsWeekend(Date) Then
+                LogEvent "Weekend: email delivery skipped. Subject: " & .Subject
+                Exit Sub
+            End If
             .Send
             If EmailExists(subjectText, 5, True) Then
                 LogEvent "Negative feedback loop confirmed for alert subject: " & subjectText
@@ -3971,6 +3993,12 @@ Sub Main()
     Call LogVerbose("Main invoked")
     InitializeFileSystem
     InitializeLogging
+
+    If IsWeekend(Date) Then
+        LogEvent "Weekend: skipping all group meeting emails, reminders, and alerts."
+        LogEvent "=== Script execution completed ==="
+        Exit Sub
+    End If
 
     If Not SyncMeetingWorkbook() Then
         LogEvent "Continuing execution despite sync issues."
