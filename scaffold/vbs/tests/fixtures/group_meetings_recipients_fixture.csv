@@ -1,0 +1,8 @@
+alias,email
+group,group@example.invalid
+manager,manager@example.invalid
+Literature Presenter,literature.presenter@example.invalid
+Results Presenter,results.presenter@example.invalid
+Previous Lab Manager,meeting.lead@example.invalid
+Lab Manager,lab.manager@example.invalid
+Future Lab Manager,future.lab.manager@example.invalid

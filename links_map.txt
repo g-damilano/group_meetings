@@ -1,15 +1,13 @@
 MSRH_building_induction_video=https://imperial.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=ee3b22c8-82ff-4b79-972b-b0ba00b99e78
-Safety_E-learning_Course=https://www.imperial.ac.uk/staff-development/safety-training/safety-courses-/fire-safety-and-awareness-training-e-learning/
+MSRH_ACCESS_REQUEST=https://forms.office.com/r/efqzD3c4XR
 Safe_Laboratory_Practices=https://imperial.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=fb4d49d5-6aaa-4204-a66c-b08a00ecc905
-RAST=https://www.imperial.ac.uk/admin-services/safety/training/safety-courses/risk-assessment-foundation-training-raft-e-learning/
+RAFT=https://www.imperial.ac.uk/admin-services/safety/training/safety-courses/risk-assessment-foundation-training-raft-e-learning/
 MOST=https://www.imperial.ac.uk/safety/training/safety-courses/month-one-safety-training-most-e-learning/
-LAB_403=https://chat.whatsapp.com/DVOino6GtCj2w0GLa6wB4h
-GREEN_CARBON_FIBRE_CLUB=https://chat.whatsapp.com/KuWEhAVfpBW4VdTVRRa6ss
 FIRE_SAFETY_AWARENESS=https://www.imperial.ac.uk/safety/training/safety-courses/fire-safety-and-awareness-training-e-learning/
-FIRE_PREVENTION_AND_FIRE_SAFETY_AT_WORK=https://www.imperial.ac.uk/staff-development/courses-and-programmes/safety-training/safety-courses/fire-prevention-and-fire-safety-at-work/
-COMPUTER_HEALTH_AND_SAFETY=https://www.imperial.ac.uk/safety/training/safety-courses/computer-health-and-safety-e-learning/
+FIRE_PREVENTION_AND_FIRE_SAFETY_AT_WORK=https://www.imperial.ac.uk/safety/training/safety-courses/fire-prevention-and-fire-safety-at-work/
 FIRE_SAFETY_INFORMATION=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Fire-Safety.aspx
-GEEP=https://www.imperial.ac.uk/media/imperial-college/administration-and-support-services/estates-facilities/public/health-and-safety/fire-safety/MSRH-GEEP.pdf
+GEEP=https://www.imperial.ac.uk/safety/safety-by-topic/fire-safety/geeps/
+COMPUTER_HEALTH_AND_SAFETY=https://www.imperial.ac.uk/safety/training/safety-courses/computer-health-and-safety-e-learning/
 FIRST_AID_INFORMATION=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/First-Aid.aspx
 PROTECTIVE_GLOVES=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Protective%20Gloves.aspx
 LONE_WORKING_POLICY=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Lone%20Working.aspx
@@ -20,4 +18,5 @@ FACULTY_HEALTH_AND_SAFETY_TEAM=https://imperiallondon.sharepoint.com/sites/fons/
 OFFSITE_WORKING_AND_DRIVING_POLICY=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Offsite-Work-%26-Driving.aspx
 OFFICE_AND_GENERAL_WORKPLACE_SAFETY=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Office%20%26%20General%20Workplace%20Safety.aspx
 LABORATORY_AND_WORKSHOP_SAFETY=https://imperiallondon.sharepoint.com/sites/fons/faculty/safety/SitePages/Laboratory-%26-Workshop.aspx
-MSRH_ACCESS_REQUEST=https://forms.office.com/pages/responsepage.aspx?id=B3WJK4zudUWDC0-CZ8PTBza34vI4NQ5CoIYkU5hY-mpUMFVVRDRaRk43T0JTTEk2TjJHQTMyMFNTSS4u
+LAB_403=https://chat.whatsapp.com/DVOino6GtCj2w0GLa6wB4h
+GREEN_CARBON_FIBRE_CLUB=https://chat.whatsapp.com/KuWEhAVfpBW4VdTVRRa6ss

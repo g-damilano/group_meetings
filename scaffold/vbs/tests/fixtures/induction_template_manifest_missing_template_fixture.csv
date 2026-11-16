@@ -1,0 +1,2 @@
+template_id,mode,target_key,display_name,template_path,inline_image_folder,attachment_base_folder,attachments,cc,bcc,delivery_action,defer_minutes,urgent_verify_after_submit,enabled
+missing-template,broadcast,missing,Missing template,induction_templates/missing_template.html,,,,,,display,0,false,true

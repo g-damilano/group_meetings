@@ -1,0 +1,5 @@
+meeting_date,literature_presenter,results_presenter,alternate_text,room,lab_manager,meeting_lead,group_recipient,manager_recipient,sender_name,include_same_day_reminder,send_presenter_reminders,send_meeting_lead_reminder,send_lab_manager_reminder
+2026-05-22,Previous Literature,Previous Results,,Room Previous,Previous Lab Manager,,group,manager,Coordinator,false,true,true,true
+2026-05-29,Literature Presenter,Results Presenter,,"Room A, East",Lab Manager,,group,manager,Coordinator,true,true,true,true
+2026-06-05,,,no meeting,,Next Lab Manager,,group,manager,Coordinator,false,true,true,true
+2026-06-12,,,,Future Room,Future Lab Manager,,group,manager,Coordinator,false,true,true,true

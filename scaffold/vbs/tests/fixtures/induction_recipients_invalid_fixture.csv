@@ -1,0 +1,4 @@
+alias,email,first_name,last_name,full_name,start_date,cohort,active
+new-starter,new.starter@example.invalid,New,Starter,New Starter,2026-06-01,June,true
+missing-email,,Missing,Email,Missing Email,2026-06-01,June,true
+support,coordinator@example.invalid,Support,User,Support User,2026-06-01,June,false

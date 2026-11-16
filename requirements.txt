@@ -1,0 +1,5 @@
+# Base install is pure-Python.
+# Workbook reading:
+openpyxl>=3.1
+# For Outlook COM automation install:
+pywin32>=305 ; platform_system == "Windows"

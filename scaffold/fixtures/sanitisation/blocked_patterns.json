@@ -1,0 +1,21 @@
+{
+  "allowed_email_domains": ["example.invalid"],
+  "blocked_text_patterns": [
+    "OneDrive\\\\s+-",
+    "Imperial\\\\s+College",
+    "https?://[^\\\\s\\\"']*sharepoint[^\\\\s\\\"']*"
+  ],
+  "blocked_generated_suffixes": [
+    ".log",
+    ".pyc",
+    ".pyo",
+    ".zip",
+    ".msg"
+  ],
+  "blocked_generated_directory_names": [
+    "__pycache__"
+  ],
+  "release_excluded_directory_names": [
+    "legacy"
+  ]
+}

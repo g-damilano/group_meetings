@@ -1,0 +1,5 @@
+template_id,mode,target_key,display_name,template_path,inline_image_folder,attachment_base_folder,attachments,cc,bcc,delivery_action,defer_minutes,urgent_verify_after_submit,enabled
+valid-broadcast,broadcast,overview,Overview broadcast,induction_templates/broadcast_overview.html,,induction_assets,overview.txt,coordinator,,display,0,false,true
+bad-mode,announcement,bad,Bad mode,induction_templates/broadcast_overview.html,,,,,,display,0,false,true
+bad-delivery,personal,bad-delivery,Bad delivery,induction_templates/personal_welcome.html,,,,,,autosend,0,false,true
+bad-defer,personal,bad-defer,Bad defer,induction_templates/personal_welcome.html,,,,,,display,soon,false,true

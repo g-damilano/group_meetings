@@ -1,0 +1,4 @@
+alias,email,first_name,last_name,full_name,start_date,cohort,active
+new-starter,new.starter@example.invalid,New,Starter,New Starter,2026-06-01,June,true
+observer,observer@example.invalid,Project,Observer,Project Observer,2026-06-15,June,true
+coordinator,coordinator@example.invalid,Induction,Coordinator,Induction Coordinator,2026-06-01,June,false

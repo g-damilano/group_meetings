@@ -1,0 +1,166 @@
+{
+  "schema": "office-communication-scaffold.shared-contract-fixture.v1",
+  "workflow_name": "stage4-shared-contract-examples",
+  "version": "1.0",
+  "dry_run": true,
+  "settings": {
+    "organization_code": "ORG",
+    "managed_dispatch_required": true
+  },
+  "workflow_context": {
+    "workflow_name": "stage4-shared-contract-examples",
+    "run_id": "20260526-120000",
+    "dry_run": true,
+    "logical_date": "2026-06-01",
+    "source_workbook": "examples/workbooks",
+    "template_root": "examples/templates",
+    "operator": "example-operator",
+    "settings": {
+      "outbox_grace_minutes": 15,
+      "display_first": true
+    }
+  },
+  "messages": [
+    {
+      "message_key": "ORG|GROUP-MEETINGS|2026-05-29|REGULAR|TEAM",
+      "message_type": "regular",
+      "to": "team@example.invalid",
+      "cc": "",
+      "bcc": "",
+      "recipients": {
+        "to": [
+          {
+            "raw_value": "team",
+            "display_name": "Example Team",
+            "first_name": "",
+            "last_name": "",
+            "surname": "",
+            "full_name": "Example Team",
+            "name_parse_status": "not_attempted",
+            "name_parse_source": "",
+            "name_parse_order": "",
+            "smtp_address": "team@example.invalid",
+            "resolution_status": "resolved",
+            "directory_source": "fixture",
+            "fallback_used": false
+          }
+        ],
+        "cc": [],
+        "bcc": []
+      },
+      "subject": "Example group meeting update",
+      "body_text": "Example group meeting body.",
+      "body_html": "<p>Example group meeting body.</p>",
+      "delivery_policy": {
+        "action": "display",
+        "defer_minutes": 0,
+        "urgent_verify_after_submit": false,
+        "enable_stale_outbox_replacement": false,
+        "managed_dispatch_required": true
+      },
+      "attachments": [],
+      "metadata": {
+        "workflow_reference": "group-meetings",
+        "logical_date": "2026-05-29"
+      }
+    },
+    {
+      "message_key": "ORG|INDUCTION-MAILER|2026-06-01|PERSONAL|NEW-STARTER",
+      "message_type": "personal",
+      "to": "new.starter@example.invalid",
+      "cc": "coordinator@example.invalid",
+      "bcc": "",
+      "recipients": {
+        "to": [
+          {
+            "raw_value": "new-starter",
+            "display_name": "New Starter",
+            "first_name": "New",
+            "last_name": "Starter",
+            "surname": "Starter",
+            "full_name": "New Starter",
+            "name_parse_status": "parsed",
+            "name_parse_source": "fixture",
+            "name_parse_order": "given-family",
+            "smtp_address": "new.starter@example.invalid",
+            "resolution_status": "resolved",
+            "directory_source": "fixture",
+            "fallback_used": false
+          }
+        ],
+        "cc": [
+          {
+            "raw_value": "coordinator",
+            "display_name": "Induction Coordinator",
+            "first_name": "Induction",
+            "last_name": "Coordinator",
+            "surname": "Coordinator",
+            "full_name": "Induction Coordinator",
+            "name_parse_status": "parsed",
+            "name_parse_source": "fixture",
+            "name_parse_order": "given-family",
+            "smtp_address": "coordinator@example.invalid",
+            "resolution_status": "resolved",
+            "directory_source": "fixture",
+            "fallback_used": false
+          }
+        ],
+        "bcc": []
+      },
+      "subject": "Welcome New Starter",
+      "body_text": "Welcome to the example induction.",
+      "body_html": "<p>Welcome to the example induction.</p>",
+      "inline_image_folder": "examples/templates/induction_personal_example.files",
+      "delivery_policy": {
+        "action": "display",
+        "defer_minutes": 15,
+        "urgent_verify_after_submit": false,
+        "enable_stale_outbox_replacement": false,
+        "managed_dispatch_required": true
+      },
+      "attachments": [
+        "examples/templates/induction_assets/overview.txt",
+        "examples/templates/induction_assets/setup checklist.txt"
+      ],
+      "metadata": {
+        "workflow_reference": "induction-mailer",
+        "logical_date": "2026-06-01",
+        "template_id": "personal-welcome"
+      }
+    }
+  ],
+  "dispatch_results": [
+    {
+      "state": "COMPOSED",
+      "reason": "Dry-run composed; no Outlook mail item created.",
+      "managed_key": "ORG|GROUP-MEETINGS|2026-05-29|REGULAR|TEAM",
+      "folder": "",
+      "outlook_entry_id": "",
+      "action_required": false,
+      "created_new_mail": false,
+      "replaced_existing_mail": false,
+      "safe_to_retry": true
+    },
+    {
+      "state": "COMPOSED",
+      "reason": "Dry-run composed; no Outlook mail item created.",
+      "managed_key": "ORG|INDUCTION-MAILER|2026-06-01|PERSONAL|NEW-STARTER",
+      "folder": "",
+      "outlook_entry_id": "",
+      "action_required": false,
+      "created_new_mail": false,
+      "replaced_existing_mail": false,
+      "safe_to_retry": true
+    }
+  ],
+  "health_report": {
+    "offline": false,
+    "exchange_connection_mode": "",
+    "exchange_connection_mode_name": "not-inspected-in-fixture",
+    "blocked_or_auth_suspected": false,
+    "outbox_count": 0,
+    "managed_outbox_count": 0,
+    "unmanaged_outbox_count": 0,
+    "action_required_messages": []
+  }
+}

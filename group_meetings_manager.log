@@ -1,650 +1,122 @@
-15/12/2025 10:50:22 - [Main] Weekly log reset detected. Starting new log file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-15/12/2025 10:50:23 - [Main] [VERBOSE] InitializeLogging invoked
-15/12/2025 10:50:23 - [Main] === Script execution started ===
-15/12/2025 10:50:23 - [Main] Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-15/12/2025 10:50:23 - [Main] [VERBOSE] SyncMeetingWorkbook invoked
-15/12/2025 10:50:23 - [Main] Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
-15/12/2025 10:50:25 - [Main] rclone command completed with exit code: 0
-15/12/2025 10:50:25 - [Main] [VERBOSE] InitializeOutlook invoked
-15/12/2025 10:50:25 - [Main] Outlook application created successfully.
-15/12/2025 10:50:25 - [Main] Obtained Outlook namespace for MAPI.
-15/12/2025 10:50:25 - [Main] Invoking Coordinator routine
-15/12/2025 10:50:25 - [Main] [VERBOSE] Coordinator invoked
-15/12/2025 10:50:25 - [Main] Coordinator routine started
-15/12/2025 10:50:25 - [Main] [VERBOSE] PopulateFridayDates invoked
-15/12/2025 10:50:25 - [Main] Computed Fridays | This: 19/12/2025 | Next: 26/12/2025 | Next+1: 02/01/2026
-15/12/2025 10:50:25 - [Main] [VERBOSE] BuildMeetingSubject invoked
-15/12/2025 10:50:25 - [Main] [VERBOSE] EmailExists invoked for subject='ABT group meeting @ 11am (19/12/2025)'
-15/12/2025 10:50:25 - [Main] Checking Outlook Sent Items for email with subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 10:50:30 - [Main] Email with subject 'ABT group meeting @ 11am (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:50:30 - [Main] EmailExists('ABT group meeting @ 11am (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:50:31 - [Main] [VERBOSE] LoadMeetingWorkbook invoked
-15/12/2025 10:50:33 - [Main] Excel application created successfully.
-15/12/2025 10:50:36 - [Main] Workbook opened: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-15/12/2025 10:50:36 - [Main] Sheets obtained: Rota and Emails
-15/12/2025 10:50:36 - [Main] [VERBOSE] LocateMeetingRows invoked
-15/12/2025 10:50:36 - [Main] Scanning rota sheet up to row: 721
-15/12/2025 10:50:38 - [Main] Rota rows located | This: 14 | Next: 15 | Next+1: 16
-15/12/2025 10:50:38 - [Main] [VERBOSE] EvaluateCriticalWindows invoked
-15/12/2025 10:50:38 - [Main] Row 14 data | Lit:  | Res:  | Alt: general discussion | Room: G25 (MSRH)
-15/12/2025 10:50:38 - [Main] Row 15 data | Lit:  | Res:  | Alt: college closure | Room: G25 (MSRH)
-15/12/2025 10:50:39 - [Main] Row 16 data | Lit:  | Res:  | Alt: college closure | Room: 
-15/12/2025 10:50:39 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-15/12/2025 10:50:39 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 02/01/2026'
-15/12/2025 10:50:39 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 02/01/2026
-15/12/2025 10:51:02 - [Main] Email with subject 'ALERT: MissingRoom for 02/01/2026' not found in Inbox prior to action.
-15/12/2025 10:51:02 - [Main] EmailExists('ALERT: MissingRoom for 02/01/2026', folder=Inbox, checkOnly=False) result: False
-15/12/2025 10:51:02 - [Main] Dispatching alert email | Type: MissingRoom | Date: 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk
-15/12/2025 10:51:02 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-15/12/2025 10:51:02 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-15/12/2025 10:51:02 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-15/12/2025 10:51:02 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 02/01/2026
-15/12/2025 10:51:02 - [Main] [VERBOSE] HandleCommunications invoked
-15/12/2025 10:51:02 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
-15/12/2025 10:51:02 - [Main] Derived meeting lead as 'Yilyu Qi' for meeting date 19/12/2025
-15/12/2025 10:51:02 - [Main] [VERBOSE] TriggerReminderEmails invoked
-15/12/2025 10:51:02 - [Main] Triggering reminder workflow for meeting date 19/12/2025
-15/12/2025 10:51:03 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-15/12/2025 10:51:03 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 10:51:03 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 10:51:03 - [Main] Falling back to manager email for ''
-15/12/2025 10:51:03 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-15/12/2025 10:51:03 - [Main] [VERBOSE] EmailExists invoked for subject='Literature presentation reminder (19/12/2025)'
-15/12/2025 10:51:03 - [Main] Checking Outlook Sent Items for email with subject: Literature presentation reminder (19/12/2025)
-15/12/2025 10:51:08 - [Main] Email with subject 'Literature presentation reminder (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:08 - [Main] EmailExists('Literature presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:08 - [Main] [VERBOSE] GeneratePresenterReminderEmail invoked for presenter=''
-15/12/2025 10:51:08 - [Main] Generating presenter reminder email | Presenter:  | Type: Literature
-15/12/2025 10:51:08 - [Main] Generated presenter reminder length: 198
-15/12/2025 10:51:08 - [Main] [VERBOSE] DispatchReminderEmail invoked for subject='Literature presentation reminder (19/12/2025)'
-15/12/2025 10:51:08 - [Main] Preparing reminder email with subject: Literature presentation reminder (19/12/2025) to gd2613@ic.ac.uk
-15/12/2025 10:51:08 - [Main] Sending reminder email to gd2613@ic.ac.uk with subject: Literature presentation reminder (19/12/2025)
-15/12/2025 10:51:09 - [Main] [VERBOSE] EmailExists invoked for subject='Literature presentation reminder (19/12/2025)'
-15/12/2025 10:51:09 - [Main] Checking Outlook Sent Items for email with subject: Literature presentation reminder (19/12/2025)
-15/12/2025 10:51:14 - [Main] Email with subject 'Literature presentation reminder (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:14 - [Main] EmailExists('Literature presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:14 - [Main] WARNING: Reminder subject not observed in Sent Items after sending: Literature presentation reminder (19/12/2025)
-15/12/2025 10:51:14 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-15/12/2025 10:51:14 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 10:51:14 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 10:51:14 - [Main] Falling back to manager email for ''
-15/12/2025 10:51:14 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-15/12/2025 10:51:14 - [Main] [VERBOSE] EmailExists invoked for subject='Results presentation reminder (19/12/2025)'
-15/12/2025 10:51:14 - [Main] Checking Outlook Sent Items for email with subject: Results presentation reminder (19/12/2025)
-15/12/2025 10:51:19 - [Main] Email with subject 'Results presentation reminder (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:19 - [Main] EmailExists('Results presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:19 - [Main] [VERBOSE] GeneratePresenterReminderEmail invoked for presenter=''
-15/12/2025 10:51:19 - [Main] Generating presenter reminder email | Presenter:  | Type: Results
-15/12/2025 10:51:19 - [Main] Generated presenter reminder length: 195
-15/12/2025 10:51:19 - [Main] [VERBOSE] DispatchReminderEmail invoked for subject='Results presentation reminder (19/12/2025)'
-15/12/2025 10:51:19 - [Main] Preparing reminder email with subject: Results presentation reminder (19/12/2025) to gd2613@ic.ac.uk
-15/12/2025 10:51:19 - [Main] Sending reminder email to gd2613@ic.ac.uk with subject: Results presentation reminder (19/12/2025)
-15/12/2025 10:51:19 - [Main] [VERBOSE] EmailExists invoked for subject='Results presentation reminder (19/12/2025)'
-15/12/2025 10:51:20 - [Main] Checking Outlook Sent Items for email with subject: Results presentation reminder (19/12/2025)
-15/12/2025 10:51:24 - [Main] Email with subject 'Results presentation reminder (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:24 - [Main] EmailExists('Results presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:24 - [Main] WARNING: Reminder subject not observed in Sent Items after sending: Results presentation reminder (19/12/2025)
-15/12/2025 10:51:24 - [Main] [VERBOSE] MaybeSendMeetingLeadReminder invoked for meeting lead='Yilyu Qi'
-15/12/2025 10:51:24 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='Yilyu Qi'
-15/12/2025 10:51:25 - [Main] [VERBOSE] GetExactEmail invoked with searchName='Yilyu Qi'
-15/12/2025 10:51:25 - [Main] Resolved exact email for 'Yilyu Qi': y.qi24@imperial.ac.uk
-15/12/2025 10:51:25 - [Main] [VERBOSE] BuildMeetingLeadReminderSubject invoked
-15/12/2025 10:51:25 - [Main] [VERBOSE] EmailExists invoked for subject='Meeting lead reminder (19/12/2025)'
-15/12/2025 10:51:25 - [Main] Checking Outlook Sent Items for email with subject: Meeting lead reminder (19/12/2025)
-15/12/2025 10:51:30 - [Main] Email with subject 'Meeting lead reminder (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:30 - [Main] EmailExists('Meeting lead reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:30 - [Main] [VERBOSE] GenerateMeetingLeadReminderEmail invoked for lead='Yilyu Qi'
-15/12/2025 10:51:30 - [Main] Generated meeting lead reminder length: 451
-15/12/2025 10:51:30 - [Main] [VERBOSE] DispatchReminderEmail invoked for subject='Meeting lead reminder (19/12/2025)'
-15/12/2025 10:51:30 - [Main] Preparing reminder email with subject: Meeting lead reminder (19/12/2025) to y.qi24@imperial.ac.uk
-15/12/2025 10:51:30 - [Main] Sending reminder email to y.qi24@imperial.ac.uk with subject: Meeting lead reminder (19/12/2025)
-15/12/2025 10:51:31 - [Main] [VERBOSE] EmailExists invoked for subject='Meeting lead reminder (19/12/2025)'
-15/12/2025 10:51:31 - [Main] Checking Outlook Sent Items for email with subject: Meeting lead reminder (19/12/2025)
-15/12/2025 10:51:36 - [Main] Email with subject 'Meeting lead reminder (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:36 - [Main] EmailExists('Meeting lead reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:36 - [Main] WARNING: Reminder subject not observed in Sent Items after sending: Meeting lead reminder (19/12/2025)
-15/12/2025 10:51:36 - [Main] [VERBOSE] MaybeSendLabManagerReminder invoked for manager=''
-15/12/2025 10:51:36 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 10:51:36 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 10:51:36 - [Main] Falling back to manager email for ''
-15/12/2025 10:51:36 - [Main] [VERBOSE] BuildLabManagerReminderSubject invoked
-15/12/2025 10:51:36 - [Main] [VERBOSE] EmailExists invoked for subject='Lab management reminder (19/12/2025 – 26/12/2025)'
-15/12/2025 10:51:36 - [Main] Checking Outlook Sent Items for email with subject: Lab management reminder (19/12/2025 – 26/12/2025)
-15/12/2025 10:51:41 - [Main] Email with subject 'Lab management reminder (19/12/2025 – 26/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:41 - [Main] EmailExists('Lab management reminder (19/12/2025 – 26/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:41 - [Main] [VERBOSE] GenerateLabManagerReminderEmail invoked for manager=''
-15/12/2025 10:51:41 - [Main] Generating lab manager reminder email | Manager: 
-15/12/2025 10:51:41 - [Main] Generated lab manager reminder length: 606
-15/12/2025 10:51:41 - [Main] [VERBOSE] DispatchReminderEmail invoked for subject='Lab management reminder (19/12/2025 – 26/12/2025)'
-15/12/2025 10:51:41 - [Main] Preparing reminder email with subject: Lab management reminder (19/12/2025 – 26/12/2025) to gd2613@ic.ac.uk
-15/12/2025 10:51:41 - [Main] Sending reminder email to gd2613@ic.ac.uk with subject: Lab management reminder (19/12/2025 – 26/12/2025)
-15/12/2025 10:51:41 - [Main] [VERBOSE] EmailExists invoked for subject='Lab management reminder (19/12/2025 – 26/12/2025)'
-15/12/2025 10:51:41 - [Main] Checking Outlook Sent Items for email with subject: Lab management reminder (19/12/2025 – 26/12/2025)
-15/12/2025 10:51:46 - [Main] Email with subject 'Lab management reminder (19/12/2025 – 26/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:46 - [Main] EmailExists('Lab management reminder (19/12/2025 – 26/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:46 - [Main] WARNING: Reminder subject not observed in Sent Items after sending: Lab management reminder (19/12/2025 – 26/12/2025)
-15/12/2025 10:51:46 - [Main] [VERBOSE] BuildMeetingSubject invoked
-15/12/2025 10:51:46 - [Main] [VERBOSE] GenerateEmailContent invoked for row 14
-15/12/2025 10:51:47 - [Main] Generating main email content for date 19/12/2025 | Row: 14 | Lit:  | Res:  | Alt: general discussion | Room: G25 (MSRH)
-15/12/2025 10:51:47 - [Main] Next Friday presenters found | Row: 15 | Lit:  | Res:  | Alt: college closure
-15/12/2025 10:51:47 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
-15/12/2025 10:51:47 - [Main] Derived meeting lead as 'Yilyu Qi' for meeting date 19/12/2025
-15/12/2025 10:51:47 - [Main] Generated email body length: 478
-15/12/2025 10:51:47 - [Main] Dispatching regular meeting email for 19/12/2025
-15/12/2025 10:51:47 - [Main] [VERBOSE] DistributeEmail invoked with subject='ABT group meeting @ 11am (19/12/2025)'
-15/12/2025 10:51:47 - [Main] Preparing regular meeting email with subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 10:51:47 - [Main] [VERBOSE] EmailExists invoked for subject='ABT group meeting @ 11am (19/12/2025)'
-15/12/2025 10:51:47 - [Main] Checking Outlook Sent Items for email with subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 10:51:52 - [Main] Email with subject 'ABT group meeting @ 11am (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:52 - [Main] EmailExists('ABT group meeting @ 11am (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:52 - [Main] Sending email to brandt-talbot-group@imperial.ac.uk with subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 10:51:52 - [Main] [VERBOSE] EmailExists invoked for subject='ABT group meeting @ 11am (19/12/2025)'
-15/12/2025 10:51:53 - [Main] Checking Outlook Sent Items for email with subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 10:51:58 - [Main] Email with subject 'ABT group meeting @ 11am (19/12/2025)' not yet located in Sent Items during verification.
-15/12/2025 10:51:58 - [Main] EmailExists('ABT group meeting @ 11am (19/12/2025)', folder=Sent Items, checkOnly=True) result: False
-15/12/2025 10:51:58 - [Main] WARNING: Regular meeting subject not observed in Sent Items after sending: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 10:51:58 - [Main] [VERBOSE] CloseMeetingWorkbook invoked
-15/12/2025 10:51:59 - [Main] Coordinator routine completed and Excel resources released.
-15/12/2025 10:51:59 - [Main] [VERBOSE] CleanupSyncedWorkbook invoked
-15/12/2025 10:51:59 - [Main] Deleting local Excel file after sync: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-15/12/2025 10:51:59 - [Main] === Script execution completed ===
-15/12/2025 12:36:32 - [Main] Continuing existing weekly log: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-15/12/2025 12:36:32 - [Main] [VERBOSE] InitializeLogging invoked
-15/12/2025 12:36:32 - [Main] === Script execution started ===
-15/12/2025 12:36:32 - [Main] Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-15/12/2025 12:36:32 - [Main] [VERBOSE] SyncMeetingWorkbook invoked
-15/12/2025 12:36:33 - [Main] Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
-15/12/2025 12:36:35 - [Main] rclone command completed with exit code: 0
-15/12/2025 12:36:35 - [Main] [VERBOSE] InitializeOutlook invoked
-15/12/2025 12:36:35 - [Main] Outlook application created successfully.
-15/12/2025 12:36:35 - [Main] Obtained Outlook namespace for MAPI.
-15/12/2025 12:36:35 - [Main] Invoking Coordinator routine
-15/12/2025 12:36:35 - [Main] [VERBOSE] Coordinator invoked
-15/12/2025 12:36:35 - [Main] Coordinator routine started
-15/12/2025 12:36:35 - [Main] [VERBOSE] PopulateFridayDates invoked
-15/12/2025 12:36:35 - [Main] Computed Fridays | This: 19/12/2025 | Next: 26/12/2025 | Next+1: 02/01/2026
-15/12/2025 12:36:36 - [Main] [VERBOSE] BuildMeetingSubject invoked
-15/12/2025 12:36:36 - [Main] [VERBOSE] EmailExists invoked for subject='ABT group meeting @ 11am (19/12/2025)'
-15/12/2025 12:36:36 - [Main] Checking Outlook Sent Items for email with subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 12:36:36 - [Main] Confirmed email with subject 'ABT group meeting @ 11am (19/12/2025)' in Sent Items.
-15/12/2025 12:36:36 - [Main] EmailExists('ABT group meeting @ 11am (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 12:36:36 - [Main] Existing meeting email detected in Sent Items. Regular message will be skipped, reminders will still be evaluated.
-15/12/2025 12:36:36 - [Main] [VERBOSE] LoadMeetingWorkbook invoked
-15/12/2025 12:36:38 - [Main] Excel application created successfully.
-15/12/2025 12:36:38 - [Main] Workbook opened: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-15/12/2025 12:36:38 - [Main] Sheets obtained: Rota and Emails
-15/12/2025 12:36:38 - [Main] [VERBOSE] LocateMeetingRows invoked
-15/12/2025 12:36:38 - [Main] Scanning rota sheet up to row: 721
-15/12/2025 12:36:40 - [Main] Rota rows located | This: 14 | Next: 15 | Next+1: 16
-15/12/2025 12:36:40 - [Main] [VERBOSE] EvaluateCriticalWindows invoked
-15/12/2025 12:36:40 - [Main] Row 14 data | Lit:  | Res:  | Alt: general discussion | Room: G25 (MSRH)
-15/12/2025 12:36:40 - [Main] Row 15 data | Lit:  | Res:  | Alt: college closure | Room: G25 (MSRH)
-15/12/2025 12:36:40 - [Main] Row 16 data | Lit:  | Res:  | Alt: college closure | Room: 
-15/12/2025 12:36:40 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-15/12/2025 12:36:40 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 02/01/2026'
-15/12/2025 12:36:40 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 02/01/2026
-15/12/2025 12:36:52 - [Main] Email with subject 'ALERT: MissingRoom for 02/01/2026' not found in Inbox prior to action.
-15/12/2025 12:36:52 - [Main] EmailExists('ALERT: MissingRoom for 02/01/2026', folder=Inbox, checkOnly=False) result: False
-15/12/2025 12:36:52 - [Main] Dispatching alert email | Type: MissingRoom | Date: 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk
-15/12/2025 12:36:52 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-15/12/2025 12:36:52 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-15/12/2025 12:36:52 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-15/12/2025 12:36:52 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 02/01/2026
-15/12/2025 12:36:53 - [Main] [VERBOSE] HandleCommunications invoked
-15/12/2025 12:36:53 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
-15/12/2025 12:36:53 - [Main] Derived meeting lead as 'Yilyu Qi' for meeting date 19/12/2025
-15/12/2025 12:36:53 - [Main] [VERBOSE] TriggerReminderEmails invoked
-15/12/2025 12:36:53 - [Main] Triggering reminder workflow for meeting date 19/12/2025
-15/12/2025 12:36:53 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-15/12/2025 12:36:53 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 12:36:53 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 12:36:53 - [Main] Falling back to manager email for ''
-15/12/2025 12:36:53 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-15/12/2025 12:36:54 - [Main] [VERBOSE] EmailExists invoked for subject='Literature presentation reminder (19/12/2025)'
-15/12/2025 12:36:54 - [Main] Checking Outlook Sent Items for email with subject: Literature presentation reminder (19/12/2025)
-15/12/2025 12:36:54 - [Main] Confirmed email with subject 'Literature presentation reminder (19/12/2025)' in Sent Items.
-15/12/2025 12:36:54 - [Main] EmailExists('Literature presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 12:36:54 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Literature presentation reminder (19/12/2025)'.
-15/12/2025 12:36:54 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-15/12/2025 12:36:54 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 12:36:54 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 12:36:54 - [Main] Falling back to manager email for ''
-15/12/2025 12:36:54 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-15/12/2025 12:36:54 - [Main] [VERBOSE] EmailExists invoked for subject='Results presentation reminder (19/12/2025)'
-15/12/2025 12:36:55 - [Main] Checking Outlook Sent Items for email with subject: Results presentation reminder (19/12/2025)
-15/12/2025 12:36:55 - [Main] Confirmed email with subject 'Results presentation reminder (19/12/2025)' in Sent Items.
-15/12/2025 12:36:55 - [Main] EmailExists('Results presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 12:36:55 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Results presentation reminder (19/12/2025)'.
-15/12/2025 12:36:55 - [Main] [VERBOSE] MaybeSendMeetingLeadReminder invoked for meeting lead='Yilyu Qi'
-15/12/2025 12:36:55 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='Yilyu Qi'
-15/12/2025 12:36:55 - [Main] [VERBOSE] GetExactEmail invoked with searchName='Yilyu Qi'
-15/12/2025 12:36:55 - [Main] Resolved exact email for 'Yilyu Qi': y.qi24@imperial.ac.uk
-15/12/2025 12:36:55 - [Main] [VERBOSE] BuildMeetingLeadReminderSubject invoked
-15/12/2025 12:36:55 - [Main] [VERBOSE] EmailExists invoked for subject='Meeting lead reminder (19/12/2025)'
-15/12/2025 12:36:55 - [Main] Checking Outlook Sent Items for email with subject: Meeting lead reminder (19/12/2025)
-15/12/2025 12:36:56 - [Main] Confirmed email with subject 'Meeting lead reminder (19/12/2025)' in Sent Items.
-15/12/2025 12:36:56 - [Main] EmailExists('Meeting lead reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 12:36:56 - [Main] Skipping meeting lead reminder because Sent Items already contain subject 'Meeting lead reminder (19/12/2025)'.
-15/12/2025 12:36:56 - [Main] [VERBOSE] MaybeSendLabManagerReminder invoked for manager=''
-15/12/2025 12:36:56 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 12:36:56 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 12:36:56 - [Main] Falling back to manager email for ''
-15/12/2025 12:36:56 - [Main] [VERBOSE] BuildLabManagerReminderSubject invoked
-15/12/2025 12:36:56 - [Main] [VERBOSE] EmailExists invoked for subject='Lab management reminder (19/12/2025 – 26/12/2025)'
-15/12/2025 12:36:56 - [Main] Checking Outlook Sent Items for email with subject: Lab management reminder (19/12/2025 – 26/12/2025)
-15/12/2025 12:36:57 - [Main] Confirmed email with subject 'Lab management reminder (19/12/2025 – 26/12/2025)' in Sent Items.
-15/12/2025 12:36:57 - [Main] EmailExists('Lab management reminder (19/12/2025 – 26/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 12:36:57 - [Main] Skipping lab manager reminder because Sent Items already contain subject 'Lab management reminder (19/12/2025 – 26/12/2025)'.
-15/12/2025 12:36:57 - [Main] [VERBOSE] BuildMeetingSubject invoked
-15/12/2025 12:36:57 - [Main] Regular meeting email already exists. Skipping dispatch for subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 12:36:57 - [Main] [VERBOSE] CloseMeetingWorkbook invoked
-15/12/2025 12:36:57 - [Main] Coordinator routine completed and Excel resources released.
-15/12/2025 12:36:58 - [Main] [VERBOSE] CleanupSyncedWorkbook invoked
-15/12/2025 12:36:58 - [Main] Deleting local Excel file after sync: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-15/12/2025 12:36:58 - [Main] === Script execution completed ===
-15/12/2025 15:55:34 - [Main] Continuing existing weekly log: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-15/12/2025 15:55:34 - [Main] [VERBOSE] InitializeLogging invoked
-15/12/2025 15:55:35 - [Main] === Script execution started ===
-15/12/2025 15:55:35 - [Main] Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-15/12/2025 15:55:35 - [Main] [VERBOSE] SyncMeetingWorkbook invoked
-15/12/2025 15:55:35 - [Main] Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
-15/12/2025 15:55:38 - [Main] rclone command completed with exit code: 0
-15/12/2025 15:55:38 - [Main] [VERBOSE] InitializeOutlook invoked
-15/12/2025 15:55:38 - [Main] Outlook application created successfully.
-15/12/2025 15:55:38 - [Main] Obtained Outlook namespace for MAPI.
-15/12/2025 15:55:38 - [Main] Invoking Coordinator routine
-15/12/2025 15:55:38 - [Main] [VERBOSE] Coordinator invoked
-15/12/2025 15:55:39 - [Main] Coordinator routine started
-15/12/2025 15:55:39 - [Main] [VERBOSE] PopulateFridayDates invoked
-15/12/2025 15:55:39 - [Main] Computed Fridays | This: 19/12/2025 | Next: 26/12/2025 | Next+1: 02/01/2026
-15/12/2025 15:55:39 - [Main] [VERBOSE] BuildMeetingSubject invoked
-15/12/2025 15:55:39 - [Main] [VERBOSE] EmailExists invoked for subject='ABT group meeting @ 11am (19/12/2025)'
-15/12/2025 15:55:39 - [Main] Checking Outlook Sent Items for email with subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 15:55:40 - [Main] Confirmed email with subject 'ABT group meeting @ 11am (19/12/2025)' in Sent Items.
-15/12/2025 15:55:40 - [Main] EmailExists('ABT group meeting @ 11am (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 15:55:40 - [Main] Existing meeting email detected in Sent Items. Regular message will be skipped, reminders will still be evaluated.
-15/12/2025 15:55:40 - [Main] [VERBOSE] LoadMeetingWorkbook invoked
-15/12/2025 15:55:49 - [Main] Excel application created successfully.
-15/12/2025 15:55:50 - [Main] Workbook opened: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-15/12/2025 15:55:50 - [Main] Sheets obtained: Rota and Emails
-15/12/2025 15:55:50 - [Main] [VERBOSE] LocateMeetingRows invoked
-15/12/2025 15:55:50 - [Main] Scanning rota sheet up to row: 721
-15/12/2025 15:55:58 - [Main] Rota rows located | This: 14 | Next: 15 | Next+1: 16
-15/12/2025 15:55:58 - [Main] [VERBOSE] EvaluateCriticalWindows invoked
-15/12/2025 15:55:59 - [Main] Row 14 data | Lit:  | Res:  | Alt: general discussion | Room: G25 (MSRH)
-15/12/2025 15:55:59 - [Main] Row 15 data | Lit:  | Res:  | Alt: college closure | Room: G25 (MSRH)
-15/12/2025 15:55:59 - [Main] Row 16 data | Lit:  | Res:  | Alt: college closure | Room: 
-15/12/2025 15:55:59 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-15/12/2025 15:55:59 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 02/01/2026'
-15/12/2025 15:55:59 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 02/01/2026
-15/12/2025 15:57:53 - [Main] Email with subject 'ALERT: MissingRoom for 02/01/2026' not found in Inbox prior to action.
-15/12/2025 15:57:53 - [Main] EmailExists('ALERT: MissingRoom for 02/01/2026', folder=Inbox, checkOnly=False) result: False
-15/12/2025 15:57:53 - [Main] Dispatching alert email | Type: MissingRoom | Date: 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk
-15/12/2025 15:57:54 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-15/12/2025 15:57:54 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-15/12/2025 15:57:54 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-15/12/2025 15:57:54 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 02/01/2026
-15/12/2025 15:57:54 - [Main] [VERBOSE] HandleCommunications invoked
-15/12/2025 15:57:55 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
-15/12/2025 15:57:55 - [Main] Derived meeting lead as 'Yilyu Qi' for meeting date 19/12/2025
-15/12/2025 15:57:55 - [Main] [VERBOSE] TriggerReminderEmails invoked
-15/12/2025 15:57:55 - [Main] Triggering reminder workflow for meeting date 19/12/2025
-15/12/2025 15:57:55 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-15/12/2025 15:57:56 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 15:57:56 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 15:57:56 - [Main] Falling back to manager email for ''
-15/12/2025 15:57:56 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-15/12/2025 15:57:56 - [Main] [VERBOSE] EmailExists invoked for subject='Literature presentation reminder (19/12/2025)'
-15/12/2025 15:57:56 - [Main] Checking Outlook Sent Items for email with subject: Literature presentation reminder (19/12/2025)
-15/12/2025 15:57:57 - [Main] Confirmed email with subject 'Literature presentation reminder (19/12/2025)' in Sent Items.
-15/12/2025 15:57:58 - [Main] EmailExists('Literature presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 15:57:58 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Literature presentation reminder (19/12/2025)'.
-15/12/2025 15:57:58 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-15/12/2025 15:57:58 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 15:57:58 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 15:57:58 - [Main] Falling back to manager email for ''
-15/12/2025 15:57:58 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-15/12/2025 15:57:58 - [Main] [VERBOSE] EmailExists invoked for subject='Results presentation reminder (19/12/2025)'
-15/12/2025 15:57:58 - [Main] Checking Outlook Sent Items for email with subject: Results presentation reminder (19/12/2025)
-15/12/2025 15:57:59 - [Main] Confirmed email with subject 'Results presentation reminder (19/12/2025)' in Sent Items.
-15/12/2025 15:57:59 - [Main] EmailExists('Results presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 15:57:59 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Results presentation reminder (19/12/2025)'.
-15/12/2025 15:58:00 - [Main] [VERBOSE] MaybeSendMeetingLeadReminder invoked for meeting lead='Yilyu Qi'
-15/12/2025 15:58:00 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='Yilyu Qi'
-15/12/2025 15:58:00 - [Main] [VERBOSE] GetExactEmail invoked with searchName='Yilyu Qi'
-15/12/2025 15:58:00 - [Main] Resolved exact email for 'Yilyu Qi': y.qi24@imperial.ac.uk
-15/12/2025 15:58:00 - [Main] [VERBOSE] BuildMeetingLeadReminderSubject invoked
-15/12/2025 15:58:00 - [Main] [VERBOSE] EmailExists invoked for subject='Meeting lead reminder (19/12/2025)'
-15/12/2025 15:58:00 - [Main] Checking Outlook Sent Items for email with subject: Meeting lead reminder (19/12/2025)
-15/12/2025 15:58:01 - [Main] Confirmed email with subject 'Meeting lead reminder (19/12/2025)' in Sent Items.
-15/12/2025 15:58:01 - [Main] EmailExists('Meeting lead reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 15:58:01 - [Main] Skipping meeting lead reminder because Sent Items already contain subject 'Meeting lead reminder (19/12/2025)'.
-15/12/2025 15:58:01 - [Main] [VERBOSE] MaybeSendLabManagerReminder invoked for manager=''
-15/12/2025 15:58:01 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-15/12/2025 15:58:01 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-15/12/2025 15:58:02 - [Main] Falling back to manager email for ''
-15/12/2025 15:58:02 - [Main] [VERBOSE] BuildLabManagerReminderSubject invoked
-15/12/2025 15:58:02 - [Main] [VERBOSE] EmailExists invoked for subject='Lab management reminder (19/12/2025 – 26/12/2025)'
-15/12/2025 15:58:02 - [Main] Checking Outlook Sent Items for email with subject: Lab management reminder (19/12/2025 – 26/12/2025)
-15/12/2025 15:58:04 - [Main] Confirmed email with subject 'Lab management reminder (19/12/2025 – 26/12/2025)' in Sent Items.
-15/12/2025 15:58:04 - [Main] EmailExists('Lab management reminder (19/12/2025 – 26/12/2025)', folder=Sent Items, checkOnly=True) result: True
-15/12/2025 15:58:04 - [Main] Skipping lab manager reminder because Sent Items already contain subject 'Lab management reminder (19/12/2025 – 26/12/2025)'.
-15/12/2025 15:58:04 - [Main] [VERBOSE] BuildMeetingSubject invoked
-15/12/2025 15:58:04 - [Main] Regular meeting email already exists. Skipping dispatch for subject: ABT group meeting @ 11am (19/12/2025)
-15/12/2025 15:58:04 - [Main] [VERBOSE] CloseMeetingWorkbook invoked
-15/12/2025 15:58:05 - [Main] Coordinator routine completed and Excel resources released.
-15/12/2025 15:58:06 - [Main] [VERBOSE] CleanupSyncedWorkbook invoked
-15/12/2025 15:58:06 - [Main] Deleting local Excel file after sync: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-15/12/2025 15:58:06 - [Main] === Script execution completed ===
-16/12/2025 11:08:39 - [Main] Continuing existing weekly log: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-16/12/2025 11:08:39 - [Main] [VERBOSE] InitializeLogging invoked
-16/12/2025 11:08:39 - [Main] === Script execution started ===
-16/12/2025 11:08:39 - [Main] Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-16/12/2025 11:08:39 - [Main] [VERBOSE] SyncMeetingWorkbook invoked
-16/12/2025 11:08:39 - [Main] Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
-16/12/2025 11:08:42 - [Main] rclone command completed with exit code: 0
-16/12/2025 11:08:42 - [Main] [VERBOSE] InitializeOutlook invoked
-16/12/2025 11:08:42 - [Main] Outlook application created successfully.
-16/12/2025 11:08:42 - [Main] Obtained Outlook namespace for MAPI.
-16/12/2025 11:08:42 - [Main] Invoking Coordinator routine
-16/12/2025 11:08:42 - [Main] [VERBOSE] Coordinator invoked
-16/12/2025 11:08:43 - [Main] Coordinator routine started
-16/12/2025 11:08:43 - [Main] [VERBOSE] PopulateFridayDates invoked
-16/12/2025 11:08:43 - [Main] Computed Fridays | This: 19/12/2025 | Next: 26/12/2025 | Next+1: 02/01/2026
-16/12/2025 11:08:43 - [Main] [VERBOSE] BuildMeetingSubject invoked
-16/12/2025 11:08:43 - [Main] [VERBOSE] EmailExists invoked for subject='ABT group meeting @ 11am (19/12/2025)'
-16/12/2025 11:08:43 - [Main] Checking Outlook Sent Items for email with subject: ABT group meeting @ 11am (19/12/2025)
-16/12/2025 11:08:43 - [Main] Confirmed email with subject 'ABT group meeting @ 11am (19/12/2025)' in Sent Items.
-16/12/2025 11:08:43 - [Main] EmailExists('ABT group meeting @ 11am (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 11:08:44 - [Main] Existing meeting email detected in Sent Items. Regular message will be skipped, reminders will still be evaluated.
-16/12/2025 11:08:44 - [Main] [VERBOSE] LoadMeetingWorkbook invoked
-16/12/2025 11:08:50 - [Main] Excel application created successfully.
-16/12/2025 11:08:53 - [Main] Workbook opened: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-16/12/2025 11:08:53 - [Main] Sheets obtained: Rota and Emails
-16/12/2025 11:08:53 - [Main] [VERBOSE] LocateMeetingRows invoked
-16/12/2025 11:08:53 - [Main] Scanning rota sheet up to row: 721
-16/12/2025 11:08:56 - [Main] Rota rows located | This: 14 | Next: 15 | Next+1: 16
-16/12/2025 11:08:56 - [Main] [VERBOSE] EvaluateCriticalWindows invoked
-16/12/2025 11:08:56 - [Main] Row 14 data | Lit:  | Res:  | Alt: general discussion | Room: G25 (MSRH)
-16/12/2025 11:08:56 - [Main] Row 15 data | Lit:  | Res:  | Alt: college closure | Room: 
-16/12/2025 11:08:56 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-16/12/2025 11:08:56 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 26/12/2025'
-16/12/2025 11:08:56 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 26/12/2025
-16/12/2025 11:09:15 - [Main] Email with subject 'ALERT: MissingRoom for 26/12/2025' not found in Inbox prior to action.
-16/12/2025 11:09:15 - [Main] EmailExists('ALERT: MissingRoom for 26/12/2025', folder=Inbox, checkOnly=False) result: False
-16/12/2025 11:09:15 - [Main] Dispatching alert email | Type: MissingRoom | Date: 26/12/2025 | Recipient: i.gomezvilchis@imperial.ac.uk
-16/12/2025 11:09:15 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-16/12/2025 11:09:15 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-16/12/2025 11:09:15 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 26/12/2025 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-16/12/2025 11:09:15 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 26/12/2025
-16/12/2025 11:09:16 - [Main] Row 16 data | Lit:  | Res:  | Alt: college closure | Room: 
-16/12/2025 11:09:16 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-16/12/2025 11:09:16 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 02/01/2026'
-16/12/2025 11:09:16 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 02/01/2026
-16/12/2025 11:09:35 - [Main] Email with subject 'ALERT: MissingRoom for 02/01/2026' not found in Inbox prior to action.
-16/12/2025 11:09:35 - [Main] EmailExists('ALERT: MissingRoom for 02/01/2026', folder=Inbox, checkOnly=False) result: False
-16/12/2025 11:09:35 - [Main] Dispatching alert email | Type: MissingRoom | Date: 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk
-16/12/2025 11:09:35 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-16/12/2025 11:09:35 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-16/12/2025 11:09:35 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-16/12/2025 11:09:35 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 02/01/2026
-16/12/2025 11:09:35 - [Main] [VERBOSE] HandleCommunications invoked
-16/12/2025 11:09:35 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
-16/12/2025 11:09:35 - [Main] Derived meeting lead as 'Yilyu Qi' for meeting date 19/12/2025
-16/12/2025 11:09:36 - [Main] [VERBOSE] TriggerReminderEmails invoked
-16/12/2025 11:09:36 - [Main] Triggering reminder workflow for meeting date 19/12/2025
-16/12/2025 11:09:36 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-16/12/2025 11:09:36 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 11:09:36 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 11:09:36 - [Main] Falling back to manager email for ''
-16/12/2025 11:09:36 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-16/12/2025 11:09:36 - [Main] [VERBOSE] EmailExists invoked for subject='Literature presentation reminder (19/12/2025)'
-16/12/2025 11:09:36 - [Main] Checking Outlook Sent Items for email with subject: Literature presentation reminder (19/12/2025)
-16/12/2025 11:09:36 - [Main] Confirmed email with subject 'Literature presentation reminder (19/12/2025)' in Sent Items.
-16/12/2025 11:09:36 - [Main] EmailExists('Literature presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 11:09:36 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Literature presentation reminder (19/12/2025)'.
-16/12/2025 11:09:36 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-16/12/2025 11:09:37 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 11:09:37 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 11:09:37 - [Main] Falling back to manager email for ''
-16/12/2025 11:09:37 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-16/12/2025 11:09:37 - [Main] [VERBOSE] EmailExists invoked for subject='Results presentation reminder (19/12/2025)'
-16/12/2025 11:09:37 - [Main] Checking Outlook Sent Items for email with subject: Results presentation reminder (19/12/2025)
-16/12/2025 11:09:37 - [Main] Confirmed email with subject 'Results presentation reminder (19/12/2025)' in Sent Items.
-16/12/2025 11:09:37 - [Main] EmailExists('Results presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 11:09:37 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Results presentation reminder (19/12/2025)'.
-16/12/2025 11:09:37 - [Main] [VERBOSE] MaybeSendMeetingLeadReminder invoked for meeting lead='Yilyu Qi'
-16/12/2025 11:09:37 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='Yilyu Qi'
-16/12/2025 11:09:37 - [Main] [VERBOSE] GetExactEmail invoked with searchName='Yilyu Qi'
-16/12/2025 11:09:37 - [Main] Resolved exact email for 'Yilyu Qi': y.qi24@imperial.ac.uk
-16/12/2025 11:09:38 - [Main] [VERBOSE] BuildMeetingLeadReminderSubject invoked
-16/12/2025 11:09:38 - [Main] [VERBOSE] EmailExists invoked for subject='Meeting lead reminder (19/12/2025)'
-16/12/2025 11:09:38 - [Main] Checking Outlook Sent Items for email with subject: Meeting lead reminder (19/12/2025)
-16/12/2025 11:09:38 - [Main] Confirmed email with subject 'Meeting lead reminder (19/12/2025)' in Sent Items.
-16/12/2025 11:09:38 - [Main] EmailExists('Meeting lead reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 11:09:38 - [Main] Skipping meeting lead reminder because Sent Items already contain subject 'Meeting lead reminder (19/12/2025)'.
-16/12/2025 11:09:38 - [Main] [VERBOSE] MaybeSendLabManagerReminder invoked for manager=''
-16/12/2025 11:09:38 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 11:09:38 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 11:09:38 - [Main] Falling back to manager email for ''
-16/12/2025 11:09:38 - [Main] [VERBOSE] BuildLabManagerReminderSubject invoked
-16/12/2025 11:09:38 - [Main] [VERBOSE] EmailExists invoked for subject='Lab management reminder (19/12/2025 – 26/12/2025)'
-16/12/2025 11:09:39 - [Main] Checking Outlook Sent Items for email with subject: Lab management reminder (19/12/2025 – 26/12/2025)
-16/12/2025 11:09:39 - [Main] Confirmed email with subject 'Lab management reminder (19/12/2025 – 26/12/2025)' in Sent Items.
-16/12/2025 11:09:39 - [Main] EmailExists('Lab management reminder (19/12/2025 – 26/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 11:09:39 - [Main] Skipping lab manager reminder because Sent Items already contain subject 'Lab management reminder (19/12/2025 – 26/12/2025)'.
-16/12/2025 11:09:39 - [Main] [VERBOSE] BuildMeetingSubject invoked
-16/12/2025 11:09:39 - [Main] Regular meeting email already exists. Skipping dispatch for subject: ABT group meeting @ 11am (19/12/2025)
-16/12/2025 11:09:39 - [Main] [VERBOSE] CloseMeetingWorkbook invoked
-16/12/2025 11:09:40 - [Main] Coordinator routine completed and Excel resources released.
-16/12/2025 11:09:40 - [Main] [VERBOSE] CleanupSyncedWorkbook invoked
-16/12/2025 11:09:40 - [Main] Deleting local Excel file after sync: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-16/12/2025 11:09:40 - [Main] === Script execution completed ===
-16/12/2025 12:44:46 - [Main] Continuing existing weekly log: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-16/12/2025 12:44:46 - [Main] [VERBOSE] InitializeLogging invoked
-16/12/2025 12:44:46 - [Main] === Script execution started ===
-16/12/2025 12:44:46 - [Main] Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-16/12/2025 12:44:46 - [Main] [VERBOSE] SyncMeetingWorkbook invoked
-16/12/2025 12:44:46 - [Main] Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
-16/12/2025 12:44:49 - [Main] rclone command completed with exit code: 0
-16/12/2025 12:44:49 - [Main] [VERBOSE] InitializeOutlook invoked
-16/12/2025 12:44:49 - [Main] Outlook application created successfully.
-16/12/2025 12:44:49 - [Main] Obtained Outlook namespace for MAPI.
-16/12/2025 12:44:49 - [Main] Invoking Coordinator routine
-16/12/2025 12:44:49 - [Main] [VERBOSE] Coordinator invoked
-16/12/2025 12:44:49 - [Main] Coordinator routine started
-16/12/2025 12:44:49 - [Main] [VERBOSE] PopulateFridayDates invoked
-16/12/2025 12:44:49 - [Main] Computed Fridays | This: 19/12/2025 | Next: 26/12/2025 | Next+1: 02/01/2026
-16/12/2025 12:44:50 - [Main] [VERBOSE] BuildMeetingSubject invoked
-16/12/2025 12:44:50 - [Main] [VERBOSE] EmailExists invoked for subject='ABT group meeting @ 11am (19/12/2025)'
-16/12/2025 12:44:50 - [Main] Checking Outlook Sent Items for email with subject: ABT group meeting @ 11am (19/12/2025)
-16/12/2025 12:44:50 - [Main] Confirmed email with subject 'ABT group meeting @ 11am (19/12/2025)' in Sent Items.
-16/12/2025 12:44:50 - [Main] EmailExists('ABT group meeting @ 11am (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 12:44:50 - [Main] Existing meeting email detected in Sent Items. Regular message will be skipped, reminders will still be evaluated.
-16/12/2025 12:44:50 - [Main] [VERBOSE] LoadMeetingWorkbook invoked
-16/12/2025 12:44:54 - [Main] Excel application created successfully.
-16/12/2025 12:44:56 - [Main] Workbook opened: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-16/12/2025 12:44:56 - [Main] Sheets obtained: Rota and Emails
-16/12/2025 12:44:57 - [Main] [VERBOSE] LocateMeetingRows invoked
-16/12/2025 12:44:57 - [Main] Scanning rota sheet up to row: 721
-16/12/2025 12:45:01 - [Main] Rota rows located | This: 14 | Next: 15 | Next+1: 16
-16/12/2025 12:45:01 - [Main] [VERBOSE] EvaluateCriticalWindows invoked
-16/12/2025 12:45:01 - [Main] Row 14 data | Lit:  | Res:  | Alt: general discussion | Room: G25 (MSRH)
-16/12/2025 12:45:01 - [Main] Row 15 data | Lit:  | Res:  | Alt: college closure | Room: 
-16/12/2025 12:45:01 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-16/12/2025 12:45:01 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 26/12/2025'
-16/12/2025 12:45:01 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 26/12/2025
-16/12/2025 12:45:14 - [Main] Email with subject 'ALERT: MissingRoom for 26/12/2025' not found in Inbox prior to action.
-16/12/2025 12:45:14 - [Main] EmailExists('ALERT: MissingRoom for 26/12/2025', folder=Inbox, checkOnly=False) result: False
-16/12/2025 12:45:14 - [Main] Dispatching alert email | Type: MissingRoom | Date: 26/12/2025 | Recipient: i.gomezvilchis@imperial.ac.uk
-16/12/2025 12:45:14 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-16/12/2025 12:45:14 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-16/12/2025 12:45:15 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 26/12/2025 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-16/12/2025 12:45:15 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 26/12/2025
-16/12/2025 12:45:15 - [Main] Row 16 data | Lit:  | Res:  | Alt: college closure | Room: 
-16/12/2025 12:45:15 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-16/12/2025 12:45:15 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 02/01/2026'
-16/12/2025 12:45:15 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 02/01/2026
-16/12/2025 12:45:27 - [Main] Email with subject 'ALERT: MissingRoom for 02/01/2026' not found in Inbox prior to action.
-16/12/2025 12:45:27 - [Main] EmailExists('ALERT: MissingRoom for 02/01/2026', folder=Inbox, checkOnly=False) result: False
-16/12/2025 12:45:27 - [Main] Dispatching alert email | Type: MissingRoom | Date: 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk
-16/12/2025 12:45:27 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-16/12/2025 12:45:27 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-16/12/2025 12:45:27 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-16/12/2025 12:45:28 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 02/01/2026
-16/12/2025 12:45:28 - [Main] [VERBOSE] HandleCommunications invoked
-16/12/2025 12:45:28 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
-16/12/2025 12:45:28 - [Main] Derived meeting lead as 'Yilyu Qi' for meeting date 19/12/2025
-16/12/2025 12:45:28 - [Main] [VERBOSE] TriggerReminderEmails invoked
-16/12/2025 12:45:28 - [Main] Triggering reminder workflow for meeting date 19/12/2025
-16/12/2025 12:45:28 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-16/12/2025 12:45:28 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 12:45:28 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 12:45:28 - [Main] Falling back to manager email for ''
-16/12/2025 12:45:28 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-16/12/2025 12:45:28 - [Main] [VERBOSE] EmailExists invoked for subject='Literature presentation reminder (19/12/2025)'
-16/12/2025 12:45:28 - [Main] Checking Outlook Sent Items for email with subject: Literature presentation reminder (19/12/2025)
-16/12/2025 12:45:29 - [Main] Confirmed email with subject 'Literature presentation reminder (19/12/2025)' in Sent Items.
-16/12/2025 12:45:29 - [Main] EmailExists('Literature presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 12:45:29 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Literature presentation reminder (19/12/2025)'.
-16/12/2025 12:45:29 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-16/12/2025 12:45:29 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 12:45:29 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 12:45:29 - [Main] Falling back to manager email for ''
-16/12/2025 12:45:29 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-16/12/2025 12:45:29 - [Main] [VERBOSE] EmailExists invoked for subject='Results presentation reminder (19/12/2025)'
-16/12/2025 12:45:29 - [Main] Checking Outlook Sent Items for email with subject: Results presentation reminder (19/12/2025)
-16/12/2025 12:45:29 - [Main] Confirmed email with subject 'Results presentation reminder (19/12/2025)' in Sent Items.
-16/12/2025 12:45:29 - [Main] EmailExists('Results presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 12:45:29 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Results presentation reminder (19/12/2025)'.
-16/12/2025 12:45:29 - [Main] [VERBOSE] MaybeSendMeetingLeadReminder invoked for meeting lead='Yilyu Qi'
-16/12/2025 12:45:29 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='Yilyu Qi'
-16/12/2025 12:45:30 - [Main] [VERBOSE] GetExactEmail invoked with searchName='Yilyu Qi'
-16/12/2025 12:45:30 - [Main] Resolved exact email for 'Yilyu Qi': y.qi24@imperial.ac.uk
-16/12/2025 12:45:30 - [Main] [VERBOSE] BuildMeetingLeadReminderSubject invoked
-16/12/2025 12:45:30 - [Main] [VERBOSE] EmailExists invoked for subject='Meeting lead reminder (19/12/2025)'
-16/12/2025 12:45:30 - [Main] Checking Outlook Sent Items for email with subject: Meeting lead reminder (19/12/2025)
-16/12/2025 12:45:30 - [Main] Confirmed email with subject 'Meeting lead reminder (19/12/2025)' in Sent Items.
-16/12/2025 12:45:30 - [Main] EmailExists('Meeting lead reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 12:45:30 - [Main] Skipping meeting lead reminder because Sent Items already contain subject 'Meeting lead reminder (19/12/2025)'.
-16/12/2025 12:45:30 - [Main] [VERBOSE] MaybeSendLabManagerReminder invoked for manager=''
-16/12/2025 12:45:30 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 12:45:30 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 12:45:30 - [Main] Falling back to manager email for ''
-16/12/2025 12:45:31 - [Main] [VERBOSE] BuildLabManagerReminderSubject invoked
-16/12/2025 12:45:31 - [Main] [VERBOSE] EmailExists invoked for subject='Lab management reminder (19/12/2025 – 26/12/2025)'
-16/12/2025 12:45:31 - [Main] Checking Outlook Sent Items for email with subject: Lab management reminder (19/12/2025 – 26/12/2025)
-16/12/2025 12:45:31 - [Main] Confirmed email with subject 'Lab management reminder (19/12/2025 – 26/12/2025)' in Sent Items.
-16/12/2025 12:45:31 - [Main] EmailExists('Lab management reminder (19/12/2025 – 26/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 12:45:31 - [Main] Skipping lab manager reminder because Sent Items already contain subject 'Lab management reminder (19/12/2025 – 26/12/2025)'.
-16/12/2025 12:45:31 - [Main] [VERBOSE] BuildMeetingSubject invoked
-16/12/2025 12:45:31 - [Main] Regular meeting email already exists. Skipping dispatch for subject: ABT group meeting @ 11am (19/12/2025)
-16/12/2025 12:45:31 - [Main] [VERBOSE] CloseMeetingWorkbook invoked
-16/12/2025 12:45:32 - [Main] Coordinator routine completed and Excel resources released.
-16/12/2025 12:45:32 - [Main] [VERBOSE] CleanupSyncedWorkbook invoked
-16/12/2025 12:45:32 - [Main] Deleting local Excel file after sync: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-16/12/2025 12:45:32 - [Main] === Script execution completed ===
-16/12/2025 15:07:45 - [Main] Continuing existing weekly log: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-16/12/2025 15:07:45 - [Main] [VERBOSE] InitializeLogging invoked
-16/12/2025 15:07:45 - [Main] === Script execution started ===
-16/12/2025 15:07:45 - [Main] Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
-16/12/2025 15:07:45 - [Main] [VERBOSE] SyncMeetingWorkbook invoked
-16/12/2025 15:07:45 - [Main] Executing rclone command: C:\rclone\rclone.exe copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
-16/12/2025 15:07:49 - [Main] rclone command completed with exit code: 0
-16/12/2025 15:07:49 - [Main] [VERBOSE] InitializeOutlook invoked
-16/12/2025 15:07:49 - [Main] Outlook application created successfully.
-16/12/2025 15:07:49 - [Main] Obtained Outlook namespace for MAPI.
-16/12/2025 15:07:49 - [Main] Invoking Coordinator routine
-16/12/2025 15:07:49 - [Main] [VERBOSE] Coordinator invoked
-16/12/2025 15:07:49 - [Main] Coordinator routine started
-16/12/2025 15:07:50 - [Main] [VERBOSE] PopulateFridayDates invoked
-16/12/2025 15:07:50 - [Main] Computed Fridays | This: 19/12/2025 | Next: 26/12/2025 | Next+1: 02/01/2026
-16/12/2025 15:07:50 - [Main] [VERBOSE] BuildMeetingSubject invoked
-16/12/2025 15:07:50 - [Main] [VERBOSE] EmailExists invoked for subject='ABT group meeting @ 11am (19/12/2025)'
-16/12/2025 15:07:50 - [Main] Checking Outlook Sent Items for email with subject: ABT group meeting @ 11am (19/12/2025)
-16/12/2025 15:07:51 - [Main] Confirmed email with subject 'ABT group meeting @ 11am (19/12/2025)' in Sent Items.
-16/12/2025 15:07:51 - [Main] EmailExists('ABT group meeting @ 11am (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 15:07:51 - [Main] Existing meeting email detected in Sent Items. Regular message will be skipped, reminders will still be evaluated.
-16/12/2025 15:07:51 - [Main] [VERBOSE] LoadMeetingWorkbook invoked
-16/12/2025 15:07:54 - [Main] Excel application created successfully.
-16/12/2025 15:07:54 - [Main] Workbook opened: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-16/12/2025 15:07:54 - [Main] Sheets obtained: Rota and Emails
-16/12/2025 15:07:55 - [Main] [VERBOSE] LocateMeetingRows invoked
-16/12/2025 15:07:55 - [Main] Scanning rota sheet up to row: 721
-16/12/2025 15:08:00 - [Main] Rota rows located | This: 14 | Next: 15 | Next+1: 16
-16/12/2025 15:08:00 - [Main] [VERBOSE] EvaluateCriticalWindows invoked
-16/12/2025 15:08:00 - [Main] Row 14 data | Lit:  | Res:  | Alt: general discussion | Room: G25 (MSRH)
-16/12/2025 15:08:00 - [Main] Row 15 data | Lit:  | Res:  | Alt: college closure | Room: 
-16/12/2025 15:08:00 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-16/12/2025 15:08:00 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 26/12/2025'
-16/12/2025 15:08:00 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 26/12/2025
-16/12/2025 15:09:18 - [Main] Email with subject 'ALERT: MissingRoom for 26/12/2025' not found in Inbox prior to action.
-16/12/2025 15:09:18 - [Main] EmailExists('ALERT: MissingRoom for 26/12/2025', folder=Inbox, checkOnly=False) result: False
-16/12/2025 15:09:18 - [Main] Dispatching alert email | Type: MissingRoom | Date: 26/12/2025 | Recipient: i.gomezvilchis@imperial.ac.uk
-16/12/2025 15:09:18 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-16/12/2025 15:09:18 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-16/12/2025 15:09:18 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 26/12/2025 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-16/12/2025 15:09:18 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 26/12/2025
-16/12/2025 15:09:19 - [Main] Row 16 data | Lit:  | Res:  | Alt: college closure | Room: 
-16/12/2025 15:09:19 - [Main] [VERBOSE] SendCriticalAlert invoked for alertType='MissingRoom'
-16/12/2025 15:09:19 - [Main] [VERBOSE] EmailExists invoked for subject='ALERT: MissingRoom for 02/01/2026'
-16/12/2025 15:09:19 - [Main] Checking Outlook Inbox for email with subject: ALERT: MissingRoom for 02/01/2026
-16/12/2025 15:10:24 - [Main] Email with subject 'ALERT: MissingRoom for 02/01/2026' not found in Inbox prior to action.
-16/12/2025 15:10:24 - [Main] EmailExists('ALERT: MissingRoom for 02/01/2026', folder=Inbox, checkOnly=False) result: False
-16/12/2025 15:10:24 - [Main] Dispatching alert email | Type: MissingRoom | Date: 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk
-16/12/2025 15:10:24 - [Main] [VERBOSE] GenerateEmailAlert invoked for alertType='MissingRoom'
-16/12/2025 15:10:25 - [Main] [VERBOSE] AlertEmailWithAttachment invoked to='i.gomezvilchis@imperial.ac.uk' with attachment=''
-16/12/2025 15:10:25 - [Main] Preparing alert email with attachment. Subject: ALERT: MissingRoom for 02/01/2026 | Recipient: i.gomezvilchis@imperial.ac.uk | Attachment: 
-16/12/2025 15:10:25 - [Main] Sending alert email with attachment to i.gomezvilchis@imperial.ac.uk with subject: ALERT: MissingRoom for 02/01/2026
-16/12/2025 15:10:25 - [Main] [VERBOSE] HandleCommunications invoked
-16/12/2025 15:10:25 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
-16/12/2025 15:10:25 - [Main] Derived meeting lead as 'Yilyu Qi' for meeting date 19/12/2025
-16/12/2025 15:10:26 - [Main] [VERBOSE] TriggerReminderEmails invoked
-16/12/2025 15:10:26 - [Main] Triggering reminder workflow for meeting date 19/12/2025
-16/12/2025 15:10:26 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-16/12/2025 15:10:26 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 15:10:26 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 15:10:26 - [Main] Falling back to manager email for ''
-16/12/2025 15:10:26 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-16/12/2025 15:10:26 - [Main] [VERBOSE] EmailExists invoked for subject='Literature presentation reminder (19/12/2025)'
-16/12/2025 15:10:26 - [Main] Checking Outlook Sent Items for email with subject: Literature presentation reminder (19/12/2025)
-16/12/2025 15:10:27 - [Main] Confirmed email with subject 'Literature presentation reminder (19/12/2025)' in Sent Items.
-16/12/2025 15:10:27 - [Main] EmailExists('Literature presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 15:10:27 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Literature presentation reminder (19/12/2025)'.
-16/12/2025 15:10:27 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter=''
-16/12/2025 15:10:27 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 15:10:27 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 15:10:27 - [Main] Falling back to manager email for ''
-16/12/2025 15:10:28 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
-16/12/2025 15:10:28 - [Main] [VERBOSE] EmailExists invoked for subject='Results presentation reminder (19/12/2025)'
-16/12/2025 15:10:28 - [Main] Checking Outlook Sent Items for email with subject: Results presentation reminder (19/12/2025)
-16/12/2025 15:10:28 - [Main] Confirmed email with subject 'Results presentation reminder (19/12/2025)' in Sent Items.
-16/12/2025 15:10:28 - [Main] EmailExists('Results presentation reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 15:10:28 - [Main] Skipping presenter reminder because Sent Items already contain subject 'Results presentation reminder (19/12/2025)'.
-16/12/2025 15:10:28 - [Main] [VERBOSE] MaybeSendMeetingLeadReminder invoked for meeting lead='Yilyu Qi'
-16/12/2025 15:10:29 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='Yilyu Qi'
-16/12/2025 15:10:29 - [Main] [VERBOSE] GetExactEmail invoked with searchName='Yilyu Qi'
-16/12/2025 15:10:29 - [Main] Resolved exact email for 'Yilyu Qi': y.qi24@imperial.ac.uk
-16/12/2025 15:10:29 - [Main] [VERBOSE] BuildMeetingLeadReminderSubject invoked
-16/12/2025 15:10:29 - [Main] [VERBOSE] EmailExists invoked for subject='Meeting lead reminder (19/12/2025)'
-16/12/2025 15:10:29 - [Main] Checking Outlook Sent Items for email with subject: Meeting lead reminder (19/12/2025)
-16/12/2025 15:10:30 - [Main] Confirmed email with subject 'Meeting lead reminder (19/12/2025)' in Sent Items.
-16/12/2025 15:10:30 - [Main] EmailExists('Meeting lead reminder (19/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 15:10:30 - [Main] Skipping meeting lead reminder because Sent Items already contain subject 'Meeting lead reminder (19/12/2025)'.
-16/12/2025 15:10:30 - [Main] [VERBOSE] MaybeSendLabManagerReminder invoked for manager=''
-16/12/2025 15:10:30 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person=''
-16/12/2025 15:10:30 - [Main] [VERBOSE] GetExactEmail invoked with searchName=''
-16/12/2025 15:10:30 - [Main] Falling back to manager email for ''
-16/12/2025 15:10:30 - [Main] [VERBOSE] BuildLabManagerReminderSubject invoked
-16/12/2025 15:10:30 - [Main] [VERBOSE] EmailExists invoked for subject='Lab management reminder (19/12/2025 – 26/12/2025)'
-16/12/2025 15:10:31 - [Main] Checking Outlook Sent Items for email with subject: Lab management reminder (19/12/2025 – 26/12/2025)
-16/12/2025 15:10:31 - [Main] Confirmed email with subject 'Lab management reminder (19/12/2025 – 26/12/2025)' in Sent Items.
-16/12/2025 15:10:31 - [Main] EmailExists('Lab management reminder (19/12/2025 – 26/12/2025)', folder=Sent Items, checkOnly=True) result: True
-16/12/2025 15:10:31 - [Main] Skipping lab manager reminder because Sent Items already contain subject 'Lab management reminder (19/12/2025 – 26/12/2025)'.
-16/12/2025 15:10:31 - [Main] [VERBOSE] BuildMeetingSubject invoked
-16/12/2025 15:10:31 - [Main] Regular meeting email already exists. Skipping dispatch for subject: ABT group meeting @ 11am (19/12/2025)
-16/12/2025 15:10:31 - [Main] [VERBOSE] CloseMeetingWorkbook invoked
-16/12/2025 15:10:32 - [Main] Coordinator routine completed and Excel resources released.
-16/12/2025 15:10:32 - [Main] [VERBOSE] CleanupSyncedWorkbook invoked
-16/12/2025 15:10:32 - [Main] Deleting local Excel file after sync: C:\\Users\\giaco\\OneDrive - Imperial College London\\Work\\group_meetings\\meeting_rota.xlsx
-16/12/2025 15:10:32 - [Main] === Script execution completed ===
+16/11/2026 11:12:29 - [Main] Weekly log reset detected. Starting new log file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+16/11/2026 11:12:29 - [Main] [VERBOSE] InitializeLogging invoked
+16/11/2026 11:12:29 - [Main] === Script execution started ===
+16/11/2026 11:12:29 - [Main] Logging to file: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\group_meetings_manager.log
+16/11/2026 11:12:29 - [Main] [VERBOSE] SyncMeetingWorkbook invoked
+16/11/2026 11:12:29 - [Main] Executing rclone command: "C:\rclone\rclone.exe" copy "ABTsharepoint:/Group Meetings/meeting_rota.xlsx" "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings"
+16/11/2026 11:12:34 - [Main] rclone command completed with exit code: 0
+16/11/2026 11:12:34 - [Main] [VERBOSE] InitializeOutlook invoked
+16/11/2026 11:12:34 - [Main] Outlook application created successfully.
+16/11/2026 11:12:34 - [Main] Obtained Outlook namespace for MAPI.
+16/11/2026 11:12:34 - [Main] Invoking Coordinator routine
+16/11/2026 11:12:34 - [Main] [VERBOSE] Coordinator invoked
+16/11/2026 11:12:34 - [Main] Coordinator routine started
+16/11/2026 11:12:34 - [Main] [VERBOSE] PopulateFridayDates invoked
+16/11/2026 11:12:34 - [Main] Computed Fridays | This: 20/11/2026 | Next: 27/11/2026 | Next+1: 04/12/2026
+16/11/2026 11:12:34 - [Main] [VERBOSE] LoadMeetingWorkbook invoked
+16/11/2026 11:12:37 - [Main] Excel application created successfully.
+16/11/2026 11:12:39 - [Main] Workbook opened: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+16/11/2026 11:12:39 - [Main] Sheets obtained: Rota and Emails
+16/11/2026 11:12:39 - [Main] [VERBOSE] LocateMeetingRows invoked
+16/11/2026 11:12:39 - [Main] Scanning rota sheet up to row: 721
+16/11/2026 11:12:41 - [Main] Rota rows located | This: 62 | Next: 63 | Next+1: 64
+16/11/2026 11:12:41 - [Main] [VERBOSE] EvaluateCriticalWindows invoked
+16/11/2026 11:12:42 - [Main] Row 62 data | Lit: Robert Hunter | Res: DUAN, Kevin | Alt:  | Room: WCMUH 1204 (Uren)
+16/11/2026 11:12:42 - [Main] Row 63 data | Lit: Alkateb, Sham | Res: Chongbang, Jennifer | Alt:  | Room: B10 (MSRH)
+16/11/2026 11:12:42 - [Main] Row 64 data | Lit: Manomay Lala-Raykar | Res: Nurmuhammad, Naim I B | Alt:  | Room: WCMUH 1205 (Uren)
+16/11/2026 11:12:42 - [Main] [VERBOSE] HandleCommunications invoked
+16/11/2026 11:12:44 - [Main] Selected 5 inventory item(s) for review on 20/11/2026.
+16/11/2026 11:12:44 - [Main] [VERBOSE] TriggerReminderEmails invoked
+16/11/2026 11:12:44 - [Main] Triggering reminder workflow for meeting date 20/11/2026
+16/11/2026 11:12:44 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter='Robert Hunter'
+16/11/2026 11:12:44 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='Robert Hunter'
+16/11/2026 11:12:44 - [Main] [VERBOSE] GetExactEmail invoked with searchName='Robert Hunter'
+16/11/2026 11:12:44 - [Main] Resolved exact email for 'Robert Hunter': r.hunter@imperial.ac.uk
+16/11/2026 11:12:44 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
+16/11/2026 11:12:44 - [Main] Managed email key built: ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER
+16/11/2026 11:12:44 - [Main] [VERBOSE] GeneratePresenterReminderEmail invoked for presenter='Robert Hunter'
+16/11/2026 11:12:44 - [Main] Generating presenter reminder email | Presenter: Robert Hunter | Type: Literature
+16/11/2026 11:12:44 - [Main] Generated presenter reminder length: 8903
+16/11/2026 11:12:45 - [Main] [VERBOSE] DispatchReminderEmail invoked for subject='Literature presentation reminder (20/11/2026)'
+16/11/2026 11:12:45 - [Main] [VERBOSE] DispatchManagedEmail invoked for key='ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER'
+16/11/2026 11:12:45 - [Main] Preparing managed email | Key: ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER | Type: LITERATURE-REMINDER | Subject: Literature presentation reminder (20/11/2026) | To: r.hunter@imperial.ac.uk
+16/11/2026 11:12:45 - [Main] Outlook transport state [before managed dispatch ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER]: Offline=False | ExchangeConnectionMode=700 (olCachedConnectedFull) | offline/disconnected/auth-blocked suspected=False
+16/11/2026 11:12:45 - [Main] [VERBOSE] FindManagedEmailInFolder invoked for key='ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER'
+16/11/2026 11:12:45 - [Main] Searching Outlook Sent Items for managed email key: ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER
+16/11/2026 11:12:45 - [Main] Bounded Outlook Sent Items scan to newest 250 of 2246 item(s) for managed key 'ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER'.
+16/11/2026 11:12:45 - [Main] Sent Items already proves managed key 'ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER' exists; stopping scan after first match.
+16/11/2026 11:12:45 - [Main] Sent Items search result for managed key 'ABT-GROUP-MEETING|2026-11-20|LITERATURE-REMINDER': 1 match(es).
+16/11/2026 11:12:45 - [Main] Queue decision: ALREADY_SENT
+16/11/2026 11:12:45 - [Main] Reason for decision: Matching managed email exists in Sent Items. Do not recreate or resend.
+16/11/2026 11:12:45 - [Main] [VERBOSE] MaybeSendPresenterReminder invoked for presenter='DUAN, Kevin'
+16/11/2026 11:12:45 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='DUAN, Kevin'
+16/11/2026 11:12:45 - [Main] [VERBOSE] GetExactEmail invoked with searchName='DUAN, Kevin'
+16/11/2026 11:12:45 - [Main] Resolved exact email for 'DUAN, Kevin': k.duan26@imperial.ac.uk
+16/11/2026 11:12:46 - [Main] [VERBOSE] BuildPresenterReminderSubject invoked
+16/11/2026 11:12:46 - [Main] Managed email key built: ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER
+16/11/2026 11:12:46 - [Main] [VERBOSE] GeneratePresenterReminderEmail invoked for presenter='DUAN, Kevin'
+16/11/2026 11:12:46 - [Main] Generating presenter reminder email | Presenter: DUAN, Kevin | Type: Results
+16/11/2026 11:12:46 - [Main] Generated presenter reminder length: 7497
+16/11/2026 11:12:46 - [Main] [VERBOSE] DispatchReminderEmail invoked for subject='Results presentation reminder (20/11/2026)'
+16/11/2026 11:12:46 - [Main] [VERBOSE] DispatchManagedEmail invoked for key='ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER'
+16/11/2026 11:12:46 - [Main] Preparing managed email | Key: ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER | Type: RESULTS-REMINDER | Subject: Results presentation reminder (20/11/2026) | To: k.duan26@imperial.ac.uk
+16/11/2026 11:12:46 - [Main] Outlook transport state [before managed dispatch ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER]: Offline=False | ExchangeConnectionMode=700 (olCachedConnectedFull) | offline/disconnected/auth-blocked suspected=False
+16/11/2026 11:12:46 - [Main] [VERBOSE] FindManagedEmailInFolder invoked for key='ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER'
+16/11/2026 11:12:46 - [Main] Searching Outlook Sent Items for managed email key: ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER
+16/11/2026 11:12:46 - [Main] Bounded Outlook Sent Items scan to newest 250 of 2246 item(s) for managed key 'ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER'.
+16/11/2026 11:12:46 - [Main] Sent Items already proves managed key 'ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER' exists; stopping scan after first match.
+16/11/2026 11:12:46 - [Main] Sent Items search result for managed key 'ABT-GROUP-MEETING|2026-11-20|RESULTS-REMINDER': 1 match(es).
+16/11/2026 11:12:46 - [Main] Queue decision: ALREADY_SENT
+16/11/2026 11:12:46 - [Main] Reason for decision: Matching managed email exists in Sent Items. Do not recreate or resend.
+16/11/2026 11:12:46 - [Main] [VERBOSE] MaybeSendWeeklyResponsibilityReminder invoked for manager='Enny Tran'
+16/11/2026 11:12:47 - [Main] [VERBOSE] ResolveEmailOrManager invoked for person='Enny Tran'
+16/11/2026 11:12:47 - [Main] [VERBOSE] GetExactEmail invoked with searchName='Enny Tran'
+16/11/2026 11:12:47 - [Main] Resolved exact email for 'Enny Tran': enny.tran18@imperial.ac.uk
+16/11/2026 11:12:47 - [Main] [VERBOSE] BuildWeeklyResponsibilityReminderSubject invoked
+16/11/2026 11:12:47 - [Main] Managed email key built: ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER
+16/11/2026 11:12:47 - [Main] [VERBOSE] GenerateWeeklyResponsibilityReminderEmail invoked for responsible='Enny Tran'
+16/11/2026 11:12:47 - [Main] Generated weekly responsibility reminder length: 22925
+16/11/2026 11:12:47 - [Main] [VERBOSE] DispatchReminderEmailWithCc invoked for subject='Weekly lab, meeting, and inventory responsibilities (16/11/2026 – 20/11/2026)'
+16/11/2026 11:12:47 - [Main] [VERBOSE] DispatchManagedEmail invoked for key='ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER'
+16/11/2026 11:12:47 - [Main] Preparing managed email | Key: ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER | Type: LAB-MANAGER-REMINDER | Subject: Weekly lab, meeting, and inventory responsibilities (16/11/2026 – 20/11/2026) | To: enny.tran18@imperial.ac.uk | Cc: y.qi24@imperial.ac.uk
+16/11/2026 11:12:47 - [Main] Outlook transport state [before managed dispatch ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER]: Offline=False | ExchangeConnectionMode=700 (olCachedConnectedFull) | offline/disconnected/auth-blocked suspected=False
+16/11/2026 11:12:47 - [Main] [VERBOSE] FindManagedEmailInFolder invoked for key='ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER'
+16/11/2026 11:12:47 - [Main] Searching Outlook Sent Items for managed email key: ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER
+16/11/2026 11:12:47 - [Main] Bounded Outlook Sent Items scan to newest 250 of 2246 item(s) for managed key 'ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER'.
+16/11/2026 11:12:47 - [Main] Sent Items already proves managed key 'ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER' exists; stopping scan after first match.
+16/11/2026 11:12:47 - [Main] Sent Items search result for managed key 'ABT-GROUP-MEETING|2026-11-20|LAB-MANAGER-REMINDER': 1 match(es).
+16/11/2026 11:12:47 - [Main] Queue decision: ALREADY_SENT
+16/11/2026 11:12:48 - [Main] Reason for decision: Matching managed email exists in Sent Items. Do not recreate or resend.
+16/11/2026 11:12:48 - [Main] Inventory review dates not stamped because weekly responsibility reminder dispatch status was 'ALREADY_SENT'.
+16/11/2026 11:12:48 - [Main] [VERBOSE] MaybeSendSameDayMeetingReminder invoked
+16/11/2026 11:12:48 - [Main] Skipping same-day meeting reminder because it is not the meeting day before 11:00.
+16/11/2026 11:12:48 - [Main] [VERBOSE] BuildGroupEmailSubject invoked
+16/11/2026 11:12:48 - [Main] [VERBOSE] BuildMeetingSubject invoked
+16/11/2026 11:12:48 - [Main] [VERBOSE] GenerateEmailContent invoked for row 62
+16/11/2026 11:12:48 - [Main] Generating main email content for date 20/11/2026 | Row: 62 | Lit: Robert Hunter | Res: DUAN, Kevin | Alt:  | Room: WCMUH 1204 (Uren)
+16/11/2026 11:12:48 - [Main] Next Friday presenters found | Row: 63 | Lit: Alkateb, Sham | Res: Chongbang, Jennifer | Alt: 
+16/11/2026 11:12:48 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
+16/11/2026 11:12:48 - [Main] Derived meeting lead as current lab responsible 'Enny Tran' for meeting date 20/11/2026
+16/11/2026 11:12:48 - [Main] [VERBOSE] DeriveMeetingLeadName invoked
+16/11/2026 11:12:49 - [Main] Derived meeting lead as current lab responsible 'Chongbang, Jennifer' for meeting date 27/11/2026
+16/11/2026 11:12:49 - [Main] Generated email body length: 8599
+16/11/2026 11:12:49 - [Main] Dispatching regular meeting email for 20/11/2026
+16/11/2026 11:12:49 - [Main] [VERBOSE] DistributeEmail invoked with subject='Group Meeting · Friday 20/11/2026 · 11:00 · WCMUH 1204 (Uren)'
+16/11/2026 11:12:49 - [Main] Preparing regular meeting email with subject: Group Meeting · Friday 20/11/2026 · 11:00 · WCMUH 1204 (Uren)
+16/11/2026 11:12:49 - [Main] Managed email key built: ABT-GROUP-MEETING|2026-11-20|REGULAR
+16/11/2026 11:12:49 - [Main] [VERBOSE] DispatchManagedEmail invoked for key='ABT-GROUP-MEETING|2026-11-20|REGULAR'
+16/11/2026 11:12:49 - [Main] Preparing managed email | Key: ABT-GROUP-MEETING|2026-11-20|REGULAR | Type: REGULAR | Subject: Group Meeting · Friday 20/11/2026 · 11:00 · WCMUH 1204 (Uren) | To: brandt-talbot-group@imperial.ac.uk
+16/11/2026 11:12:49 - [Main] Outlook transport state [before managed dispatch ABT-GROUP-MEETING|2026-11-20|REGULAR]: Offline=False | ExchangeConnectionMode=700 (olCachedConnectedFull) | offline/disconnected/auth-blocked suspected=False
+16/11/2026 11:12:49 - [Main] [VERBOSE] FindManagedEmailInFolder invoked for key='ABT-GROUP-MEETING|2026-11-20|REGULAR'
+16/11/2026 11:12:49 - [Main] Searching Outlook Sent Items for managed email key: ABT-GROUP-MEETING|2026-11-20|REGULAR
+16/11/2026 11:12:49 - [Main] Bounded Outlook Sent Items scan to newest 250 of 2246 item(s) for managed key 'ABT-GROUP-MEETING|2026-11-20|REGULAR'.
+16/11/2026 11:12:49 - [Main] Sent Items already proves managed key 'ABT-GROUP-MEETING|2026-11-20|REGULAR' exists; stopping scan after first match.
+16/11/2026 11:12:49 - [Main] Sent Items search result for managed key 'ABT-GROUP-MEETING|2026-11-20|REGULAR': 1 match(es).
+16/11/2026 11:12:49 - [Main] Queue decision: ALREADY_SENT
+16/11/2026 11:12:49 - [Main] Reason for decision: Matching managed email exists in Sent Items. Do not recreate or resend.
+16/11/2026 11:12:49 - [Main] [VERBOSE] CloseMeetingWorkbook invoked
+16/11/2026 11:12:50 - [Main] Coordinator routine completed and Excel resources released.
+16/11/2026 11:12:50 - [Main] [VERBOSE] CleanupSyncedWorkbook invoked
+16/11/2026 11:12:50 - [Main] Deleting local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+16/11/2026 11:12:50 - [Main] Deleted local Excel file after sync: C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx
+16/11/2026 11:12:50 - [Main] === Script execution completed ===

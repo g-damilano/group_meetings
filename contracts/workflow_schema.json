@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Office Communication Workflow Contract",
+  "type": "object",
+  "required": ["workflow_name", "messages"],
+  "properties": {
+    "workflow_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/message_spec"
+      }
+    }
+  },
+  "$defs": {
+    "message_spec": {
+      "type": "object",
+      "required": ["message_key", "message_type", "to", "subject"],
+      "properties": {
+        "message_key": {"type": "string"},
+        "message_type": {"type": "string"},
+        "to": {"type": "string"},
+        "cc": {"type": "string"},
+        "bcc": {"type": "string"},
+        "subject": {"type": "string"},
+        "body_text": {"type": "string"},
+        "body_html": {"type": "string"},
+        "delivery_policy": {
+          "type": "string",
+          "enum": ["display", "draft", "send", "save"]
+        },
+        "urgent_verify_after_submit": {"type": "boolean"},
+        "attachments": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

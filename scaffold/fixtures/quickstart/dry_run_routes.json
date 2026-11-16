@@ -1,0 +1,110 @@
+{
+  "schema": "office-communication-scaffold.quickstart-routes.v1",
+  "report_only": true,
+  "mutations_performed": false,
+  "real_email_sending_performed": false,
+  "description": "Public-safe root Scaffold.vbs quickstart routes for dry-run and report-only validation.",
+  "routes": [
+    {
+      "name": "help",
+      "command": [
+        "help"
+      ],
+      "expected_exit_code": 0,
+      "expected_output_contains": [
+        "Usage:",
+        "group-meetings",
+        "induction",
+        "watchdog",
+        "Exit codes:"
+      ]
+    },
+    {
+      "name": "validate",
+      "command": [
+        "validate"
+      ],
+      "expected_exit_code": 0,
+      "expected_fields": {
+        "scaffold_command": "validate",
+        "route": "ValidateWorkflow.vbs"
+      },
+      "expected_output_contains": [
+        "Validation passed."
+      ]
+    },
+    {
+      "name": "group_meetings",
+      "command": [
+        "group-meetings",
+        "--dry-run",
+        "--input",
+        "examples/workbooks/group_meetings_rota_example.csv"
+      ],
+      "expected_exit_code": 0,
+      "expected_fields": {
+        "state": "COMPOSED",
+        "dry_run": "true"
+      },
+      "expected_count_field": "planned_count",
+      "expected_count_source": "group_meetings.first_route_planned_message_estimate"
+    },
+    {
+      "name": "induction",
+      "command": [
+        "induction",
+        "--dry-run",
+        "--recipients",
+        "examples/workbooks/induction_recipients_example.csv",
+        "--templates",
+        "examples/workbooks/induction_template_manifest_example.csv"
+      ],
+      "expected_exit_code": 0,
+      "expected_fields": {
+        "state": "COMPOSED",
+        "dry_run": "true"
+      },
+      "expected_count_field": "planned_count",
+      "expected_count_source": "induction.planned_message_estimate"
+    },
+    {
+      "name": "watchdog",
+      "command": [
+        "watchdog",
+        "--report-only"
+      ],
+      "expected_exit_code": 0,
+      "expected_fields": {
+        "state": "COMPOSED",
+        "report_only": "true",
+        "repair_actions_taken": "0"
+      }
+    }
+  ],
+  "blocked_routes": [
+    {
+      "name": "group_meetings_unsafe_send_blocked",
+      "command": [
+        "group-meetings",
+        "--send",
+        "--input",
+        "examples/workbooks/group_meetings_rota_example.csv"
+      ],
+      "expected_exit_code": 3,
+      "expected_fields": {
+        "state": "FAILED_SAFE"
+      }
+    },
+    {
+      "name": "watchdog_repair_blocked",
+      "command": [
+        "watchdog",
+        "--repair"
+      ],
+      "expected_exit_code": 3,
+      "expected_fields": {
+        "state": "FAILED_SAFE"
+      }
+    }
+  ]
+}

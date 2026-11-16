@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "induction-mailer"
+version = "0.1.0"
+description = "Outlook COM mail automation + template-driven induction mailer (ported from VBS)."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{name = "Giacomo Damilano"}]
+license = {text = "MIT"}
+dependencies = ["openpyxl>=3.1"]
+
+[project.optional-dependencies]
+outlook = ["pywin32>=305"]
+
+
+
+[project.scripts]
+induction-mailer = "induction_mailer.cli:main"
+gal-lookup = "induction_mailer.scripts.gal_lookup:main"
+directory-probe = "induction_mailer.scripts.directory_probe:main"
+group-meetings-manager = "induction_mailer.scripts.group_meetings_manager:main"
+validate-workflow-contracts = "induction_mailer.scripts.validate_workflow:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["induction_mailer*"]

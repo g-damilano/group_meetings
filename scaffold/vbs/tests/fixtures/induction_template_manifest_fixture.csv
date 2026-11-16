@@ -1,0 +1,4 @@
+template_id,mode,target_key,display_name,template_path,inline_image_folder,attachment_base_folder,attachments,cc,bcc,delivery_action,defer_minutes,urgent_verify_after_submit,enabled
+broadcast-overview,broadcast,overview,Overview broadcast,induction_templates/broadcast_overview.html,,induction_assets,overview.txt;setup checklist.txt,coordinator,,display,15,false,true
+personal-welcome,personal,welcome,Personal welcome,induction_templates/personal_welcome.html,induction_templates/personal_welcome.files,,,,,display,0,false,true
+disabled-template,broadcast,disabled,Disabled template,induction_templates/disabled_template.html,,,,,,display,0,false,false

@@ -1,0 +1,315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/office-communication-automation/workflow.schema.json",
+  "title": "Office Communication Automation Workflow Contract",
+  "type": "object",
+  "required": ["workflow_name", "messages"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string"
+    },
+    "workflow_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string"
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": true
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "workflow_context": {
+      "$ref": "#/$defs/workflow_context"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/message_spec"
+      }
+    },
+    "dispatch_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dispatch_result"
+      }
+    },
+    "health_report": {
+      "$ref": "#/$defs/health_report"
+    }
+  },
+  "$defs": {
+    "managed_email_key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Deterministic key in ORG|WORKFLOW|YYYY-MM-DD|MESSAGE-TYPE|TARGET form."
+    },
+    "workflow_context": {
+      "type": "object",
+      "required": ["workflow_name", "dry_run"],
+      "additionalProperties": true,
+      "properties": {
+        "workflow_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "dry_run": {
+          "type": "boolean",
+          "default": true
+        },
+        "logical_date": {
+          "type": "string"
+        },
+        "source_workbook": {
+          "type": "string"
+        },
+        "template_root": {
+          "type": "string"
+        },
+        "operator": {
+          "type": "string"
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "recipient_spec": {
+      "type": "object",
+      "required": ["raw_value", "resolution_status"],
+      "additionalProperties": true,
+      "properties": {
+        "raw_value": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "smtp_address": {
+          "type": "string"
+        },
+        "first_name": {
+          "type": "string"
+        },
+        "last_name": {
+          "type": "string"
+        },
+        "surname": {
+          "type": "string"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "name_parse_status": {
+          "enum": ["not_attempted", "parsed", "partial"]
+        },
+        "name_parse_source": {
+          "type": "string"
+        },
+        "name_parse_order": {
+          "enum": ["", "given-family", "family-given", "single-token"]
+        },
+        "resolution_status": {
+          "enum": ["direct", "resolved", "unresolved", "fallback"]
+        },
+        "directory_source": {
+          "type": "string"
+        },
+        "fallback_used": {
+          "type": "boolean"
+        }
+      }
+    },
+    "message_spec": {
+      "type": "object",
+      "required": ["message_key", "message_type", "to", "subject"],
+      "additionalProperties": true,
+      "properties": {
+        "message_key": {
+          "$ref": "#/$defs/managed_email_key"
+        },
+        "message_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string"
+        },
+        "cc": {
+          "type": "string"
+        },
+        "bcc": {
+          "type": "string"
+        },
+        "recipients": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "to": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/recipient_spec"
+              }
+            },
+            "cc": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/recipient_spec"
+              }
+            },
+            "bcc": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/recipient_spec"
+              }
+            }
+          }
+        },
+        "subject": {
+          "type": "string"
+        },
+        "body_text": {
+          "type": "string"
+        },
+        "body_html": {
+          "type": "string"
+        },
+        "inline_image_folder": {
+          "type": "string"
+        },
+        "delivery_policy": {
+          "$ref": "#/$defs/delivery_policy"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "object"
+        }
+      }
+    },
+    "dispatch_state": {
+      "enum": [
+        "NOT_REQUESTED",
+        "COMPOSED",
+        "DISPLAYED",
+        "DRAFTED",
+        "SEND_REQUESTED",
+        "QUEUED_OUTBOX",
+        "SENT_CONFIRMED",
+        "DUPLICATE_SUPPRESSED",
+        "WAITING_DEFERRED",
+        "BLOCKED_OFFLINE",
+        "BLOCKED_AUTH",
+        "STALE_MANAGED_OUTBOX",
+        "REPLACED_MANAGED_OUTBOX",
+        "ACTION_REQUIRED",
+        "FAILED_SAFE"
+      ]
+    },
+    "dispatch_result": {
+      "type": "object",
+      "required": ["state", "reason"],
+      "additionalProperties": true,
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/dispatch_state"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "managed_key": {
+          "$ref": "#/$defs/managed_email_key"
+        },
+        "folder": {
+          "type": "string"
+        },
+        "outlook_entry_id": {
+          "type": "string"
+        },
+        "action_required": {
+          "type": "boolean"
+        },
+        "created_new_mail": {
+          "type": "boolean"
+        },
+        "replaced_existing_mail": {
+          "type": "boolean"
+        },
+        "safe_to_retry": {
+          "type": "boolean"
+        }
+      }
+    },
+    "health_report": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "offline": {
+          "type": ["boolean", "string"]
+        },
+        "exchange_connection_mode": {
+          "type": ["integer", "string"]
+        },
+        "exchange_connection_mode_name": {
+          "type": "string"
+        },
+        "blocked_or_auth_suspected": {
+          "type": "boolean"
+        },
+        "outbox_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "managed_outbox_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unmanaged_outbox_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "action_required_messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dispatch_result"
+          }
+        }
+      }
+    },
+    "delivery_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": ["display", "draft", "save", "send"]
+        },
+        "defer_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "urgent_verify_after_submit": {
+          "type": "boolean"
+        },
+        "enable_stale_outbox_replacement": {
+          "type": "boolean"
+        },
+        "managed_dispatch_required": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

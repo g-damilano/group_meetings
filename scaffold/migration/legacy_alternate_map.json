@@ -1,0 +1,89 @@
+{
+  "schema": "office-communication-scaffold.legacy-alternate-map.v1",
+  "policy": {
+    "copying_into_scaffold_authorised": true,
+    "moving_legacy_files_allowed": false,
+    "outside_root_edits_allowed": false,
+    "raw_private_content_allowed": false,
+    "live_send_allowed": false,
+    "destructive_mailbox_actions_allowed": false
+  },
+  "entries": [
+    {
+      "legacy_path": "RunGroupMeetings.vbs",
+      "scaffold_path": "RunGroupMeetings.vbs",
+      "route_path": "vbs/entrypoints/run_group_meetings_dry_run.vbs",
+      "status": "ported_alternate",
+      "role": "production-shaped group meetings launcher",
+      "safety": "dry-run only; no Office COM ownership"
+    },
+    {
+      "legacy_path": "RunInductionMailer.vbs",
+      "scaffold_path": "RunInductionMailer.vbs",
+      "route_path": "vbs/entrypoints/run_induction_mailer_dry_run.vbs",
+      "status": "ported_alternate",
+      "role": "production-shaped induction mailer launcher",
+      "safety": "dry-run only; no Office COM ownership"
+    },
+    {
+      "legacy_path": "OutlookWatchdog.vbs",
+      "scaffold_path": "OutlookWatchdog.vbs",
+      "route_path": "vbs/entrypoints/run_watchdog_report_only.vbs",
+      "status": "ported_alternate",
+      "role": "production-shaped watchdog launcher",
+      "safety": "report-only by default; repair requests blocked at entrypoint"
+    },
+    {
+      "legacy_path": "ValidateWorkflow.vbs",
+      "scaffold_path": "ValidateWorkflow.vbs",
+      "route_path": "vbs/tests/ValidateScaffold.vbs",
+      "status": "ported_alternate",
+      "role": "production-shaped validation launcher",
+      "safety": "scaffold-local validation only"
+    },
+    {
+      "legacy_path": "utilities/bootstrap_entry.vbs",
+      "scaffold_path": "vbs/core/bootstrap.vbs",
+      "route_path": "vbs/entrypoints/scaffold_launcher.vbs",
+      "status": "behaviour_mapped",
+      "role": "module loading and wrapper dispatch",
+      "safety": "scaffold modules load from scaffold root only"
+    },
+    {
+      "legacy_path": "utilities/office_contracts.vbs",
+      "scaffold_path": "vbs/core/contracts.vbs",
+      "status": "behaviour_mapped",
+      "role": "shared contract helpers and dispatch states",
+      "safety": "canonical state names preserved with scaffold-specific managed key marker"
+    },
+    {
+      "legacy_path": "utilities/office_session.vbs",
+      "scaffold_path": "vbs/core/session.vbs",
+      "status": "behaviour_mapped",
+      "role": "Outlook and Excel session acquisition helpers",
+      "safety": "core-only Office session ownership"
+    },
+    {
+      "legacy_path": "utilities/office_managed_dispatch.vbs",
+      "scaffold_path": "vbs/core/managed_dispatch.vbs",
+      "route_path": "vbs/watchdog/managed_outbox_repair.vbs",
+      "status": "behaviour_mapped",
+      "role": "managed identity, dispatch state, and guarded repair",
+      "safety": "unmarked mail is never modified; repair is isolated to managed repair module"
+    },
+    {
+      "legacy_path": "utilities/office_logger.vbs",
+      "scaffold_path": "vbs/core/logger.vbs",
+      "status": "behaviour_mapped",
+      "role": "file logging and action-required reporting",
+      "safety": "uses caller-provided or temp log paths only"
+    },
+    {
+      "legacy_path": "utilities/office_health_diagnostics.vbs",
+      "scaffold_path": "vbs/core/health_diagnostics.vbs",
+      "status": "behaviour_mapped",
+      "role": "transport and outbox diagnostics",
+      "safety": "report-first diagnostics; no repair ownership"
+    }
+  ]
+}

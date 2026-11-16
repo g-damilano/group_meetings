@@ -58,6 +58,18 @@ Const HTML_HEADER_PREFIX = "<!--"
 Const HTML_HEADER_SUFFIX = "-->"
 Const DELIVERY_BROADCAST = "broadcast"
 Const DELIVERY_PERSONAL  = "personal"
+Const TASK_EMAILS = "emails"
+Const TASK_ROTA_PEOPLE = "rota_people"
+
+Const ROTA_RCLONE_EXE = "C:\rclone\rclone.exe"
+Const ROTA_REMOTE_WORKBOOK = "ABTsharepoint:/Group Meetings/meeting_rota.xlsx"
+Const ROTA_WORKBOOK_URL = "https://imperiallondon.sharepoint.com/sites/Brandt-TalbotGroup/Shared%20Documents/Group%20Meetings/meeting_rota.xlsx"
+Const ROTA_LOCAL_WORKBOOK = "C:\Users\giaco\OneDrive - Imperial College London\Work\group_meetings\meeting_rota.xlsx"
+Const ROTA_SHEET_EMAILS = "Emails"
+Const ROTA_PEOPLE_TABLE = "Table1"
+Const ROTA_RCLONE_DOWNLOAD_TIMEOUT_SECONDS = 120
+Const ROTA_RCLONE_UPLOAD_TIMEOUT_SECONDS = 180
+Const ROTA_RCLONE_STATUS_SECONDS = 10
 
 Dim fso, scriptFolder, templateFolder, logFilePath, linkMapContext
 
@@ -104,6 +116,37 @@ Sub Main()
   If Not EnsureConsoleHost() Then Exit Sub
 
   InitializeEnvironment
+
+  Dim workflowTask: workflowTask = PromptWorkflowTask()
+  If Len(workflowTask) = 0 Then
+    WScript.Echo "Operation cancelled."
+    Exit Sub
+  End If
+
+  If workflowTask = TASK_ROTA_PEOPLE Then
+    Dim rotaPrep: rotaPrep = PrepareMeetingRotaWorkbookForEdit()
+    If rotaPrep = "uploaded" Then
+      WScript.Echo "Pending local meeting rota workbook uploaded."
+      Exit Sub
+    End If
+    If rotaPrep <> "ready" Then
+      WScript.Echo "Meeting rota workbook was not prepared for editing."
+      Exit Sub
+    End If
+
+    Dim rotaRecipientPackage: Set rotaRecipientPackage = PromptRecipientResolutionPackage()
+    If Not HasRecipientResolutionEntries(rotaRecipientPackage) Then
+      WScript.Echo "No valid people supplied."
+      Exit Sub
+    End If
+
+    If AddRecipientsToMeetingRotaPeople(rotaRecipientPackage) Then
+      WScript.Echo "Meeting rota people sheet update completed."
+    Else
+      WScript.Echo "Meeting rota people sheet update did not complete. Check " & logFilePath & "."
+    End If
+    Exit Sub
+  End If
 
   If Not LoadMailerLibrary() Then
     LogEvent "Unable to load mail_utils_mailer_dynamiclinks.vbs"
@@ -156,6 +199,34 @@ End Sub
 Function PromptLine(prompt)
   WScript.StdOut.Write prompt
   PromptLine = Trim(WScript.StdIn.ReadLine())
+End Function
+
+Function PromptWorkflowTask()
+  WScript.Echo "Select the induction task:" & vbCrLf & _
+               "  1) Prepare induction email(s)" & vbCrLf & _
+               "  2) Add person to group meeting rota people sheet"
+  Dim task: task = TASK_EMAILS
+  Do
+    Dim choice: choice = PromptLine("Enter choice (1/2, default 1) or press Enter for emails: ")
+    If Len(choice) = 0 Then
+      task = TASK_EMAILS
+      Exit Do
+    End If
+    Select Case LCase(choice)
+      Case "1", "email", "emails"
+        task = TASK_EMAILS
+        Exit Do
+      Case "2", "rota", "people", "rota_people"
+        task = TASK_ROTA_PEOPLE
+        Exit Do
+      Case "q", "quit", "cancel"
+        task = ""
+        Exit Do
+      Case Else
+        WScript.Echo "Invalid option. Please choose 1 or 2."
+    End Select
+  Loop
+  PromptWorkflowTask = task
 End Function
 
 Function PromptOperationMode()
@@ -236,6 +307,1161 @@ Sub EnsureLinkMapAvailable(libraryPath)
   End If
   On Error GoTo 0
 End Sub
+
+'======================================================================
+' Group meeting rota people-sheet update
+'======================================================================
+Function PrepareMeetingRotaWorkbookForEdit()
+  PrepareMeetingRotaWorkbookForEdit = ""
+
+  If fso.FileExists(ROTA_LOCAL_WORKBOOK) Then
+    WScript.Echo "A local meeting_rota.xlsx already exists:"
+    WScript.Echo "  " & ROTA_LOCAL_WORKBOOK
+    WScript.Echo "It may contain a previous saved rota update that was not uploaded."
+    WScript.Echo "  1) Sync this local workbook to SharePoint now"
+    WScript.Echo "  2) Continue editing this local workbook"
+    WScript.Echo "  3) Back it up, then replace it with the latest SharePoint copy"
+    WScript.Echo "  4) Cancel"
+
+    Do
+      Dim choice: choice = PromptLine("Choose recovery option (1-4): ")
+      Select Case LCase(Trim(choice))
+        Case "1", "retry", "upload"
+          If UploadMeetingRotaWorkbookAfterEdit() Then
+            CleanupLocalRotaWorkbook True
+            PrepareMeetingRotaWorkbookForEdit = "uploaded"
+          Else
+            WScript.Echo "SharePoint sync failed. The local workbook was kept for recovery."
+          End If
+          Exit Function
+        Case "2", "continue", "local"
+          LogEvent "Operator chose to continue editing existing local rota workbook."
+          PrepareMeetingRotaWorkbookForEdit = "ready"
+          Exit Function
+        Case "3", "replace", "download"
+          If Not BackupLocalRotaWorkbook() Then Exit Function
+          If SyncMeetingRotaWorkbookForEdit() Then PrepareMeetingRotaWorkbookForEdit = "ready"
+          Exit Function
+        Case "4", "q", "quit", "cancel"
+          LogEvent "Operator cancelled rota workbook recovery prompt."
+          Exit Function
+        Case Else
+          WScript.Echo "Invalid option. Please choose 1, 2, 3, or 4."
+      End Select
+    Loop
+  End If
+
+  If SyncMeetingRotaWorkbookForEdit() Then PrepareMeetingRotaWorkbookForEdit = "ready"
+End Function
+
+Function BackupLocalRotaWorkbook()
+  BackupLocalRotaWorkbook = False
+  If Not fso.FileExists(ROTA_LOCAL_WORKBOOK) Then
+    BackupLocalRotaWorkbook = True
+    Exit Function
+  End If
+
+  Dim backupPath: backupPath = fso.BuildPath(scriptFolder, "meeting_rota_recovery_" & RotaTimestampForFile() & ".xlsx")
+  On Error Resume Next
+  fso.CopyFile ROTA_LOCAL_WORKBOOK, backupPath, True
+  If Err.Number <> 0 Then
+    WScript.Echo "Could not back up the existing local workbook:"
+    WScript.Echo "  " & Err.Description
+    LogEvent "ERROR: Failed to back up local rota workbook before replacement: " & Err.Description
+    Err.Clear
+    On Error GoTo 0
+    Exit Function
+  End If
+  On Error GoTo 0
+
+  WScript.Echo "Backed up existing local workbook to:"
+  WScript.Echo "  " & backupPath
+  LogEvent "Backed up local rota workbook before replacement: " & backupPath
+  BackupLocalRotaWorkbook = True
+End Function
+
+Function RotaTimestampForFile()
+  RotaTimestampForFile = _
+    CStr(Year(Now)) & _
+    Right("0" & Month(Now), 2) & _
+    Right("0" & Day(Now), 2) & "_" & _
+    Right("0" & Hour(Now), 2) & _
+    Right("0" & Minute(Now), 2) & _
+    Right("0" & Second(Now), 2)
+End Function
+
+Function AddRecipientsToMeetingRotaPeople(recipientPackage)
+  AddRecipientsToMeetingRotaPeople = False
+
+  Dim entries: entries = GetRecipientResolutionEntries(recipientPackage)
+  Dim entryUpper: entryUpper = GetRecipientResolutionArrayUpperBound(entries)
+  If entryUpper < 0 Then
+    WScript.Echo "No recipient entries were available for the rota update."
+    LogEvent "Rota people update aborted: no recipient entries."
+    Exit Function
+  End If
+
+  Dim objExcel, objWorkbook, objSheetEmails
+  Set objExcel = Nothing
+  Set objWorkbook = Nothing
+  Set objSheetEmails = Nothing
+
+  If Not OpenMeetingRotaWorkbookForEdit(objExcel, objWorkbook, objSheetEmails) Then
+    Exit Function
+  End If
+
+  Dim addedCount: addedCount = 0
+  Dim skippedCount: skippedCount = 0
+  Dim duplicateCount: duplicateCount = 0
+  Dim i
+
+  For i = 0 To entryUpper
+    Dim entry
+    Set entry = entries(i)
+    If entry Is Nothing Then
+      skippedCount = skippedCount + 1
+    Else
+      Dim person: Set person = BuildRotaPersonContext(entry)
+      If person Is Nothing Then
+        skippedCount = skippedCount + 1
+      ElseIf Not ConfirmRotaPerson(person) Then
+        skippedCount = skippedCount + 1
+        LogEvent "Rota people update skipped by operator for " & GetDictionaryValue(person, "FULL_NAME")
+      Else
+        Dim status: status = AppendRotaPersonIfMissing(objSheetEmails, person)
+        Select Case status
+          Case "added"
+            addedCount = addedCount + 1
+          Case "duplicate"
+            duplicateCount = duplicateCount + 1
+          Case Else
+            skippedCount = skippedCount + 1
+        End Select
+      End If
+    End If
+  Next
+
+  If addedCount > 0 Then
+    On Error Resume Next
+    objWorkbook.Save
+    If Err.Number <> 0 Then
+      LogEvent "ERROR: Failed to save meeting rota workbook: " & Err.Description
+      WScript.Echo "Could not save the local workbook copy. No upload was attempted."
+      Err.Clear
+      CloseMeetingRotaWorkbookForEdit objExcel, objWorkbook, objSheetEmails, False
+      On Error GoTo 0
+      Exit Function
+    End If
+    On Error GoTo 0
+    LogEvent "Saved meeting rota workbook after adding " & addedCount & " people."
+  Else
+    LogEvent "No new rota people rows added. Duplicates: " & duplicateCount & " | Skipped: " & skippedCount
+  End If
+
+  CloseMeetingRotaWorkbookForEdit objExcel, objWorkbook, objSheetEmails, False
+
+  If addedCount > 0 Then
+    If Not UploadMeetingRotaWorkbookAfterEdit() Then
+      WScript.Echo "The local workbook was saved, but SharePoint sync failed."
+      WScript.Echo "Close any open copy of meeting_rota.xlsx, then rerun this option and choose recovery option 1."
+      WScript.Echo "Local copy kept at: " & ROTA_LOCAL_WORKBOOK
+      Exit Function
+    End If
+    CleanupLocalRotaWorkbook True
+  End If
+
+  WScript.Echo "Added: " & addedCount & " | Already present: " & duplicateCount & " | Skipped: " & skippedCount
+  LogEvent "Rota people update completed. Added: " & addedCount & " | Duplicates: " & duplicateCount & " | Skipped: " & skippedCount
+  AddRecipientsToMeetingRotaPeople = True
+End Function
+
+Function SyncMeetingRotaWorkbookForEdit()
+  SyncMeetingRotaWorkbookForEdit = False
+
+  If Not fso.FileExists(ROTA_RCLONE_EXE) Then
+    WScript.Echo "rclone was not found at: " & ROTA_RCLONE_EXE
+    LogEvent "ERROR: rclone not found for rota workbook sync: " & ROTA_RCLONE_EXE
+    Exit Function
+  End If
+
+  Dim targetFolder: targetFolder = fso.GetParentFolderName(ROTA_LOCAL_WORKBOOK)
+  If Len(targetFolder) > 0 Then
+    If Not fso.FolderExists(targetFolder) Then fso.CreateFolder targetFolder
+  End If
+
+  Dim cmd: cmd = QuoteRotaArg(ROTA_RCLONE_EXE) & " copyto " & _
+                 QuoteRotaArg(ROTA_REMOTE_WORKBOOK) & " " & _
+                 QuoteRotaArg(ROTA_LOCAL_WORKBOOK) & " --ignore-times " & RcloneContextFlags(False)
+  Dim shell: Set shell = CreateObject("WScript.Shell")
+  LogEvent "Downloading meeting rota workbook for edit: " & cmd
+  WScript.Echo "Downloading the latest meeting rota workbook..."
+
+  Dim result: Set result = RunRcloneCommandWithTimeout(cmd, "download", ROTA_RCLONE_DOWNLOAD_TIMEOUT_SECONDS)
+  LogRcloneResult "download", result
+  If CBool(result("TimedOut")) Or CLng(result("ExitCode")) <> 0 Then
+    WScript.Echo "Could not download the meeting rota workbook."
+    PrintRcloneResultToConsole "download", result
+    WScript.Echo "Full details were written to:"
+    WScript.Echo "  " & logFilePath
+    Exit Function
+  End If
+
+  If Not fso.FileExists(ROTA_LOCAL_WORKBOOK) Then
+    WScript.Echo "Downloaded workbook was not found at: " & ROTA_LOCAL_WORKBOOK
+    LogEvent "ERROR: Meeting rota workbook missing after download: " & ROTA_LOCAL_WORKBOOK
+    Exit Function
+  End If
+
+  SyncMeetingRotaWorkbookForEdit = True
+End Function
+
+Function UploadMeetingRotaWorkbookAfterEdit()
+  UploadMeetingRotaWorkbookAfterEdit = False
+
+  If Not fso.FileExists(ROTA_LOCAL_WORKBOOK) Then
+    LogEvent "ERROR: Cannot upload missing meeting rota workbook: " & ROTA_LOCAL_WORKBOOK
+    Exit Function
+  End If
+
+  WScript.Echo "Syncing the edited meeting rota workbook through Excel first..."
+  LogEvent "Attempting Excel COM sync before rclone replacement upload."
+  If TryExcelComFallbackUploadFromLocalWorkbook() Then
+    UploadMeetingRotaWorkbookAfterEdit = True
+    Exit Function
+  End If
+
+  If Not PromptYesNo("Excel sync did not complete. Try rclone replacement upload instead? (y/N): ", False) Then
+    WScript.Echo "rclone replacement upload skipped. Local workbook kept at: " & ROTA_LOCAL_WORKBOOK
+    Exit Function
+  End If
+
+  Dim cmd: cmd = QuoteRotaArg(ROTA_RCLONE_EXE) & " copyto " & _
+                 QuoteRotaArg(ROTA_LOCAL_WORKBOOK) & " " & _
+                 QuoteRotaArg(ROTA_REMOTE_WORKBOOK) & " --ignore-times " & RcloneContextFlags(True)
+  Dim shell: Set shell = CreateObject("WScript.Shell")
+  LogEvent "Uploading edited meeting rota workbook: " & cmd
+  WScript.Echo "Uploading the edited meeting rota workbook..."
+
+  Dim result: Set result = RunRcloneCommandWithTimeout(cmd, "upload", ROTA_RCLONE_UPLOAD_TIMEOUT_SECONDS)
+  LogRcloneResult "upload", result
+  If CBool(result("TimedOut")) Then
+    WScript.Echo "Upload timed out after " & ROTA_RCLONE_UPLOAD_TIMEOUT_SECONDS & " seconds."
+    WScript.Echo "This usually means the workbook is open/locked or SharePoint is not accepting the replacement."
+    PrintRcloneResultToConsole "upload", result
+    WScript.Echo "Local workbook kept at: " & ROTA_LOCAL_WORKBOOK
+    Exit Function
+  End If
+  If CLng(result("ExitCode")) <> 0 Then
+    WScript.Echo "Upload failed with exit code " & result("ExitCode") & "."
+    PrintRcloneResultToConsole "upload", result
+    WScript.Echo "Full details were written to:"
+    WScript.Echo "  " & logFilePath
+    WScript.Echo "Local workbook kept at: " & ROTA_LOCAL_WORKBOOK
+    Exit Function
+  End If
+
+  UploadMeetingRotaWorkbookAfterEdit = True
+End Function
+
+Function RcloneContextFlags(isUpload)
+  Dim flags
+  flags = "--stats " & ROTA_RCLONE_STATUS_SECONDS & "s --stats-log-level NOTICE " & _
+          "--retries 1 --low-level-retries 1 --timeout 30s --contimeout 15s"
+  If CBool(isUpload) Then
+    flags = flags & " --onedrive-upload-cutoff 4M"
+  End If
+  RcloneContextFlags = flags
+End Function
+
+Function RunRcloneCommandWithTimeout(commandText, operationName, timeoutSeconds)
+  Dim result: Set result = CreateCaseInsensitiveDictionary()
+  result("ExitCode") = -1
+  result("TimedOut") = False
+  result("StdOut") = ""
+  result("StdErr") = ""
+
+  Dim shell: Set shell = CreateObject("WScript.Shell")
+  Dim exec
+  On Error Resume Next
+  Set exec = shell.Exec(commandText)
+  If Err.Number <> 0 Or exec Is Nothing Then
+    result("ExitCode") = -9999
+    result("StdErr") = "Unable to start rclone " & operationName & ": " & Err.Description
+    Err.Clear
+    On Error GoTo 0
+    Set RunRcloneCommandWithTimeout = result
+    Exit Function
+  End If
+  On Error GoTo 0
+
+  Dim startedAt: startedAt = Now
+  Dim lastStatusAt: lastStatusAt = startedAt
+  WScript.Echo "rclone " & operationName & " started. Waiting for status..."
+  Do While exec.Status = 0
+    DrainRcloneStream exec.StdOut, "stdout", result
+    DrainRcloneStream exec.StdErr, "stderr", result
+
+    If DateDiff("s", lastStatusAt, Now) >= ROTA_RCLONE_STATUS_SECONDS Then
+      WScript.Echo "rclone " & operationName & " still running... " & _
+                   DateDiff("s", startedAt, Now) & "s elapsed, timeout at " & timeoutSeconds & "s."
+      lastStatusAt = Now
+    End If
+
+    WScript.Sleep 500
+    If DateDiff("s", startedAt, Now) >= CLng(timeoutSeconds) Then
+      result("TimedOut") = True
+      On Error Resume Next
+      exec.Terminate
+      If Err.Number <> 0 Then
+        result("StdErr") = "Timed out and failed to terminate rclone: " & Err.Description
+        Err.Clear
+      End If
+      On Error GoTo 0
+      Exit Do
+    End If
+  Loop
+
+  DrainRcloneStream exec.StdOut, "stdout", result
+  DrainRcloneStream exec.StdErr, "stderr", result
+
+  If Not CBool(result("TimedOut")) Then
+    On Error Resume Next
+    result("ExitCode") = CLng(exec.ExitCode)
+    If Err.Number <> 0 Then
+      result("ExitCode") = -1
+      Err.Clear
+    End If
+    On Error GoTo 0
+  End If
+
+  On Error Resume Next
+  If Not exec.StdOut.AtEndOfStream Then AppendRcloneOutput result, "StdOut", exec.StdOut.ReadAll, "stdout"
+  If Err.Number <> 0 Then Err.Clear
+  If Not exec.StdErr.AtEndOfStream Then AppendRcloneOutput result, "StdErr", exec.StdErr.ReadAll, "stderr"
+  If Err.Number <> 0 Then Err.Clear
+  On Error GoTo 0
+
+  Set RunRcloneCommandWithTimeout = result
+End Function
+
+Sub DrainRcloneStream(stream, streamName, result)
+  On Error Resume Next
+  Dim lineCount: lineCount = 0
+  Do While Not stream.AtEndOfStream
+    Dim line: line = stream.ReadLine
+    If Err.Number <> 0 Then
+      Err.Clear
+      Exit Do
+    End If
+    AppendRcloneOutput result, ProperRcloneStreamKey(streamName), line & vbCrLf, streamName
+    lineCount = lineCount + 1
+    If lineCount >= 20 Then Exit Do
+  Loop
+  On Error GoTo 0
+End Sub
+
+Function ProperRcloneStreamKey(streamName)
+  If LCase(streamName) = "stdout" Then
+    ProperRcloneStreamKey = "StdOut"
+  Else
+    ProperRcloneStreamKey = "StdErr"
+  End If
+End Function
+
+Sub AppendRcloneOutput(result, keyName, text, streamName)
+  Dim value: value = SafeText(text)
+  If Len(value) = 0 Then Exit Sub
+  result(keyName) = SafeText(result(keyName)) & value
+
+  Dim lines: lines = Split(value, vbCrLf)
+  Dim i
+  For i = 0 To UBound(lines)
+    Dim line: line = Trim(lines(i))
+    If Len(line) > 0 Then WScript.Echo "rclone " & streamName & ": " & line
+  Next
+End Sub
+
+Sub LogRcloneResult(operationName, result)
+  LogEvent "Meeting rota " & operationName & " exit code: " & result("ExitCode") & " | Timed out: " & CStr(result("TimedOut"))
+  If Len(Trim(SafeText(result("StdOut")))) > 0 Then LogEvent "rclone " & operationName & " stdout: " & Trim(SafeText(result("StdOut")))
+  If Len(Trim(SafeText(result("StdErr")))) > 0 Then LogEvent "rclone " & operationName & " stderr: " & Trim(SafeText(result("StdErr")))
+End Sub
+
+Sub PrintRcloneResultToConsole(operationName, result)
+  Dim stdOut: stdOut = Trim(SafeText(result("StdOut")))
+  Dim stdErr: stdErr = Trim(SafeText(result("StdErr")))
+
+  WScript.Echo "rclone " & operationName & " result: exit code " & result("ExitCode") & ", timed out: " & CStr(result("TimedOut"))
+  If Len(stdOut) > 0 Then
+    WScript.Echo "rclone stdout:"
+    WScript.Echo LastRcloneOutputChunk(stdOut)
+  End If
+  If Len(stdErr) > 0 Then
+    WScript.Echo "rclone stderr:"
+    WScript.Echo LastRcloneOutputChunk(stdErr)
+  End If
+  If Len(stdOut) = 0 And Len(stdErr) = 0 Then
+    WScript.Echo "rclone did not return stdout/stderr before the operation ended."
+  End If
+End Sub
+
+Function LastRcloneOutputChunk(text)
+  Dim value: value = SafeText(text)
+  Dim maxChars: maxChars = 2500
+  If Len(value) <= maxChars Then
+    LastRcloneOutputChunk = value
+  Else
+    LastRcloneOutputChunk = "... last " & maxChars & " characters ..." & vbCrLf & Right(value, maxChars)
+  End If
+End Function
+
+Function PromptYesNo(promptText, defaultYes)
+  Dim response: response = LCase(Trim(PromptLine(promptText)))
+  If Len(response) = 0 Then
+    PromptYesNo = CBool(defaultYes)
+  Else
+    PromptYesNo = (Left(response, 1) = "y")
+  End If
+End Function
+
+Function TryExcelComFallbackUploadFromLocalWorkbook()
+  TryExcelComFallbackUploadFromLocalWorkbook = False
+
+  If Not fso.FileExists(ROTA_LOCAL_WORKBOOK) Then
+    WScript.Echo "Excel sync cannot run because the local workbook is missing:"
+    WScript.Echo "  " & ROTA_LOCAL_WORKBOOK
+    LogEvent "ERROR: Excel sync missing local workbook: " & ROTA_LOCAL_WORKBOOK
+    Exit Function
+  End If
+
+  WScript.Echo "Starting Excel sync. Excel may show sign-in, lock, or conflict prompts."
+  WScript.Echo "Reading pending people from the local saved workbook..."
+  LogEvent "Starting Excel COM sync for meeting rota upload."
+
+  Dim objExcel, localWorkbook, remoteWorkbook, localSheet, remoteSheet
+  Set objExcel = Nothing
+  Set localWorkbook = Nothing
+  Set remoteWorkbook = Nothing
+  Set localSheet = Nothing
+  Set remoteSheet = Nothing
+
+  On Error Resume Next
+  Set objExcel = CreateObject("Excel.Application")
+  If Err.Number <> 0 Or objExcel Is Nothing Then
+    WScript.Echo "Excel sync could not start Excel: " & Err.Description
+    LogEvent "ERROR: Excel sync could not start Excel: " & Err.Description
+    Err.Clear
+    On Error GoTo 0
+    Exit Function
+  End If
+  objExcel.Visible = False
+  objExcel.DisplayAlerts = False
+
+  Dim pendingPeople: Set pendingPeople = LoadPendingRotaPeopleFromLocalWorkbook(objExcel)
+  If pendingPeople Is Nothing Then
+    CloseExcelFallback objExcel, localWorkbook, remoteWorkbook, localSheet, remoteSheet, False
+    Exit Function
+  End If
+  WScript.Echo "Pending people loaded from local workbook: " & pendingPeople.Count
+
+  WScript.Echo "Opening SharePoint workbook..."
+  Set remoteWorkbook = OpenSharePointWorkbookWithOperatorFallback(objExcel)
+  If remoteWorkbook Is Nothing Then
+    CloseExcelFallback objExcel, localWorkbook, remoteWorkbook, localSheet, remoteSheet, False
+    Exit Function
+  End If
+
+  If Not EnsureSharePointWorkbookEditable(remoteWorkbook) Then
+    WScript.Echo "Excel could not obtain edit access for the SharePoint workbook."
+    LogEvent "ERROR: Excel sync could not obtain edit access for SharePoint workbook."
+    CloseExcelFallback objExcel, localWorkbook, remoteWorkbook, localSheet, remoteSheet, False
+    On Error GoTo 0
+    Exit Function
+  End If
+
+  Set remoteSheet = remoteWorkbook.Sheets(ROTA_SHEET_EMAILS)
+  If Err.Number <> 0 Or remoteSheet Is Nothing Then
+    WScript.Echo "Excel sync could not access the SharePoint '" & ROTA_SHEET_EMAILS & "' sheet: " & Err.Description
+    LogEvent "ERROR: Excel sync could not access SharePoint Emails sheet: " & Err.Description
+    Err.Clear
+    CloseExcelFallback objExcel, localWorkbook, remoteWorkbook, localSheet, remoteSheet, False
+    On Error GoTo 0
+    Exit Function
+  End If
+  On Error GoTo 0
+
+  Dim addedCount: addedCount = AppendPendingRotaPeopleToRemoteWorkbook(pendingPeople, remoteSheet)
+  If addedCount > 0 Then
+    On Error Resume Next
+    WScript.Echo "Saving SharePoint workbook through Excel..."
+    remoteWorkbook.Save
+    If Err.Number <> 0 Then
+      WScript.Echo "Excel sync could not save the SharePoint workbook: " & Err.Description
+      LogEvent "ERROR: Excel sync save failed: " & Err.Description
+      Err.Clear
+      If Not WaitForExcelSaveResolution(objExcel, remoteWorkbook) Then
+        CloseExcelFallback objExcel, localWorkbook, remoteWorkbook, localSheet, remoteSheet, False
+        On Error GoTo 0
+        Exit Function
+      End If
+    End If
+    On Error GoTo 0
+  Else
+    WScript.Echo "Excel sync found no missing people to append; SharePoint workbook already appears current."
+  End If
+
+  CloseExcelFallback objExcel, localWorkbook, remoteWorkbook, localSheet, remoteSheet, False
+
+  WScript.Echo "Excel sync completed. Missing people appended: " & addedCount
+  LogEvent "Excel COM sync completed. Missing people appended: " & addedCount
+  TryExcelComFallbackUploadFromLocalWorkbook = True
+End Function
+
+Function OpenSharePointWorkbookWithOperatorFallback(objExcel)
+  Set OpenSharePointWorkbookWithOperatorFallback = Nothing
+  If objExcel Is Nothing Then Exit Function
+
+  Dim remoteWorkbook
+  Set remoteWorkbook = Nothing
+
+  Do
+    Err.Clear
+    On Error Resume Next
+    Set remoteWorkbook = objExcel.Workbooks.Open(ROTA_WORKBOOK_URL, 0, False)
+    If Err.Number = 0 And Not (remoteWorkbook Is Nothing) Then
+      On Error GoTo 0
+      Set OpenSharePointWorkbookWithOperatorFallback = remoteWorkbook
+      Exit Function
+    End If
+
+    Dim openError: openError = Err.Description
+    Err.Clear
+    On Error GoTo 0
+
+    WScript.Echo "Excel sync could not open the SharePoint workbook: " & openError
+    WScript.Echo "Excel will now be shown so you can resolve any sign-in, trust, or server prompt."
+    LogEvent "ERROR: Excel sync could not open SharePoint workbook: " & openError
+    ShowExcelForOperator objExcel
+
+    Dim response: response = PromptLine("After resolving the Excel prompt, press Enter to retry opening it, or type cancel: ")
+    If LCase(Trim(response)) = "cancel" Or LCase(Trim(response)) = "q" Then
+      LogEvent "Operator cancelled SharePoint workbook open retry."
+      Exit Function
+    End If
+  Loop
+End Function
+
+Function WaitForExcelSaveResolution(objExcel, remoteWorkbook)
+  WaitForExcelSaveResolution = False
+  If objExcel Is Nothing Or remoteWorkbook Is Nothing Then Exit Function
+
+  ShowExcelForOperator objExcel
+  Do
+    WScript.Echo "Excel is visible. Resolve any save, conflict, read-only, or sign-in prompt."
+    Dim response: response = PromptLine("After resolving it, press Enter to retry Save, or type cancel: ")
+    If LCase(Trim(response)) = "cancel" Or LCase(Trim(response)) = "q" Then
+      LogEvent "Operator cancelled Excel save retry."
+      Exit Function
+    End If
+
+    On Error Resume Next
+    remoteWorkbook.Save
+    If Err.Number = 0 Then
+      On Error GoTo 0
+      WaitForExcelSaveResolution = True
+      Exit Function
+    End If
+    WScript.Echo "Excel save still failed: " & Err.Description
+    LogEvent "ERROR: Excel save retry failed: " & Err.Description
+    Err.Clear
+    On Error GoTo 0
+  Loop
+End Function
+
+Sub ShowExcelForOperator(objExcel)
+  On Error Resume Next
+  If Not (objExcel Is Nothing) Then
+    objExcel.Visible = True
+    objExcel.DisplayAlerts = True
+    objExcel.WindowState = -4137 ' xlMaximized
+  End If
+  On Error GoTo 0
+End Sub
+
+Function EnsureSharePointWorkbookEditable(remoteWorkbook)
+  EnsureSharePointWorkbookEditable = False
+  If remoteWorkbook Is Nothing Then Exit Function
+
+  On Error Resume Next
+  If Not CBool(remoteWorkbook.ReadOnly) Then
+    EnsureSharePointWorkbookEditable = True
+    On Error GoTo 0
+    Exit Function
+  End If
+  If Err.Number <> 0 Then
+    LogEvent "WARNING: Could not read SharePoint workbook ReadOnly state: " & Err.Description
+    Err.Clear
+  End If
+  On Error GoTo 0
+
+  WScript.Echo "Excel opened the SharePoint workbook read-only."
+  WScript.Echo "Trying to request edit access through Excel..."
+  If TryRequestSharePointEditAccess(remoteWorkbook) Then
+    EnsureSharePointWorkbookEditable = True
+    Exit Function
+  End If
+
+  On Error Resume Next
+  ShowExcelForOperator remoteWorkbook.Application
+  On Error GoTo 0
+
+  Do
+    WScript.Echo "Excel still reports the workbook as read-only."
+    WScript.Echo "In Excel, click the yellow-bar 'Edit Workbook' button."
+    Dim response: response = PromptLine("After clicking it, press Enter here to continue, or type cancel: ")
+    If LCase(Trim(response)) = "cancel" Or LCase(Trim(response)) = "q" Then
+      LogEvent "Operator cancelled Excel edit-access wait."
+      Exit Function
+    End If
+
+    On Error Resume Next
+    If Not CBool(remoteWorkbook.ReadOnly) Then
+      EnsureSharePointWorkbookEditable = True
+      On Error GoTo 0
+      Exit Function
+    End If
+    If Err.Number <> 0 Then
+      LogEvent "WARNING: Could not re-check SharePoint workbook ReadOnly state: " & Err.Description
+      Err.Clear
+    End If
+    On Error GoTo 0
+
+    If TryRequestSharePointEditAccess(remoteWorkbook) Then
+      EnsureSharePointWorkbookEditable = True
+      Exit Function
+    End If
+  Loop
+End Function
+
+Function TryRequestSharePointEditAccess(remoteWorkbook)
+  TryRequestSharePointEditAccess = False
+  If remoteWorkbook Is Nothing Then Exit Function
+
+  On Error Resume Next
+  remoteWorkbook.LockServerFile
+  If Err.Number <> 0 Then
+    LogEvent "Excel LockServerFile did not grant edit access: " & Err.Description
+    Err.Clear
+  End If
+  WScript.Sleep 1000
+  If Not CBool(remoteWorkbook.ReadOnly) Then
+    TryRequestSharePointEditAccess = True
+    On Error GoTo 0
+    Exit Function
+  End If
+  If Err.Number <> 0 Then Err.Clear
+
+  ' XlFileAccess: xlReadWrite = 2. This may trigger the same server edit transition
+  ' as the yellow-bar Edit Workbook button when Excel permits it.
+  remoteWorkbook.ChangeFileAccess 2
+  If Err.Number <> 0 Then
+    LogEvent "Excel ChangeFileAccess(xlReadWrite) did not grant edit access: " & Err.Description
+    Err.Clear
+  End If
+  WScript.Sleep 1000
+  If Not CBool(remoteWorkbook.ReadOnly) Then TryRequestSharePointEditAccess = True
+  If Err.Number <> 0 Then Err.Clear
+  On Error GoTo 0
+End Function
+
+Function LoadPendingRotaPeopleFromLocalWorkbook(objExcel)
+  Set LoadPendingRotaPeopleFromLocalWorkbook = Nothing
+  If objExcel Is Nothing Then Exit Function
+
+  Dim localWorkbook, localSheet
+  Set localWorkbook = Nothing
+  Set localSheet = Nothing
+
+  On Error Resume Next
+  Set localWorkbook = objExcel.Workbooks.Open(ROTA_LOCAL_WORKBOOK, 0, True)
+  If Err.Number <> 0 Or localWorkbook Is Nothing Then
+    WScript.Echo "Excel sync could not open the local workbook: " & Err.Description
+    LogEvent "ERROR: Excel sync could not open local workbook: " & Err.Description
+    Err.Clear
+    On Error GoTo 0
+    Exit Function
+  End If
+
+  Set localSheet = localWorkbook.Sheets(ROTA_SHEET_EMAILS)
+  If Err.Number <> 0 Or localSheet Is Nothing Then
+    WScript.Echo "Excel sync could not access the local '" & ROTA_SHEET_EMAILS & "' sheet: " & Err.Description
+    LogEvent "ERROR: Excel sync could not access local Emails sheet: " & Err.Description
+    Err.Clear
+    localWorkbook.Close False
+    On Error GoTo 0
+    Exit Function
+  End If
+  On Error GoTo 0
+
+  Dim people: Set people = CreateObject("System.Collections.ArrayList")
+  Dim lastDataRow: lastDataRow = GetRotaPeopleLastDataRow(localSheet)
+  Dim rowIndex
+  For rowIndex = 2 To lastDataRow
+    Dim person: Set person = BuildRotaPersonFromWorksheetRow(localSheet, rowIndex)
+    If Not person Is Nothing Then
+      people.Add person
+    End If
+  Next
+
+  On Error Resume Next
+  Set localSheet = Nothing
+  localWorkbook.Close False
+  Set localWorkbook = Nothing
+  On Error GoTo 0
+
+  Set LoadPendingRotaPeopleFromLocalWorkbook = people
+End Function
+
+Function AppendPendingRotaPeopleToRemoteWorkbook(people, remoteSheet)
+  AppendPendingRotaPeopleToRemoteWorkbook = 0
+  If people Is Nothing Then Exit Function
+
+  Dim i
+  For i = 0 To people.Count - 1
+    Dim person: Set person = people(i)
+    If Not person Is Nothing Then
+      Dim status: status = AppendRotaPersonIfMissing(remoteSheet, person)
+      If status = "added" Then AppendPendingRotaPeopleToRemoteWorkbook = AppendPendingRotaPeopleToRemoteWorkbook + 1
+    End If
+  Next
+End Function
+
+Function BuildRotaPersonFromWorksheetRow(objSheet, rowIndex)
+  Dim person: Set person = CreateCaseInsensitiveDictionary()
+
+  Dim fullName: fullName = Trim(SafeText(objSheet.Cells(rowIndex, FindWorksheetHeaderColumn(objSheet, "Name", 1)).Value))
+  Dim emailValue: emailValue = NormalizeEmailText(objSheet.Cells(rowIndex, FindWorksheetHeaderColumn(objSheet, "Email", 2)).Value)
+  If Len(fullName) = 0 Or Not IsValidEmail(emailValue) Then
+    Set BuildRotaPersonFromWorksheetRow = Nothing
+    Exit Function
+  End If
+
+  person("FULL_NAME") = fullName
+  person("EMAIL") = emailValue
+  person("NAME") = ""
+  person("SURNAME") = ""
+
+  Dim firstNameCol: firstNameCol = FindWorksheetHeaderColumn(objSheet, "First name", 0)
+  If firstNameCol > 0 Then person("NAME") = Trim(SafeText(objSheet.Cells(rowIndex, firstNameCol).Value))
+
+  Dim surnameCol: surnameCol = FindWorksheetHeaderColumn(objSheet, "Surname", 0)
+  If surnameCol > 0 Then person("SURNAME") = Trim(SafeText(objSheet.Cells(rowIndex, surnameCol).Value))
+
+  If Len(person("NAME")) = 0 Or Len(person("SURNAME")) = 0 Then ApplyRotaFullNameFallback person, fullName
+
+  Set BuildRotaPersonFromWorksheetRow = person
+End Function
+
+Sub CloseExcelFallback(ByRef objExcel, ByRef localWorkbook, ByRef remoteWorkbook, ByRef localSheet, ByRef remoteSheet, saveRemote)
+  On Error Resume Next
+  Set localSheet = Nothing
+  Set remoteSheet = Nothing
+  If Not (remoteWorkbook Is Nothing) Then remoteWorkbook.Close CBool(saveRemote)
+  If Not (localWorkbook Is Nothing) Then localWorkbook.Close False
+  If Not (objExcel Is Nothing) Then objExcel.Quit
+  Set remoteWorkbook = Nothing
+  Set localWorkbook = Nothing
+  Set objExcel = Nothing
+  On Error GoTo 0
+End Sub
+
+Function OpenMeetingRotaWorkbookForEdit(ByRef objExcel, ByRef objWorkbook, ByRef objSheetEmails)
+  OpenMeetingRotaWorkbookForEdit = False
+
+  On Error Resume Next
+  Set objExcel = CreateObject("Excel.Application")
+  If Err.Number <> 0 Then
+    LogEvent "ERROR: Failed to create Excel.Application for rota edit: " & Err.Description
+    Err.Clear
+    On Error GoTo 0
+    Exit Function
+  End If
+  objExcel.Visible = False
+  objExcel.DisplayAlerts = False
+
+  Set objWorkbook = objExcel.Workbooks.Open(ROTA_LOCAL_WORKBOOK, 0, False)
+  If Err.Number <> 0 Or objWorkbook Is Nothing Then
+    LogEvent "ERROR: Failed to open meeting rota workbook for edit: " & Err.Description
+    WScript.Echo "Excel could not open the local meeting rota workbook."
+    Err.Clear
+    objExcel.Quit
+    Set objExcel = Nothing
+    On Error GoTo 0
+    Exit Function
+  End If
+
+  If objWorkbook.ReadOnly Then
+    LogEvent "ERROR: Meeting rota workbook opened read-only."
+    WScript.Echo "The meeting rota workbook opened read-only. Please close it elsewhere and try again."
+    objWorkbook.Close False
+    objExcel.Quit
+    Set objWorkbook = Nothing
+    Set objExcel = Nothing
+    On Error GoTo 0
+    Exit Function
+  End If
+
+  Set objSheetEmails = objWorkbook.Sheets(ROTA_SHEET_EMAILS)
+  If Err.Number <> 0 Or objSheetEmails Is Nothing Then
+    LogEvent "ERROR: Failed to open '" & ROTA_SHEET_EMAILS & "' sheet: " & Err.Description
+    Err.Clear
+    objWorkbook.Close False
+    objExcel.Quit
+    Set objWorkbook = Nothing
+    Set objExcel = Nothing
+    On Error GoTo 0
+    Exit Function
+  End If
+  On Error GoTo 0
+
+  LogEvent "Meeting rota workbook opened for edit."
+  OpenMeetingRotaWorkbookForEdit = True
+End Function
+
+Sub CloseMeetingRotaWorkbookForEdit(ByRef objExcel, ByRef objWorkbook, ByRef objSheetEmails, saveChanges)
+  On Error Resume Next
+  Set objSheetEmails = Nothing
+  If Not (objWorkbook Is Nothing) Then objWorkbook.Close CBool(saveChanges)
+  If Not (objExcel Is Nothing) Then objExcel.Quit
+  Set objWorkbook = Nothing
+  Set objExcel = Nothing
+  On Error GoTo 0
+End Sub
+
+Function BuildRotaPersonContext(entry)
+  Dim context: Set context = CreateCaseInsensitiveDictionary()
+  context("NAME") = ""
+  context("SURNAME") = ""
+  context("FULL_NAME") = ""
+  context("EMAIL") = ""
+  context("DIRECTORY_SOURCE") = ""
+  context("DIRECTORY_ATTEMPTED") = ""
+
+  Dim rawValue: rawValue = SafeText(GetDictionaryValue(entry, "RawValue"))
+  Dim address: address = SafeText(GetDictionaryValue(entry, "PreferredAddress"))
+  If Len(address) = 0 Then address = rawValue
+
+  If entry.Exists("ParsedDisplay") Then
+    ApplyRotaFullNameFallback context, SafeText(entry("ParsedDisplay"))
+  End If
+  If entry.Exists("ParsedEmail") Then
+    context("EMAIL") = NormalizeEmailText(entry("ParsedEmail"))
+  End If
+
+  Dim nameInfo: Set nameInfo = Nothing
+  If entry.Exists("Resolution") Then Set nameInfo = entry("Resolution")
+  If nameInfo Is Nothing Then Set nameInfo = CreateEmptyResolutionInfo()
+
+  If nameInfo.Exists("First") Then context("NAME") = SafeText(nameInfo("First"))
+  If nameInfo.Exists("Last") Then context("SURNAME") = SafeText(nameInfo("Last"))
+  If nameInfo.Exists("Full") Then
+    Dim resolvedFullName: resolvedFullName = SafeText(nameInfo("Full"))
+    If IsUsableRotaFullName(resolvedFullName) Then context("FULL_NAME") = resolvedFullName
+  End If
+  If nameInfo.Exists("Email") Then
+    If Len(NormalizeEmailText(nameInfo("Email"))) > 0 Then context("EMAIL") = NormalizeEmailText(nameInfo("Email"))
+  End If
+  If nameInfo.Exists("DirectorySource") Then context("DIRECTORY_SOURCE") = SafeText(nameInfo("DirectorySource"))
+  If nameInfo.Exists("DirectoryAttempted") Then context("DIRECTORY_ATTEMPTED") = SafeText(nameInfo("DirectoryAttempted"))
+
+  If Not IsUsableRotaFullName(context("FULL_NAME")) Then context("FULL_NAME") = ""
+  If Len(SafeText(context("FULL_NAME"))) = 0 Then ApplyRotaFullNameFallback context, rawValue
+
+  Call NormalizeNameParts(context)
+  If Not IsUsableRotaFullName(context("FULL_NAME")) Then context("FULL_NAME") = ""
+  If Len(SafeText(context("FULL_NAME"))) = 0 Then
+    context("FULL_NAME") = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
+  End If
+
+  Call ReviewResolvedName(address, context)
+  Call NormalizeNameParts(context)
+  If Not IsUsableRotaFullName(context("FULL_NAME")) Then context("FULL_NAME") = ""
+  If Len(SafeText(context("FULL_NAME"))) = 0 Then
+    context("FULL_NAME") = Trim(SafeText(context("NAME")) & " " & SafeText(context("SURNAME")))
+  End If
+
+  Dim emailValue: emailValue = NormalizeEmailText(context("EMAIL"))
+  If Not IsValidEmail(emailValue) Then
+    Dim promptName: promptName = SafeText(context("FULL_NAME"))
+    If Len(promptName) = 0 Then promptName = rawValue
+    emailValue = PromptLine("    Enter email address for " & promptName & " or press Enter to skip: ")
+    emailValue = NormalizeEmailText(emailValue)
+  End If
+
+  If Not IsValidEmail(emailValue) Then
+    WScript.Echo "  Skipping rota entry because no valid email address was supplied."
+    LogEvent "Rota people update skipped: invalid email for raw value '" & rawValue & "'"
+    Set BuildRotaPersonContext = Nothing
+    Exit Function
+  End If
+  context("EMAIL") = emailValue
+
+  If Len(SafeText(context("FULL_NAME"))) = 0 Then
+    WScript.Echo "  Skipping rota entry because no name was supplied."
+    LogEvent "Rota people update skipped: missing name for email '" & emailValue & "'"
+    Set BuildRotaPersonContext = Nothing
+    Exit Function
+  End If
+
+  Set BuildRotaPersonContext = context
+End Function
+
+Sub ApplyRotaFullNameFallback(context, value)
+  Dim fullName: fullName = Trim(SafeText(value))
+  If Len(fullName) = 0 Then Exit Sub
+  If InStr(fullName, "@") > 0 Then Exit Sub
+
+  If Len(SafeText(context("FULL_NAME"))) = 0 Then context("FULL_NAME") = fullName
+
+  If Len(SafeText(context("NAME"))) > 0 And Len(SafeText(context("SURNAME"))) > 0 Then Exit Sub
+
+  Dim firstName: firstName = ""
+  Dim surname: surname = ""
+  If InStr(fullName, ",") > 0 Then
+    Dim commaParts: commaParts = Split(fullName, ",")
+    surname = Trim(commaParts(0))
+    If UBound(commaParts) >= 1 Then firstName = Trim(Split(Trim(commaParts(1)), " ")(0))
+  Else
+    Dim bits: bits = Split(fullName, " ")
+    If UBound(bits) >= 0 Then firstName = Trim(bits(0))
+    If UBound(bits) >= 1 Then surname = Trim(bits(UBound(bits)))
+  End If
+
+  If Len(SafeText(context("NAME"))) = 0 Then context("NAME") = firstName
+  If Len(SafeText(context("SURNAME"))) = 0 Then context("SURNAME") = surname
+End Sub
+
+Function ConfirmRotaPerson(person)
+  WScript.Echo "Rota people-sheet row:"
+  WScript.Echo "  Name:  " & GetDictionaryValue(person, "FULL_NAME")
+  WScript.Echo "  Email: " & GetDictionaryValue(person, "EMAIL")
+  WScript.Echo "  Presenter: 1 | Lab Worker: 1 | Past member: 0"
+
+  Dim response: response = PromptLine("Add this person to the meeting rota people sheet? (Y/n): ")
+  response = LCase(Trim(response))
+  ConfirmRotaPerson = (Len(response) = 0 Or Left(response, 1) = "y")
+End Function
+
+Function IsUsableRotaFullName(value)
+  Dim text: text = Trim(SafeText(value))
+  If Len(text) = 0 Then
+    IsUsableRotaFullName = False
+  ElseIf InStr(text, "@") > 0 Then
+    IsUsableRotaFullName = False
+  Else
+    IsUsableRotaFullName = True
+  End If
+End Function
+
+Function AppendRotaPersonIfMissing(objSheetEmails, person)
+  AppendRotaPersonIfMissing = "skipped"
+
+  Dim fullName: fullName = Trim(SafeText(GetDictionaryValue(person, "FULL_NAME")))
+  Dim firstName: firstName = Trim(SafeText(GetDictionaryValue(person, "NAME")))
+  Dim surname: surname = Trim(SafeText(GetDictionaryValue(person, "SURNAME")))
+  Dim emailValue: emailValue = NormalizeEmailText(GetDictionaryValue(person, "EMAIL"))
+
+  If Len(fullName) = 0 Or Not IsValidEmail(emailValue) Then
+    LogEvent "Rota people row skipped because name or email was missing."
+    Exit Function
+  End If
+
+  Dim duplicateRow: duplicateRow = FindRotaPeopleDuplicateRow(objSheetEmails, fullName, emailValue)
+  If duplicateRow > 0 Then
+    WScript.Echo "  Already present in the people sheet at row " & duplicateRow & ": " & fullName
+    LogEvent "Rota people duplicate skipped at row " & duplicateRow & ": " & fullName & " <" & emailValue & ">"
+    AppendRotaPersonIfMissing = "duplicate"
+    Exit Function
+  End If
+
+  Dim table: Set table = GetRotaPeopleTable(objSheetEmails)
+  If Not (table Is Nothing) Then
+    Dim listRow: Set listRow = table.ListRows.Add
+    SetRotaTableCell table, listRow.Range, "Name", 1, fullName
+    SetRotaTableCell table, listRow.Range, "First name", 0, firstName
+    SetRotaTableCell table, listRow.Range, "Surname", 0, surname
+    SetRotaTableCell table, listRow.Range, "Email", 2, emailValue
+    SetRotaTableCell table, listRow.Range, "Title", 3, ""
+    SetRotaTableCell table, listRow.Range, "Degree pursued", 4, ""
+    SetRotaTableCell table, listRow.Range, "Presenter", 5, 1
+    SetRotaTableCell table, listRow.Range, "Lab Worker", 6, 1
+    SetRotaTableCell table, listRow.Range, "Past member", 7, 0
+  Else
+    Dim insertRow: insertRow = DetermineRotaPeopleInsertRow(objSheetEmails)
+    objSheetEmails.Rows(insertRow).Insert
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "Name", 1, fullName
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "First name", 0, firstName
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "Surname", 0, surname
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "Email", 2, emailValue
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "Title", 3, ""
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "Degree pursued", 4, ""
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "Presenter", 5, 1
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "Lab Worker", 6, 1
+    SetWorksheetCellByHeader objSheetEmails, insertRow, "Past member", 7, 0
+  End If
+
+  WScript.Echo "  Added to people sheet: " & fullName
+  LogEvent "Added rota people row: " & fullName & " <" & emailValue & ">"
+  AppendRotaPersonIfMissing = "added"
+End Function
+
+Function GetRotaPeopleTable(objSheetEmails)
+  Dim table: Set table = Nothing
+  On Error Resume Next
+  Set table = objSheetEmails.ListObjects(ROTA_PEOPLE_TABLE)
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set table = Nothing
+  End If
+  If table Is Nothing Then
+    If objSheetEmails.ListObjects.Count > 0 Then Set table = objSheetEmails.ListObjects(1)
+  End If
+  On Error GoTo 0
+  Set GetRotaPeopleTable = table
+End Function
+
+Sub SetRotaTableCell(table, rowRange, headerText, defaultColumn, value)
+  Dim col: col = FindRotaTableColumn(table, headerText, defaultColumn)
+  If col <= 0 Then Exit Sub
+  rowRange.Cells(1, col).Value = value
+End Sub
+
+Function FindRotaTableColumn(table, headerText, defaultColumn)
+  FindRotaTableColumn = 0
+  If table Is Nothing Then Exit Function
+
+  Dim i
+  For i = 1 To table.ListColumns.Count
+    If LCase(Trim(CStr(table.ListColumns(i).Name))) = LCase(Trim(CStr(headerText))) Then
+      FindRotaTableColumn = i
+      Exit Function
+    End If
+  Next
+
+  If IsNumeric(defaultColumn) Then
+    If CLng(defaultColumn) > 0 And CLng(defaultColumn) <= table.ListColumns.Count Then FindRotaTableColumn = CLng(defaultColumn)
+  End If
+End Function
+
+Sub SetWorksheetCellByHeader(objSheet, rowIndex, headerText, defaultColumn, value)
+  Dim col: col = FindWorksheetHeaderColumn(objSheet, headerText, defaultColumn)
+  If col <= 0 Then Exit Sub
+  objSheet.Cells(rowIndex, col).Value = value
+End Sub
+
+Function FindWorksheetHeaderColumn(objSheet, headerText, defaultColumn)
+  FindWorksheetHeaderColumn = 0
+  Dim lastColumn: lastColumn = objSheet.Cells(1, objSheet.Columns.Count).End(-4159).Column
+  Dim col
+  For col = 1 To lastColumn
+    If LCase(Trim(CStr(objSheet.Cells(1, col).Value))) = LCase(Trim(CStr(headerText))) Then
+      FindWorksheetHeaderColumn = col
+      Exit Function
+    End If
+  Next
+  If IsNumeric(defaultColumn) Then FindWorksheetHeaderColumn = CLng(defaultColumn)
+End Function
+
+Function DetermineRotaPeopleInsertRow(objSheetEmails)
+  Dim lastRow: lastRow = objSheetEmails.Cells(objSheetEmails.Rows.Count, "A").End(-4162).Row
+  If lastRow < 2 Then
+    DetermineRotaPeopleInsertRow = 2
+    Exit Function
+  End If
+
+  Dim presenterCol: presenterCol = FindWorksheetHeaderColumn(objSheetEmails, "Presenter", 5)
+  Dim formulaText: formulaText = ""
+  On Error Resume Next
+  formulaText = CStr(objSheetEmails.Cells(lastRow, presenterCol).Formula)
+  If Err.Number <> 0 Then
+    Err.Clear
+    formulaText = ""
+  End If
+  On Error GoTo 0
+
+  If InStr(1, formulaText, "SUBTOTAL", vbTextCompare) > 0 Then
+    DetermineRotaPeopleInsertRow = lastRow
+  Else
+    DetermineRotaPeopleInsertRow = lastRow + 1
+  End If
+End Function
+
+Function FindRotaPeopleDuplicateRow(objSheetEmails, fullName, emailValue)
+  FindRotaPeopleDuplicateRow = 0
+
+  Dim nameCol: nameCol = FindWorksheetHeaderColumn(objSheetEmails, "Name", 1)
+  Dim emailCol: emailCol = FindWorksheetHeaderColumn(objSheetEmails, "Email", 2)
+  Dim lastDataRow: lastDataRow = GetRotaPeopleLastDataRow(objSheetEmails)
+  Dim rowIndex
+
+  For rowIndex = 2 To lastDataRow
+    Dim existingEmail: existingEmail = NormalizeEmailText(objSheetEmails.Cells(rowIndex, emailCol).Value)
+    Dim existingName: existingName = Trim(SafeText(objSheetEmails.Cells(rowIndex, nameCol).Value))
+    If Len(existingEmail) > 0 Then
+      If LCase(existingEmail) = LCase(emailValue) Then
+        FindRotaPeopleDuplicateRow = rowIndex
+        Exit Function
+      End If
+    End If
+    If Len(existingName) > 0 Then
+      If LCase(existingName) = LCase(fullName) Then
+        FindRotaPeopleDuplicateRow = rowIndex
+        Exit Function
+      End If
+    End If
+  Next
+End Function
+
+Function GetRotaPeopleLastDataRow(objSheetEmails)
+  Dim table: Set table = GetRotaPeopleTable(objSheetEmails)
+  If Not (table Is Nothing) Then
+    If table.ListRows.Count > 0 Then
+      GetRotaPeopleLastDataRow = table.DataBodyRange.Row + table.DataBodyRange.Rows.Count - 1
+      Exit Function
+    End If
+  End If
+
+  Dim lastRow: lastRow = objSheetEmails.Cells(objSheetEmails.Rows.Count, "A").End(-4162).Row
+  Dim presenterCol: presenterCol = FindWorksheetHeaderColumn(objSheetEmails, "Presenter", 5)
+  Dim formulaText: formulaText = ""
+  On Error Resume Next
+  formulaText = CStr(objSheetEmails.Cells(lastRow, presenterCol).Formula)
+  If Err.Number <> 0 Then
+    Err.Clear
+    formulaText = ""
+  End If
+  On Error GoTo 0
+  If InStr(1, formulaText, "SUBTOTAL", vbTextCompare) > 0 Then lastRow = lastRow - 1
+  If lastRow < 1 Then lastRow = 1
+  GetRotaPeopleLastDataRow = lastRow
+End Function
+
+Sub CleanupLocalRotaWorkbook(shouldCleanup)
+  If Not shouldCleanup Then Exit Sub
+  On Error Resume Next
+  If fso.FileExists(ROTA_LOCAL_WORKBOOK) Then fso.DeleteFile ROTA_LOCAL_WORKBOOK, True
+  If Err.Number <> 0 Then
+    LogEvent "WARNING: Could not delete local rota workbook after upload: " & Err.Description
+    Err.Clear
+  Else
+    LogEvent "Deleted local rota workbook after successful upload."
+  End If
+  On Error GoTo 0
+End Sub
+
+Function QuoteRotaArg(value)
+  QuoteRotaArg = Chr(34) & CStr(value) & Chr(34)
+End Function
 
 '======================================================================
 ' Template discovery and parsing

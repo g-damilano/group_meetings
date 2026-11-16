@@ -1,0 +1,5 @@
+[console_scripts]
+directory-probe = induction_mailer.scripts.directory_probe:main
+gal-lookup = induction_mailer.scripts.gal_lookup:main
+group-meetings-manager = induction_mailer.scripts.group_meetings_manager:main
+induction-mailer = induction_mailer.cli:main

@@ -1,0 +1,166 @@
+{
+  "schema": "office-communication-scaffold.watchdog-managed-repair-guardrail-fixture.v1",
+  "fixture_name": "watchdog-managed-repair-fake-object-guardrails",
+  "live_outlook_required": false,
+  "uses_fake_outbox_items": true,
+  "real_mailbox_mutation_allowed": false,
+  "send_allowed": false,
+  "unmarked_mail_mutation_allowed": false,
+  "cases": [
+    {
+      "case_id": "preview-stale-managed",
+      "description": "A stale scaffold-managed Outbox item is repair-eligible, but preview mode must not create, delete, or replace anything.",
+      "commit_repair": false,
+      "expected_state": "ACTION_REQUIRED",
+      "real_mailbox_mutations_performed": 0,
+      "fake_mutations_performed": 0,
+      "repair_available_count": 1,
+      "repair_actions_taken": 0,
+      "failed_safe_count": 0,
+      "actions": [
+        {
+          "action_id": "stale-managed-preview",
+          "managed": true,
+          "managed_key": "ORG|INDUCTION-MAILER|2026-05-29|WELCOME|PERSON-A",
+          "managed_key_valid": true,
+          "decision_state": "STALE_MANAGED_OUTBOX",
+          "result_state": "STALE_MANAGED_OUTBOX",
+          "transport_allows_repair": true,
+          "repair_available": true,
+          "replacement_created": false,
+          "stale_deleted": false,
+          "unmarked_deleted": false,
+          "would_modify_fake_object": false,
+          "send_committed": false,
+          "folder_accessed": false,
+          "outlook_created": false,
+          "uncertainty_reason": ""
+        }
+      ]
+    },
+    {
+      "case_id": "commit-stale-managed-fake-only",
+      "description": "Committed repair is represented only against fake mail objects and only for stale scaffold-managed mail.",
+      "commit_repair": true,
+      "expected_state": "REPLACED_MANAGED_OUTBOX",
+      "real_mailbox_mutations_performed": 0,
+      "fake_mutations_performed": 2,
+      "repair_available_count": 1,
+      "repair_actions_taken": 1,
+      "failed_safe_count": 0,
+      "actions": [
+        {
+          "action_id": "stale-managed-commit",
+          "managed": true,
+          "managed_key": "ORG|INDUCTION-MAILER|2026-05-29|WELCOME|PERSON-A",
+          "managed_key_valid": true,
+          "decision_state": "STALE_MANAGED_OUTBOX",
+          "result_state": "REPLACED_MANAGED_OUTBOX",
+          "transport_allows_repair": true,
+          "repair_available": true,
+          "replacement_created": true,
+          "stale_deleted": true,
+          "unmarked_deleted": false,
+          "would_modify_fake_object": true,
+          "send_committed": false,
+          "folder_accessed": false,
+          "outlook_created": false,
+          "uncertainty_reason": ""
+        }
+      ]
+    },
+    {
+      "case_id": "commit-blocked-transport",
+      "description": "Blocked or offline transport suppresses replacement even when repair is explicitly committed.",
+      "commit_repair": true,
+      "expected_state": "COMPOSED",
+      "real_mailbox_mutations_performed": 0,
+      "fake_mutations_performed": 0,
+      "repair_available_count": 0,
+      "repair_actions_taken": 0,
+      "failed_safe_count": 0,
+      "actions": [
+        {
+          "action_id": "blocked-managed",
+          "managed": true,
+          "managed_key": "ORG|INDUCTION-MAILER|2026-05-29|WELCOME|PERSON-A",
+          "managed_key_valid": true,
+          "decision_state": "ACTION_REQUIRED",
+          "result_state": "ACTION_REQUIRED",
+          "transport_allows_repair": false,
+          "repair_available": false,
+          "replacement_created": false,
+          "stale_deleted": false,
+          "unmarked_deleted": false,
+          "would_modify_fake_object": false,
+          "send_committed": false,
+          "folder_accessed": false,
+          "outlook_created": false,
+          "uncertainty_reason": "blocked-transport"
+        }
+      ]
+    },
+    {
+      "case_id": "commit-unmarked-mail",
+      "description": "Unmarked user-authored mail is diagnostic-only and must never be replaced or deleted.",
+      "commit_repair": true,
+      "expected_state": "COMPOSED",
+      "real_mailbox_mutations_performed": 0,
+      "fake_mutations_performed": 0,
+      "repair_available_count": 0,
+      "repair_actions_taken": 0,
+      "failed_safe_count": 0,
+      "actions": [
+        {
+          "action_id": "unmarked-user-mail",
+          "managed": false,
+          "managed_key": "",
+          "managed_key_valid": false,
+          "decision_state": "FAILED_SAFE",
+          "result_state": "NOT_REQUESTED",
+          "transport_allows_repair": true,
+          "repair_available": false,
+          "replacement_created": false,
+          "stale_deleted": false,
+          "unmarked_deleted": false,
+          "would_modify_fake_object": false,
+          "send_committed": false,
+          "folder_accessed": false,
+          "outlook_created": false,
+          "uncertainty_reason": "unmarked-user-mail"
+        }
+      ]
+    },
+    {
+      "case_id": "commit-uncertain-age",
+      "description": "Uncertain age fails safe and must not trigger replacement or deletion.",
+      "commit_repair": true,
+      "expected_state": "FAILED_SAFE",
+      "real_mailbox_mutations_performed": 0,
+      "fake_mutations_performed": 0,
+      "repair_available_count": 0,
+      "repair_actions_taken": 0,
+      "failed_safe_count": 1,
+      "actions": [
+        {
+          "action_id": "uncertain-managed-age",
+          "managed": true,
+          "managed_key": "ORG|INDUCTION-MAILER|2026-05-29|WELCOME|PERSON-D",
+          "managed_key_valid": true,
+          "decision_state": "FAILED_SAFE",
+          "result_state": "FAILED_SAFE",
+          "transport_allows_repair": true,
+          "repair_available": false,
+          "replacement_created": false,
+          "stale_deleted": false,
+          "unmarked_deleted": false,
+          "would_modify_fake_object": false,
+          "send_committed": false,
+          "folder_accessed": false,
+          "outlook_created": false,
+          "uncertainty_reason": "unknown-age"
+        }
+      ]
+    }
+  ]
+}

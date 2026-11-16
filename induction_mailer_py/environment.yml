@@ -1,0 +1,21 @@
+name: induction_mailer
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pip
+  - setuptools
+  - wheel
+
+  # Core deps
+  - pywin32          # Outlook COM (win32com, pythoncom)
+  - openpyxl         # Excel reading for group meetings manager
+
+  # Optional but useful: enables the rclone sync step without separate install
+  - rclone
+
+  # Install this repo as an editable package so console entrypoints work
+  - pip:
+      - -e .

@@ -1,0 +1,112 @@
+{
+  "schema": "office-communication-scaffold.watchdog-report-fixture.v1",
+  "fixture_name": "watchdog-report-only-managed-outbox",
+  "report_only": true,
+  "live_outlook_required": false,
+  "mailbox_mutation_allowed": false,
+  "repair_committed": false,
+  "state": "ACTION_REQUIRED",
+  "inspection_scope": "all_outbox",
+  "transport": {
+    "connected": true,
+    "blocked_or_auth_suspected": false,
+    "offline": false,
+    "diagnostic_state": "COMPOSED"
+  },
+  "destructive_actions": {
+    "send_committed": false,
+    "delete_committed": false,
+    "replace_committed": false,
+    "repair_committed": false
+  },
+  "outbox_summary": {
+    "outbox_count": 5,
+    "managed_outbox_count": 4,
+    "unmanaged_outbox_count": 1,
+    "action_required_count": 3,
+    "replace_eligible_count": 1,
+    "mutations_performed": 0
+  },
+  "items": [
+    {
+      "item_id": "managed-stale-overdue",
+      "description": "Scaffold-managed stale message that would be eligible for replacement in an explicit repair run.",
+      "managed": true,
+      "managed_key": "ORG|INDUCTION-MAILER|2026-05-29|WELCOME|PERSON-A",
+      "managed_key_valid": true,
+      "dispatch_state": "STALE_MANAGED_OUTBOX",
+      "age_minutes": 90,
+      "deferred_delivery_pending": false,
+      "transport_allows_repair": true,
+      "replace_eligible": true,
+      "would_modify": false,
+      "repair_action": "none",
+      "action_required": true,
+      "uncertainty_reason": ""
+    },
+    {
+      "item_id": "managed-young-queued",
+      "description": "Scaffold-managed message still inside the grace period.",
+      "managed": true,
+      "managed_key": "ORG|INDUCTION-MAILER|2026-05-29|WELCOME|PERSON-B",
+      "managed_key_valid": true,
+      "dispatch_state": "QUEUED_OUTBOX",
+      "age_minutes": 4,
+      "deferred_delivery_pending": false,
+      "transport_allows_repair": true,
+      "replace_eligible": false,
+      "would_modify": false,
+      "repair_action": "none",
+      "action_required": false,
+      "uncertainty_reason": ""
+    },
+    {
+      "item_id": "managed-deferred-future",
+      "description": "Scaffold-managed message waiting for a future deferred-delivery time.",
+      "managed": true,
+      "managed_key": "ORG|INDUCTION-MAILER|2026-05-29|WELCOME|PERSON-C",
+      "managed_key_valid": true,
+      "dispatch_state": "WAITING_DEFERRED",
+      "age_minutes": 30,
+      "deferred_delivery_pending": true,
+      "transport_allows_repair": true,
+      "replace_eligible": false,
+      "would_modify": false,
+      "repair_action": "none",
+      "action_required": false,
+      "uncertainty_reason": ""
+    },
+    {
+      "item_id": "unmarked-user-mail",
+      "description": "Unmarked user-authored Outbox item included for diagnostics only.",
+      "managed": false,
+      "managed_key": "",
+      "managed_key_valid": false,
+      "dispatch_state": "ACTION_REQUIRED",
+      "age_minutes": 120,
+      "deferred_delivery_pending": false,
+      "transport_allows_repair": true,
+      "replace_eligible": false,
+      "would_modify": false,
+      "repair_action": "none",
+      "action_required": true,
+      "uncertainty_reason": "unmarked-user-mail"
+    },
+    {
+      "item_id": "managed-uncertain-age",
+      "description": "Scaffold-managed item with unknown age; uncertainty must not trigger repair.",
+      "managed": true,
+      "managed_key": "ORG|INDUCTION-MAILER|2026-05-29|WELCOME|PERSON-D",
+      "managed_key_valid": true,
+      "dispatch_state": "FAILED_SAFE",
+      "age_minutes": null,
+      "deferred_delivery_pending": false,
+      "transport_allows_repair": true,
+      "replace_eligible": false,
+      "would_modify": false,
+      "repair_action": "none",
+      "action_required": true,
+      "uncertainty_reason": "unknown-age"
+    }
+  ]
+}
