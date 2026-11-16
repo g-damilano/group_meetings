@@ -136,3 +136,16 @@ Activity is logged to `InductionMailer.log` in the repository root. Your default
   `cscript //nologo utilities\gal_address_lookup.vbs "name:Shared Display Name"`, substituting the
   duplicated name, and confirm the tool reports `Resolution status: Found` with a populated
   `Directory source` instead of `Resolution status: Not found`.
+
+## Group meeting email schedule
+
+`group_meetings_manager.vbs` skips its workflow on Saturdays and Sundays, based on
+the local date of the Windows computer running it. This applies to regular meeting
+emails, presenter/meeting lead/lab manager reminders, and all manager/supervisor
+alerts, including alerts with attachments. Each send also rechecks the date so a
+weekday run that continues past midnight cannot submit emails during the weekend.
+
+Weekend runs record the skip in `group_meetings_manager.log` without opening
+Outlook or syncing the workbook. The next scheduled weekday run evaluates emails
+using the existing rules; skipped weekend messages are not queued for later.
+This does not control delivery of messages already queued in Outlook.
