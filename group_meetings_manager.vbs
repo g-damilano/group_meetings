@@ -1844,6 +1844,11 @@ End Function
 Function ReplaceStaleManagedOutboxItemWithCc(ByRef outlookApp, ByRef queuedMail, managedKey, subjectText, toAddress, ccAddress, bodyText, deferredDeliveryTime, emailType, isUrgentSend)
     Dim replacement
     ReplaceStaleManagedOutboxItemWithCc = "REPLACE_ABORTED"
+    If IsWeekend(Date) Then
+        LogEvent "Weekend: managed Outbox replacement skipped. Subject: " & subjectText
+        ReplaceStaleManagedOutboxItemWithCc = "WEEKEND_SKIPPED"
+        Exit Function
+    End If
 
     If Not SafeToReplaceManagedOutboxItem(outlookApp, queuedMail, managedKey, subjectText, Now, MANAGED_OUTBOX_GRACE_MINUTES) Then
         LogEvent "ERROR: Replacement aborted by guardrails for managed key '" & managedKey & "'."
@@ -1852,6 +1857,11 @@ Function ReplaceStaleManagedOutboxItemWithCc(ByRef outlookApp, ByRef queuedMail,
 
     LogEvent "Managed email appears stale in Outbox while Outlook is connected and delivery time has passed. Replacing stale managed Outbox item."
 
+    If IsWeekend(Date) Then
+        LogEvent "Weekend: managed Outbox replacement skipped. Subject: " & subjectText
+        ReplaceStaleManagedOutboxItemWithCc = "WEEKEND_SKIPPED"
+        Exit Function
+    End If
     On Error Resume Next
     LogEvent "Deleting stale managed Outbox item for key '" & managedKey & "' | EntryID=" & SafeOutlookText(queuedMail, "EntryID")
     queuedMail.Delete
@@ -1866,6 +1876,11 @@ Function ReplaceStaleManagedOutboxItemWithCc(ByRef outlookApp, ByRef queuedMail,
     Set replacement = CreateManagedEmailFromSpecWithCc(outlookApp, managedKey, subjectText, toAddress, ccAddress, bodyText, deferredDeliveryTime)
     LogEvent "Created clean replacement managed email for key '" & managedKey & "' and type '" & emailType & "'."
     LogOutlookTransportStateSnapshot "before replacement send " & managedKey, outlookApp
+    If IsWeekend(Date) Then
+        LogEvent "Weekend: managed Outbox replacement skipped. Subject: " & subjectText
+        ReplaceStaleManagedOutboxItemWithCc = "WEEKEND_SKIPPED"
+        Exit Function
+    End If
     On Error Resume Next
     replacement.Send
     If Err.Number <> 0 Then
@@ -1895,6 +1910,11 @@ Function DispatchManagedEmailInternal(ByRef outlookApp, managedKey, subjectText,
     Dim ccLogText
 
     DispatchManagedEmailInternal = "BLOCKED"
+    If IsWeekend(Date) Then
+        LogEvent "Weekend: managed email delivery skipped. Subject: " & subjectText
+        DispatchManagedEmailInternal = "WEEKEND_SKIPPED"
+        Exit Function
+    End If
     ccLogText = ""
     If Trim(CStr(ccAddress)) <> "" Then ccLogText = " | Cc: " & ccAddress
 
@@ -1922,11 +1942,6 @@ Function DispatchManagedEmailInternal(ByRef outlookApp, managedKey, subjectText,
         DispatchManagedEmailInternal = "LOOKUP_UNCERTAIN"
         Exit Function
     End If
-    ' Recheck in case this run continued past midnight into the weekend.
-    If IsWeekend(Date) Then
-        LogEvent "Weekend: email delivery skipped. Subject: " & .Subject
-        Exit Sub
-    End If
     If outboxMatches.Count = 0 Then
         If DEBUG_MODE Then
             LogEvent "DEBUG_MODE enabled - managed email not sent. Key: " & managedKey & " | Subject: " & subjectText
@@ -1943,6 +1958,11 @@ Function DispatchManagedEmailInternal(ByRef outlookApp, managedKey, subjectText,
         Set mail = CreateManagedEmailFromSpecWithCc(outlookApp, managedKey, subjectText, toAddress, ccAddress, bodyText, deferredDeliveryTime)
         LogEvent "Created new managed email for key '" & managedKey & "'."
         LogOutlookTransportStateSnapshot "before send " & managedKey, outlookApp
+        If IsWeekend(Date) Then
+            LogEvent "Weekend: managed email delivery skipped. Subject: " & subjectText
+            DispatchManagedEmailInternal = "WEEKEND_SKIPPED"
+            Exit Function
+        End If
         On Error Resume Next
         mail.Send
         If Err.Number <> 0 Then
